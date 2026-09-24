@@ -1,4 +1,4 @@
-using StudentActivityManagement.API.DTOs.Activity;
+﻿using StudentActivityManagement.API.DTOs.Activity;
 using StudentActivityManagement.API.DTOs.Common;
 
 namespace StudentActivityManagement.API.Services
@@ -13,5 +13,7 @@ namespace StudentActivityManagement.API.Services
         Task<ApiResponseDto<ActivityResponseDto>> UpdateActivityAsync(int id, ActivityUpdateDto request);
         Task<ApiResponseDto<ActivityResponseDto>> UpdateActivityStatusAsync(int id, string newStatus);
         Task<ApiResponseDto<bool>> DeleteActivityAsync(int id);
+        Task<ApiResponseDto<bool>> RegisterActivityAsync(int activityId, int studentId);
     }
 }
+
