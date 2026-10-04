@@ -1,0 +1,4 @@
+.codex-tmp/
+docs/project/_renders/
+*.inspect.ndjson
+.local/

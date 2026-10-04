@@ -1,6 +1,28 @@
-@StudentActivityManagement.API_HostAddress = http://localhost:5210
+@host = http://localhost:5210
+@studentToken = paste-student-jwt-here
+@adminToken = paste-admin-jwt-here
 
-GET {{StudentActivityManagement.API_HostAddress}}/weatherforecast/
-Accept: application/json
+### Đăng nhập sinh viên
+POST {{host}}/api/auth/login
+Content-Type: application/json
 
-###
+{
+  "usernameOrEmail": "SV210002",
+  "password": "123456"
+}
+
+### Thông tin tài khoản hiện tại
+GET {{host}}/api/auth/me
+Authorization: Bearer {{studentToken}}
+
+### Hoạt động sắp tới dành cho sinh viên hoặc lớp trưởng
+GET {{host}}/api/studentactivities?pageIndex=1&pageSize=10
+Authorization: Bearer {{studentToken}}
+
+### Đăng ký hoạt động
+POST {{host}}/api/studentactivities/2/register
+Authorization: Bearer {{studentToken}}
+
+### Danh sách sinh viên dành cho Admin
+GET {{host}}/api/admin/students?pageIndex=1&pageSize=10
+Authorization: Bearer {{adminToken}}
