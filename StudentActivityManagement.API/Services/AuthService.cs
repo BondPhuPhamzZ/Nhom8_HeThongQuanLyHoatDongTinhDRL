@@ -33,6 +33,13 @@ namespace StudentActivityManagement.API.Services
                 return ApiResponseDto<AuthResponseDto>.Fail("Tên đăng nhập / Mã sinh viên hoặc mật khẩu không chính xác.");
             }
 
+            if (PasswordHasher.NeedsRehash(user.PasswordHash))
+            {
+                user.PasswordHash = PasswordHasher.HashPassword(request.Password);
+                user.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
+
             var (token, expiresAt) = _jwtTokenGenerator.GenerateToken(user);
 
             var userDto = MapToUserDto(user);
@@ -57,6 +64,11 @@ namespace StudentActivityManagement.API.Services
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
             {
                 return ApiResponseDto<UserDto>.Fail("Email đã được sử dụng.");
+            }
+
+            if (request.ClassId.HasValue && !await _context.Classes.AnyAsync(c => c.Id == request.ClassId.Value))
+            {
+                return ApiResponseDto<UserDto>.Fail("Lớp học không tồn tại.");
             }
 
             var newUser = new User

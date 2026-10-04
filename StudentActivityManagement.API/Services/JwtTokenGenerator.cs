@@ -22,10 +22,14 @@ namespace StudentActivityManagement.API.Services
 
         public (string token, DateTime expiresAt) GenerateToken(User user)
         {
-            var secretKey = _config["JwtSettings:Secret"] ?? "CNPMNC_SUPER_SECRET_KEY_JWT_2026_STUDENT_ACTIVITY_MANAGEMENT_SYSTEM";
+            var secretKey = _config["JwtSettings:Secret"]
+                ?? throw new InvalidOperationException("Thiếu cấu hình JwtSettings:Secret.");
             var issuer = _config["JwtSettings:Issuer"] ?? "StudentActivityManagement.API";
             var audience = _config["JwtSettings:Audience"] ?? "StudentActivityClient";
-            var expiryMinutes = double.Parse(_config["JwtSettings:ExpiryMinutes"] ?? "1440"); // Default 24 hours
+            if (!double.TryParse(_config["JwtSettings:ExpiryMinutes"], out var expiryMinutes) || expiryMinutes <= 0)
+            {
+                expiryMinutes = 1440;
+            }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

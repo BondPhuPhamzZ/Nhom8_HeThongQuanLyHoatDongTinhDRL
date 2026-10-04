@@ -8,6 +8,12 @@ using StudentActivityManagement.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Console/Debug logging works consistently in local development, CI and containers.
+// Avoid the Windows Event Log provider, which requires machine-level permissions.
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
 // 1. Add DbContext
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=student_activity.db";
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -20,7 +26,12 @@ builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
 
 // 3. Configure JWT Authentication
-var jwtSecret = builder.Configuration["JwtSettings:Secret"] ?? "CNPMNC_SUPER_SECRET_KEY_JWT_2026_STUDENT_ACTIVITY_MANAGEMENT_SYSTEM";
+var jwtSecret = builder.Configuration["JwtSettings:Secret"];
+if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
+{
+    throw new InvalidOperationException(
+        "Thiếu JwtSettings:Secret hoặc khóa ngắn hơn 32 ký tự. Hãy cấu hình bằng user-secrets hoặc biến môi trường.");
+}
 var jwtIssuer = builder.Configuration["JwtSettings:Issuer"] ?? "StudentActivityManagement.API";
 var jwtAudience = builder.Configuration["JwtSettings:Audience"] ?? "StudentActivityClient";
 
@@ -46,7 +57,11 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("StudentOrMonitor", policy =>
+        policy.RequireRole(StudentActivityManagement.API.Models.Role.Student, StudentActivityManagement.API.Models.Role.Monitor));
+});
 
 // 4. Add Controllers
 builder.Services.AddControllers();
@@ -91,11 +106,19 @@ builder.Services.AddSwaggerGen(c =>
 // 6. Configure CORS Policy
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("ClientApps", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+        if (builder.Environment.IsDevelopment() && allowedOrigins.Length == 0)
+        {
+            policy.AllowAnyOrigin();
+        }
+        else
+        {
+            policy.WithOrigins(allowedOrigins);
+        }
+
+        policy.AllowAnyHeader().AllowAnyMethod();
     });
 });
 
@@ -109,7 +132,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // 8. Configure HTTP Request Pipeline
-if (app.Environment.IsDevelopment() || true)
+if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
@@ -119,7 +142,11 @@ if (app.Environment.IsDevelopment() || true)
     });
 }
 
-app.UseCors("AllowAll");
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+app.UseCors("ClientApps");
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -15,11 +15,10 @@ namespace StudentActivityManagement.API.DTOs.Student
         public string Email { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Mật khẩu không được để trống")]
+        [MinLength(6, ErrorMessage = "Mật khẩu phải từ 6 ký tự trở lên")]
         public string Password { get; set; } = "123456";
 
         public string Phone { get; set; } = string.Empty;
-
-        public string Role { get; set; } = Models.Role.Student;
 
         public string Campus { get; set; } = "Cơ sở 1";
 
@@ -27,6 +26,5 @@ namespace StudentActivityManagement.API.DTOs.Student
 
         public int? ClassId { get; set; }
 
-        public bool IsClassMonitor { get; set; } = false;
     }
 }

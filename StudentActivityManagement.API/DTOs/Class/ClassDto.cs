@@ -22,6 +22,5 @@ namespace StudentActivityManagement.API.DTOs.Class
         public string ClassName { get; set; } = string.Empty;
 
         public string Department { get; set; } = string.Empty;
-        public int? MonitorStudentId { get; set; }
     }
 }

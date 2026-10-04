@@ -8,6 +8,9 @@ namespace StudentActivityManagement.API.Services
 {
     public class ActivityService : IActivityService
     {
+        private static readonly string[] AllowedStatuses =
+            ["Draft", "Published", "Ongoing", "Completed", "Cancelled"];
+
         private readonly AppDbContext _context;
 
         public ActivityService(AppDbContext context)
@@ -16,9 +19,17 @@ namespace StudentActivityManagement.API.Services
         }
 
         public async Task<ApiResponseDto<PagedResultDto<ActivityResponseDto>>> GetActivitiesAsync(
-            string? campus, string? status, string? search, int pageIndex = 1, int pageSize = 10)
+            string? campus, string? status, string? search, int pageIndex = 1, int pageSize = 10, bool upcomingOnly = false)
         {
+            pageIndex = Math.Max(pageIndex, 1);
+            pageSize = Math.Clamp(pageSize, 1, 100);
             var query = _context.Activities.AsQueryable();
+
+            if (upcomingOnly)
+            {
+                var now = DateTime.UtcNow;
+                query = query.Where(a => a.EndTime >= now);
+            }
 
             if (!string.IsNullOrWhiteSpace(campus))
             {
@@ -60,7 +71,7 @@ namespace StudentActivityManagement.API.Services
             var activity = await _context.Activities.FindAsync(id);
             if (activity == null)
             {
-                return ApiResponseDto<ActivityResponseDto>.Fail("KhÃ´ng tÃ¬m tháº¥y hoáº¡t Ä‘á»™ng.");
+                return ApiResponseDto<ActivityResponseDto>.Fail("Không tìm thấy hoạt động.");
             }
 
             return ApiResponseDto<ActivityResponseDto>.Ok(MapToResponse(activity));
@@ -68,14 +79,25 @@ namespace StudentActivityManagement.API.Services
 
         public async Task<ApiResponseDto<ActivityResponseDto>> CreateActivityAsync(ActivityCreateDto request)
         {
+            var normalizedStatus = NormalizeStatus(request.Status);
+            if (normalizedStatus == null)
+            {
+                return ApiResponseDto<ActivityResponseDto>.Fail("Trạng thái hoạt động không hợp lệ.");
+            }
+
             if (request.EndTime <= request.StartTime)
             {
-                return ApiResponseDto<ActivityResponseDto>.Fail("Thá»i gian káº¿t thÃºc pháº£i sau thá»i gian báº¯t Ä‘áº§u.");
+                return ApiResponseDto<ActivityResponseDto>.Fail("Thời gian kết thúc phải sau thời gian bắt đầu.");
             }
 
             if (request.RegistrationCloseTime <= request.RegistrationOpenTime)
             {
-                return ApiResponseDto<ActivityResponseDto>.Fail("Thá»i gian Ä‘Ã³ng Ä‘Äƒng kÃ½ pháº£i sau thá»i gian má»Ÿ Ä‘Äƒng kÃ½.");
+                return ApiResponseDto<ActivityResponseDto>.Fail("Thời gian đóng đăng ký phải sau thời gian mở đăng ký.");
+            }
+
+            if (request.RegistrationCloseTime > request.StartTime)
+            {
+                return ApiResponseDto<ActivityResponseDto>.Fail("Thời gian đóng đăng ký không được sau thời gian bắt đầu hoạt động.");
             }
 
             var activity = new Activity
@@ -92,14 +114,14 @@ namespace StudentActivityManagement.API.Services
                 CurrentParticipantsCount = 0,
                 TrainingPoints = request.TrainingPoints,
                 TargetAudience = request.TargetAudience,
-                Status = string.IsNullOrWhiteSpace(request.Status) ? "Published" : request.Status,
+                Status = normalizedStatus,
                 CreatedAt = DateTime.UtcNow
             };
 
             _context.Activities.Add(activity);
             await _context.SaveChangesAsync();
 
-            return ApiResponseDto<ActivityResponseDto>.Ok(MapToResponse(activity), "Táº¡o má»›i hoáº¡t Ä‘á»™ng rÃ¨n luyá»‡n thÃ nh cÃ´ng.");
+            return ApiResponseDto<ActivityResponseDto>.Ok(MapToResponse(activity), "Tạo mới hoạt động rèn luyện thành công.");
         }
 
         public async Task<ApiResponseDto<ActivityResponseDto>> UpdateActivityAsync(int id, ActivityUpdateDto request)
@@ -107,17 +129,33 @@ namespace StudentActivityManagement.API.Services
             var activity = await _context.Activities.FindAsync(id);
             if (activity == null)
             {
-                return ApiResponseDto<ActivityResponseDto>.Fail("KhÃ´ng tÃ¬m tháº¥y hoáº¡t Ä‘á»™ng.");
+                return ApiResponseDto<ActivityResponseDto>.Fail("Không tìm thấy hoạt động.");
+            }
+
+            var normalizedStatus = NormalizeStatus(request.Status);
+            if (normalizedStatus == null)
+            {
+                return ApiResponseDto<ActivityResponseDto>.Fail("Trạng thái hoạt động không hợp lệ.");
             }
 
             if (request.EndTime <= request.StartTime)
             {
-                return ApiResponseDto<ActivityResponseDto>.Fail("Thá»i gian káº¿t thÃºc pháº£i sau thá»i gian báº¯t Ä‘áº§u.");
+                return ApiResponseDto<ActivityResponseDto>.Fail("Thời gian kết thúc phải sau thời gian bắt đầu.");
             }
 
             if (request.RegistrationCloseTime <= request.RegistrationOpenTime)
             {
-                return ApiResponseDto<ActivityResponseDto>.Fail("Thá»i gian Ä‘Ã³ng Ä‘Äƒng kÃ½ pháº£i sau thá»i gian má»Ÿ Ä‘Äƒng kÃ½.");
+                return ApiResponseDto<ActivityResponseDto>.Fail("Thời gian đóng đăng ký phải sau thời gian mở đăng ký.");
+            }
+
+            if (request.RegistrationCloseTime > request.StartTime)
+            {
+                return ApiResponseDto<ActivityResponseDto>.Fail("Thời gian đóng đăng ký không được sau thời gian bắt đầu hoạt động.");
+            }
+
+            if (request.MaxParticipants < activity.CurrentParticipantsCount)
+            {
+                return ApiResponseDto<ActivityResponseDto>.Fail("Sức chứa không được nhỏ hơn số sinh viên đã đăng ký.");
             }
 
             activity.ActivityName = request.ActivityName;
@@ -131,12 +169,12 @@ namespace StudentActivityManagement.API.Services
             activity.MaxParticipants = request.MaxParticipants;
             activity.TrainingPoints = request.TrainingPoints;
             activity.TargetAudience = request.TargetAudience;
-            activity.Status = request.Status;
+            activity.Status = normalizedStatus;
             activity.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
-            return ApiResponseDto<ActivityResponseDto>.Ok(MapToResponse(activity), "Cáº­p nháº­t hoáº¡t Ä‘á»™ng rÃ¨n luyá»‡n thÃ nh cÃ´ng.");
+            return ApiResponseDto<ActivityResponseDto>.Ok(MapToResponse(activity), "Cập nhật hoạt động rèn luyện thành công.");
         }
 
         public async Task<ApiResponseDto<ActivityResponseDto>> UpdateActivityStatusAsync(int id, string newStatus)
@@ -144,15 +182,21 @@ namespace StudentActivityManagement.API.Services
             var activity = await _context.Activities.FindAsync(id);
             if (activity == null)
             {
-                return ApiResponseDto<ActivityResponseDto>.Fail("KhÃ´ng tÃ¬m tháº¥y hoáº¡t Ä‘á»™ng.");
+                return ApiResponseDto<ActivityResponseDto>.Fail("Không tìm thấy hoạt động.");
             }
 
-            activity.Status = newStatus;
+            var normalizedStatus = NormalizeStatus(newStatus);
+            if (normalizedStatus == null)
+            {
+                return ApiResponseDto<ActivityResponseDto>.Fail("Trạng thái hoạt động không hợp lệ.");
+            }
+
+            activity.Status = normalizedStatus;
             activity.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
-            return ApiResponseDto<ActivityResponseDto>.Ok(MapToResponse(activity), $"ÄÃ£ cáº­p nháº­t tráº¡ng thÃ¡i hoáº¡t Ä‘á»™ng thÃ nh '{newStatus}'.");
+            return ApiResponseDto<ActivityResponseDto>.Ok(MapToResponse(activity), $"Đã cập nhật trạng thái hoạt động thành '{normalizedStatus}'.");
         }
 
         public async Task<ApiResponseDto<bool>> DeleteActivityAsync(int id)
@@ -160,13 +204,13 @@ namespace StudentActivityManagement.API.Services
             var activity = await _context.Activities.FindAsync(id);
             if (activity == null)
             {
-                return ApiResponseDto<bool>.Fail("KhÃ´ng tÃ¬m tháº¥y hoáº¡t Ä‘á»™ng.");
+                return ApiResponseDto<bool>.Fail("Không tìm thấy hoạt động.");
             }
 
             _context.Activities.Remove(activity);
             await _context.SaveChangesAsync();
 
-            return ApiResponseDto<bool>.Ok(true, "XÃ³a hoáº¡t Ä‘á»™ng rÃ¨n luyá»‡n thÃ nh cÃ´ng.");
+            return ApiResponseDto<bool>.Ok(true, "Xóa hoạt động rèn luyện thành công.");
         }
 
         private static ActivityResponseDto MapToResponse(Activity a)
@@ -190,38 +234,73 @@ namespace StudentActivityManagement.API.Services
                 CreatedAt = a.CreatedAt
             };
         }
+
+        private static string? NormalizeStatus(string? status)
+        {
+            if (string.IsNullOrWhiteSpace(status))
+            {
+                return "Published";
+            }
+
+            return AllowedStatuses.FirstOrDefault(allowedStatus =>
+                allowedStatus.Equals(status.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
         public async Task<ApiResponseDto<bool>> RegisterActivityAsync(int activityId, int studentId)
         {
-            var activity = await _context.Activities.FindAsync(activityId);
-            if (activity == null || activity.Status != "Published")
-                return ApiResponseDto<bool>.Fail("Hoạt động không tồn tại hoặc chưa mở.");
-                
             var now = DateTime.UtcNow;
-            if (now < activity.RegistrationOpenTime || now > activity.RegistrationCloseTime)
-                return ApiResponseDto<bool>.Fail("Không trong thời gian đăng ký.");
-                
-            if (activity.CurrentParticipantsCount >= activity.MaxParticipants)
-                return ApiResponseDto<bool>.Fail("Hoạt động đã đủ số lượng.");
-                
-            var existingReg = await _context.ActivityRegistrations
-                .FirstOrDefaultAsync(ar => ar.ActivityId == activityId && ar.StudentId == studentId);
-                
-            if (existingReg != null)
-                return ApiResponseDto<bool>.Fail("Bạn đã đăng ký hoạt động này rồi.");
-                
-            var registration = new ActivityRegistration
+            var isStudent = await _context.Users.AnyAsync(u =>
+                u.Id == studentId && (u.Role == Role.Student || u.Role == Role.Monitor));
+            if (!isStudent)
             {
-                ActivityId = activityId,
-                StudentId = studentId,
-                RegisteredAt = DateTime.UtcNow,
-                Status = "Registered"
-            };
-            
-            _context.ActivityRegistrations.Add(registration);
-            activity.CurrentParticipantsCount++;
-            await _context.SaveChangesAsync();
-            
-            return ApiResponseDto<bool>.Ok(true, "Đăng ký thành công.");
+                return ApiResponseDto<bool>.Fail("Tài khoản sinh viên không hợp lệ.");
+            }
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            try
+            {
+                if (await _context.ActivityRegistrations.AnyAsync(ar =>
+                        ar.ActivityId == activityId && ar.StudentId == studentId))
+                {
+                    return ApiResponseDto<bool>.Fail("Bạn đã đăng ký hoạt động này rồi.");
+                }
+
+                var updatedRows = await _context.Activities
+                    .Where(a => a.Id == activityId &&
+                                a.Status == "Published" &&
+                                a.RegistrationOpenTime <= now &&
+                                a.RegistrationCloseTime >= now &&
+                                a.CurrentParticipantsCount < a.MaxParticipants)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(a => a.CurrentParticipantsCount, a => a.CurrentParticipantsCount + 1));
+
+                if (updatedRows == 0)
+                {
+                    var activity = await _context.Activities.AsNoTracking().FirstOrDefaultAsync(a => a.Id == activityId);
+                    if (activity == null || activity.Status != "Published")
+                        return ApiResponseDto<bool>.Fail("Hoạt động không tồn tại hoặc chưa mở.");
+                    if (now < activity.RegistrationOpenTime || now > activity.RegistrationCloseTime)
+                        return ApiResponseDto<bool>.Fail("Không trong thời gian đăng ký.");
+                    return ApiResponseDto<bool>.Fail("Hoạt động đã đủ số lượng.");
+                }
+
+                _context.ActivityRegistrations.Add(new ActivityRegistration
+                {
+                    ActivityId = activityId,
+                    StudentId = studentId,
+                    RegisteredAt = now,
+                    Status = "Registered"
+                });
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return ApiResponseDto<bool>.Ok(true, "Đăng ký thành công.");
+            }
+            catch (DbUpdateException)
+            {
+                await transaction.RollbackAsync();
+                return ApiResponseDto<bool>.Fail("Không thể đăng ký do dữ liệu đã thay đổi. Vui lòng thử lại.");
+            }
         }
     }
 }

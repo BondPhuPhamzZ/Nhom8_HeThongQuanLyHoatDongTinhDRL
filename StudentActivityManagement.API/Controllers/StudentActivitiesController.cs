@@ -9,7 +9,7 @@ namespace StudentActivityManagement.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = Role.Student)]
+    [Authorize(Policy = "StudentOrMonitor")]
     public class StudentActivitiesController : ControllerBase
     {
         private readonly IActivityService _activityService;
@@ -22,7 +22,7 @@ namespace StudentActivityManagement.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetActivities([FromQuery] string? campus, [FromQuery] string? search, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
         {
-            var result = await _activityService.GetActivitiesAsync(campus, "Published", search, pageIndex, pageSize);
+            var result = await _activityService.GetActivitiesAsync(campus, "Published", search, pageIndex, pageSize, upcomingOnly: true);
             return Ok(result);
         }
 
@@ -30,7 +30,13 @@ namespace StudentActivityManagement.API.Controllers
         public async Task<IActionResult> GetActivityById(int id)
         {
             var result = await _activityService.GetActivityByIdAsync(id);
-            if (!result.Success) return NotFound(result);
+            if (!result.Success || result.Data == null ||
+                !string.Equals(result.Data.Status, "Published", StringComparison.OrdinalIgnoreCase) ||
+                result.Data.EndTime < DateTime.UtcNow)
+            {
+                return NotFound(ApiResponseDto<object>.Fail("Không tìm thấy hoạt động đang mở."));
+            }
+
             return Ok(result);
         }
 

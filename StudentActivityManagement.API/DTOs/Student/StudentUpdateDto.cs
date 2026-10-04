@@ -11,11 +11,10 @@ namespace StudentActivityManagement.API.DTOs.Student
         [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
         public string Email { get; set; } = string.Empty;
 
+        [MinLength(6, ErrorMessage = "Mật khẩu phải từ 6 ký tự trở lên")]
         public string? Password { get; set; } // Leave null/empty to keep current password
 
         public string Phone { get; set; } = string.Empty;
-
-        public string Role { get; set; } = Models.Role.Student;
 
         public string Campus { get; set; } = string.Empty;
 
@@ -23,8 +22,5 @@ namespace StudentActivityManagement.API.DTOs.Student
 
         public int? ClassId { get; set; }
 
-        public bool IsClassMonitor { get; set; }
-
-        public int AccumulatedPoints { get; set; }
     }
 }

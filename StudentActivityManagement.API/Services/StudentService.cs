@@ -19,9 +19,11 @@ namespace StudentActivityManagement.API.Services
         public async Task<ApiResponseDto<PagedResultDto<StudentResponseDto>>> GetStudentsAsync(
             string? campus, string? academicYear, int? classId, string? search, int pageIndex = 1, int pageSize = 10)
         {
+            pageIndex = Math.Max(pageIndex, 1);
+            pageSize = Math.Clamp(pageSize, 1, 100);
             var query = _context.Users
                 .Include(u => u.Class)
-                .AsQueryable();
+                .Where(u => u.Role == Role.Student || u.Role == Role.Monitor);
 
             if (!string.IsNullOrWhiteSpace(campus))
             {
@@ -67,11 +69,11 @@ namespace StudentActivityManagement.API.Services
         {
             var student = await _context.Users
                 .Include(u => u.Class)
-                .FirstOrDefaultAsync(u => u.Id == id);
+                .FirstOrDefaultAsync(u => u.Id == id && (u.Role == Role.Student || u.Role == Role.Monitor));
 
             if (student == null)
             {
-                return ApiResponseDto<StudentResponseDto>.Fail("KhÃ´ng tÃ¬m tháº¥y sinh viÃªn.");
+                return ApiResponseDto<StudentResponseDto>.Fail("Không tìm thấy sinh viên.");
             }
 
             return ApiResponseDto<StudentResponseDto>.Ok(MapToStudentResponse(student));
@@ -81,12 +83,17 @@ namespace StudentActivityManagement.API.Services
         {
             if (await _context.Users.AnyAsync(u => u.StudentCode == request.StudentCode))
             {
-                return ApiResponseDto<StudentResponseDto>.Fail("MÃ£ sinh viÃªn Ä‘Ã£ tá»“n táº¡i.");
+                return ApiResponseDto<StudentResponseDto>.Fail("Mã sinh viên đã tồn tại.");
             }
 
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
             {
-                return ApiResponseDto<StudentResponseDto>.Fail("Email Ä‘Ã£ tá»“n táº¡i.");
+                return ApiResponseDto<StudentResponseDto>.Fail("Email đã tồn tại.");
+            }
+
+            if (request.ClassId.HasValue && !await _context.Classes.AnyAsync(c => c.Id == request.ClassId.Value))
+            {
+                return ApiResponseDto<StudentResponseDto>.Fail("Lớp học không tồn tại.");
             }
 
             var student = new User
@@ -96,11 +103,11 @@ namespace StudentActivityManagement.API.Services
                 Email = request.Email,
                 PasswordHash = PasswordHasher.HashPassword(request.Password),
                 Phone = request.Phone,
-                Role = string.IsNullOrWhiteSpace(request.Role) ? Role.Student : request.Role,
+                Role = Role.Student,
                 Campus = request.Campus,
                 AcademicYear = request.AcademicYear,
                 ClassId = request.ClassId,
-                IsClassMonitor = request.IsClassMonitor,
+                IsClassMonitor = false,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -109,34 +116,41 @@ namespace StudentActivityManagement.API.Services
 
             await _context.Entry(student).Reference(u => u.Class).LoadAsync();
 
-            return ApiResponseDto<StudentResponseDto>.Ok(MapToStudentResponse(student), "ThÃªm sinh viÃªn má»›i thÃ nh cÃ´ng.");
+            return ApiResponseDto<StudentResponseDto>.Ok(MapToStudentResponse(student), "Thêm sinh viên mới thành công.");
         }
 
         public async Task<ApiResponseDto<StudentResponseDto>> UpdateStudentAsync(int id, StudentUpdateDto request)
         {
             var student = await _context.Users
                 .Include(u => u.Class)
-                .FirstOrDefaultAsync(u => u.Id == id);
+                .FirstOrDefaultAsync(u => u.Id == id && (u.Role == Role.Student || u.Role == Role.Monitor));
 
             if (student == null)
             {
-                return ApiResponseDto<StudentResponseDto>.Fail("KhÃ´ng tÃ¬m tháº¥y sinh viÃªn.");
+                return ApiResponseDto<StudentResponseDto>.Fail("Không tìm thấy sinh viên.");
             }
 
             if (student.Email != request.Email && await _context.Users.AnyAsync(u => u.Email == request.Email && u.Id != id))
             {
-                return ApiResponseDto<StudentResponseDto>.Fail("Email Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng bá»Ÿi tÃ i khoáº£n khÃ¡c.");
+                return ApiResponseDto<StudentResponseDto>.Fail("Email đã được sử dụng bởi tài khoản khác.");
+            }
+
+            if (request.ClassId.HasValue && !await _context.Classes.AnyAsync(c => c.Id == request.ClassId.Value))
+            {
+                return ApiResponseDto<StudentResponseDto>.Fail("Lớp học không tồn tại.");
+            }
+
+            if (student.IsClassMonitor && student.ClassId != request.ClassId)
+            {
+                return ApiResponseDto<StudentResponseDto>.Fail("Hãy chỉ định lớp trưởng mới trước khi chuyển lớp cho lớp trưởng hiện tại.");
             }
 
             student.FullName = request.FullName;
             student.Email = request.Email;
             student.Phone = request.Phone;
-            student.Role = request.Role;
             student.Campus = request.Campus;
             student.AcademicYear = request.AcademicYear;
             student.ClassId = request.ClassId;
-            student.IsClassMonitor = request.IsClassMonitor;
-            student.AccumulatedPoints = request.AccumulatedPoints;
             student.UpdatedAt = DateTime.UtcNow;
 
             if (!string.IsNullOrWhiteSpace(request.Password))
@@ -146,21 +160,28 @@ namespace StudentActivityManagement.API.Services
 
             await _context.SaveChangesAsync();
 
-            return ApiResponseDto<StudentResponseDto>.Ok(MapToStudentResponse(student), "Cáº­p nháº­t sinh viÃªn thÃ nh cÃ´ng.");
+            return ApiResponseDto<StudentResponseDto>.Ok(MapToStudentResponse(student), "Cập nhật sinh viên thành công.");
         }
 
         public async Task<ApiResponseDto<bool>> DeleteStudentAsync(int id)
         {
-            var student = await _context.Users.FindAsync(id);
+            var student = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Id == id && (u.Role == Role.Student || u.Role == Role.Monitor));
             if (student == null)
             {
-                return ApiResponseDto<bool>.Fail("KhÃ´ng tÃ¬m tháº¥y sinh viÃªn.");
+                return ApiResponseDto<bool>.Fail("Không tìm thấy sinh viên.");
+            }
+
+            if (await _context.ActivityRegistrations.AnyAsync(registration => registration.StudentId == id))
+            {
+                return ApiResponseDto<bool>.Fail(
+                    "Không thể xóa sinh viên đã có lịch sử đăng ký hoạt động. Hãy khóa tài khoản ở Sprint quản trị tài khoản.");
             }
 
             _context.Users.Remove(student);
             await _context.SaveChangesAsync();
 
-            return ApiResponseDto<bool>.Ok(true, "XÃ³a sinh viÃªn thÃ nh cÃ´ng.");
+            return ApiResponseDto<bool>.Ok(true, "Xóa sinh viên thành công.");
         }
 
         public async Task<ApiResponseDto<List<ClassDto>>> GetClassesAsync()
@@ -187,15 +208,14 @@ namespace StudentActivityManagement.API.Services
         {
             if (await _context.Classes.AnyAsync(c => c.ClassCode == request.ClassCode))
             {
-                return ApiResponseDto<ClassDto>.Fail("MÃ£ lá»›p Ä‘Ã£ tá»“n táº¡i.");
+                return ApiResponseDto<ClassDto>.Fail("Mã lớp đã tồn tại.");
             }
 
             var newClass = new Class
             {
                 ClassCode = request.ClassCode,
                 ClassName = request.ClassName,
-                Department = request.Department,
-                MonitorStudentId = request.MonitorStudentId
+                Department = request.Department
             };
 
             _context.Classes.Add(newClass);
@@ -211,7 +231,7 @@ namespace StudentActivityManagement.API.Services
                 TotalStudents = 0
             };
 
-            return ApiResponseDto<ClassDto>.Ok(classDto, "ThÃªm lá»›p má»›i thÃ nh cÃ´ng.");
+            return ApiResponseDto<ClassDto>.Ok(classDto, "Thêm lớp mới thành công.");
         }
 
         private static StudentResponseDto MapToStudentResponse(User user)
@@ -234,25 +254,33 @@ namespace StudentActivityManagement.API.Services
                 CreatedAt = user.CreatedAt
             };
         }
+
         public async Task<ApiResponseDto<bool>> AssignClassMonitorAsync(int classId, int studentId)
         {
             var targetClass = await _context.Classes.FindAsync(classId);
             if (targetClass == null) return ApiResponseDto<bool>.Fail("Không tìm thấy lớp học.");
-            
-            var student = await _context.Users.FirstOrDefaultAsync(u => u.Id == studentId && u.Role == Role.Student);
+
+            var student = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Id == studentId && (u.Role == Role.Student || u.Role == Role.Monitor));
             if (student == null) return ApiResponseDto<bool>.Fail("Không tìm thấy sinh viên.");
-            
+
             if (student.ClassId != classId) return ApiResponseDto<bool>.Fail("Sinh viên này không thuộc lớp.");
-            
+
             // Xoá chức lớp trưởng của người cũ
-            if (targetClass.MonitorStudentId.HasValue) {
+            if (targetClass.MonitorStudentId.HasValue)
+            {
                 var oldMonitor = await _context.Users.FindAsync(targetClass.MonitorStudentId.Value);
-                if (oldMonitor != null) oldMonitor.IsClassMonitor = false;
+                if (oldMonitor != null)
+                {
+                    oldMonitor.IsClassMonitor = false;
+                    oldMonitor.Role = Role.Student;
+                }
             }
-            
+
             targetClass.MonitorStudentId = studentId;
             student.IsClassMonitor = true;
-            
+            student.Role = Role.Monitor;
+
             await _context.SaveChangesAsync();
             return ApiResponseDto<bool>.Ok(true, "Chỉ định lớp trưởng thành công.");
         }

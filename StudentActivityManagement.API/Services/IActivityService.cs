@@ -6,7 +6,7 @@ namespace StudentActivityManagement.API.Services
     public interface IActivityService
     {
         Task<ApiResponseDto<PagedResultDto<ActivityResponseDto>>> GetActivitiesAsync(
-            string? campus, string? status, string? search, int pageIndex = 1, int pageSize = 10);
+            string? campus, string? status, string? search, int pageIndex = 1, int pageSize = 10, bool upcomingOnly = false);
 
         Task<ApiResponseDto<ActivityResponseDto>> GetActivityByIdAsync(int id);
         Task<ApiResponseDto<ActivityResponseDto>> CreateActivityAsync(ActivityCreateDto request);
