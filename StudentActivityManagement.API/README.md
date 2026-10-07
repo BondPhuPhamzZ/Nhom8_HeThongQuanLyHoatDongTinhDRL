@@ -32,12 +32,13 @@ Tài khoản dữ liệu mẫu:
 3. Chọn nút **Authorize** ở đầu Swagger, nhập `Bearer <token>`.
 4. Sinh viên thử nhóm `/api/StudentActivities`; Admin thử `/api/admin/Students`, `/api/admin/Classes` và `/api/admin/Activities`.
 
-## Cấu trúc tài liệu
+## Cấu trúc project
 
-- [`docs/project`](docs/project): backlog đã hiệu chỉnh và báo cáo rà soát.
-- [`docs/kiet`](docs/kiet): hướng dẫn làm việc dành cho Kiệt.
-- [`docs/demo`](docs/demo): kịch bản demo và báo cáo tiến độ.
+- `Controllers`, `Services`, `DTOs`, `Models`, `Data`: các lớp chính của RESTful API.
 - [`StudentActivityManagement.API.http`](StudentActivityManagement.API.http): request mẫu dùng trong Visual Studio, Rider hoặc VS Code REST Client.
+- `scripts/setup-local.ps1`: cấu hình JWT secret an toàn cho máy local.
+
+Backlog, Sprint, báo cáo, kịch bản demo và hướng dẫn thành viên được quản lý ngoài repository để Git chỉ chứa phần mềm cần build/chạy.
 
 ## Kiểm tra trước khi push hoặc báo cáo
 

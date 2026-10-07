@@ -24,3 +24,12 @@ Thumbs.db
 # Scratch and temp
 scratch/
 slide_ASP_CORE_pdf/
+
+# Academic/project-management documents are stored outside this source repository.
+StudentActivityManagement.API/docs/
+*.docx
+*.xlsx
+*.pdf
+*.pptx
+*.rar
+HuongDanGit_Va_PromptKiet.md

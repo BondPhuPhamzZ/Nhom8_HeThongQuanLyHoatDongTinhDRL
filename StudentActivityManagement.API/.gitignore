@@ -1,4 +1,8 @@
 .codex-tmp/
-docs/project/_renders/
 *.inspect.ndjson
 .local/
+outputs/
+
+# Project-management, Scrum, demo and contributor documents are kept outside Git.
+docs/
+Huong_Dan_Kiet/
