@@ -11,7 +11,7 @@ Yêu cầu: .NET SDK 8.
 ```powershell
 cd StudentActivityManagement.API
 dotnet restore
-dotnet user-secrets set "JwtSettings:Secret" "Nhom8-local-secret-thay-doi-truoc-khi-demo-2026"
+pwsh -NoProfile -File .\scripts\setup-local.ps1
 dotnet run --launch-profile http
 ```
 
@@ -53,6 +53,7 @@ Solution hiện chưa có test project nên `dotnet test` chủ yếu xác nhậ
 ## Lưu ý
 
 - Không commit JWT secret, database `.db`, thư mục `bin`, `obj` hoặc file `.user`.
+- Script `scripts/setup-local.ps1` sinh khóa ngẫu nhiên và lưu bằng .NET user-secrets ngoài repository; script không in giá trị secret.
 - Project hiện dùng SQLite và `EnsureCreated`; không sửa trực tiếp database rồi đưa file `.db` lên Git.
 - Swagger chỉ bật trong Development.
 - Web UI và Mobile UI sẽ là client riêng, gọi cùng API này qua HTTP/JSON.

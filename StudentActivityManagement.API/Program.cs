@@ -30,7 +30,9 @@ var jwtSecret = builder.Configuration["JwtSettings:Secret"];
 if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
 {
     throw new InvalidOperationException(
-        "Thiếu JwtSettings:Secret hoặc khóa ngắn hơn 32 ký tự. Hãy cấu hình bằng user-secrets hoặc biến môi trường.");
+        "Thiếu JwtSettings:Secret hoặc khóa ngắn hơn 32 ký tự. " +
+        "Tại thư mục project, hãy chạy: pwsh -NoProfile -File .\\scripts\\setup-local.ps1. " +
+        "Trong CI/Production, hãy cấu hình biến môi trường JwtSettings__Secret.");
 }
 var jwtIssuer = builder.Configuration["JwtSettings:Issuer"] ?? "StudentActivityManagement.API";
 var jwtAudience = builder.Configuration["JwtSettings:Audience"] ?? "StudentActivityClient";
