@@ -76,7 +76,7 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "Hệ thống Quản lý Hoạt động & Tính điểm Rèn luyện API",
         Version = "v1",
-        Description = "RESTful API Backend cho Sprint 1 - Thực hiện bởi Kiệt"
+        Description = "RESTful API dùng chung cho Web và Mobile của Nhóm 8"
     });
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
