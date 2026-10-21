@@ -126,10 +126,11 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// 7. Seed Database automatically on startup
+// 7. Apply committed migrations, then seed reference/demo data.
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    context.Database.Migrate();
     DbInitializer.Initialize(context);
 }
 
@@ -156,3 +157,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Required by WebApplicationFactory in integration tests.
+public partial class Program;
