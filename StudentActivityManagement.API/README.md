@@ -11,9 +11,13 @@ Yêu cầu: .NET SDK 8.
 ```powershell
 cd StudentActivityManagement.API
 dotnet restore
+dotnet tool restore
 pwsh -NoProfile -File .\scripts\setup-local.ps1
+pwsh -NoProfile -File .\scripts\update-database.ps1 -ResetLegacyDatabase
 dotnet run --launch-profile http
 ```
+
+Chỉ dùng `-ResetLegacyDatabase` một lần khi chuyển từ database Sprint 1 chưa có migration history. Script đổi tên file DB cũ thành bản `.bak`, không xóa dữ liệu âm thầm. Những lần sau chỉ chạy `pwsh -NoProfile -File .\scripts\update-database.ps1`.
 
 Mở [http://localhost:5210](http://localhost:5210). Swagger được đặt tại trang gốc khi chạy ở môi trường Development.
 
@@ -27,33 +31,35 @@ Tài khoản dữ liệu mẫu:
 
 Để thử API có phân quyền:
 
-1. Mở `POST /api/auth/login`, chọn **Try it out** và đăng nhập.
+1. Mở `POST /api/v1/auth/login`, chọn **Try it out** và đăng nhập.
 2. Sao chép giá trị `data.token` trong response.
 3. Chọn nút **Authorize** ở đầu Swagger, nhập `Bearer <token>`.
-4. Sinh viên thử nhóm `/api/StudentActivities`; Admin thử `/api/admin/Students`, `/api/admin/Classes` và `/api/admin/Activities`.
+4. Sinh viên thử nhóm `/api/v1/student-activities`; Admin thử `/api/v1/admin/students`, `/api/v1/admin/classes` và `/api/v1/admin/activities`.
+
+Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động có `organizerName`, danh sách `sessions` và `audienceRules`. Sinh viên chỉ thấy và đăng ký hoạt động phù hợp cơ sở, khóa hoặc lớp của mình.
 
 ## Cấu trúc project
 
 - `Controllers`, `Services`, `DTOs`, `Models`, `Data`: các lớp chính của RESTful API.
 - [`StudentActivityManagement.API.http`](StudentActivityManagement.API.http): request mẫu dùng trong Visual Studio, Rider hoặc VS Code REST Client.
 - `scripts/setup-local.ps1`: cấu hình JWT secret an toàn cho máy local.
+- `scripts/update-database.ps1`: restore EF tool và áp dụng migration đã commit.
+- `StudentActivityManagement.API.Tests`: integration test cho JWT, phân quyền, OpenAPI, lịch nhiều buổi và đối tượng tham gia.
 
 Backlog, Sprint, báo cáo, kịch bản demo và hướng dẫn thành viên được quản lý ngoài repository để Git chỉ chứa phần mềm cần build/chạy.
 
 ## Kiểm tra trước khi push hoặc báo cáo
 
 ```powershell
-dotnet restore
-dotnet build
-dotnet test
+dotnet restore ..\Nhom8_ActivitiesManagement.sln
+dotnet build ..\Nhom8_ActivitiesManagement.sln --no-restore -m:1
+dotnet test ..\Nhom8_ActivitiesManagement.sln --no-build --no-restore -m:1
 ```
-
-Solution hiện chưa có test project nên `dotnet test` chủ yếu xác nhận solution tải và build được. Automated tests và EF Core migrations là hạng mục phải bổ sung trong Sprint tiếp theo.
 
 ## Lưu ý
 
 - Không commit JWT secret, database `.db`, thư mục `bin`, `obj` hoặc file `.user`.
 - Script `scripts/setup-local.ps1` sinh khóa ngẫu nhiên và lưu bằng .NET user-secrets ngoài repository; script không in giá trị secret.
-- Project hiện dùng SQLite và `EnsureCreated`; không sửa trực tiếp database rồi đưa file `.db` lên Git.
+- Project dùng SQLite và EF Core migrations; không sửa trực tiếp database rồi đưa file `.db` lên Git.
 - Swagger chỉ bật trong Development.
 - Web UI và Mobile UI sẽ là client riêng, gọi cùng API này qua HTTP/JSON.

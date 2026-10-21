@@ -3,7 +3,7 @@
 @adminToken = paste-admin-jwt-here
 
 ### Đăng nhập sinh viên
-POST {{host}}/api/auth/login
+POST {{host}}/api/v1/auth/login
 Content-Type: application/json
 
 {
@@ -12,17 +12,67 @@ Content-Type: application/json
 }
 
 ### Thông tin tài khoản hiện tại
-GET {{host}}/api/auth/me
+GET {{host}}/api/v1/auth/me
 Authorization: Bearer {{studentToken}}
 
 ### Hoạt động sắp tới dành cho sinh viên hoặc lớp trưởng
-GET {{host}}/api/studentactivities?pageIndex=1&pageSize=10
+GET {{host}}/api/v1/student-activities?pageIndex=1&pageSize=10
 Authorization: Bearer {{studentToken}}
 
 ### Đăng ký hoạt động
-POST {{host}}/api/studentactivities/2/register
+POST {{host}}/api/v1/student-activities/2/register
 Authorization: Bearer {{studentToken}}
 
+### Đăng nhập Admin
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "usernameOrEmail": "ADMIN001",
+  "password": "Admin123@"
+}
+
 ### Danh sách sinh viên dành cho Admin
-GET {{host}}/api/admin/students?pageIndex=1&pageSize=10
+GET {{host}}/api/v1/admin/students?pageIndex=1&pageSize=10
 Authorization: Bearer {{adminToken}}
+
+### Tạo hoạt động có hai buổi và giới hạn đối tượng K22
+POST {{host}}/api/v1/admin/activities
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "activityName": "Chuỗi kỹ năng nghề nghiệp",
+  "description": "Ví dụ contract Sprint 2",
+  "organizerName": "Phòng Quản lý HSSV",
+  "registrationOpenTime": "2026-10-21T00:00:00Z",
+  "registrationCloseTime": "2026-10-22T00:00:00Z",
+  "maxParticipants": 100,
+  "trainingPoints": 10,
+  "targetAudience": "Sinh viên K22",
+  "status": "Published",
+  "sessions": [
+    {
+      "sessionName": "Buổi 1",
+      "campus": "Cơ sở 1",
+      "location": "Hội trường A",
+      "startTime": "2026-10-23T01:00:00Z",
+      "endTime": "2026-10-23T04:00:00Z",
+      "sortOrder": 1
+    },
+    {
+      "sessionName": "Buổi 2",
+      "campus": "Cơ sở 2",
+      "location": "Hội trường B",
+      "startTime": "2026-10-24T01:00:00Z",
+      "endTime": "2026-10-24T04:00:00Z",
+      "sortOrder": 2
+    }
+  ],
+  "audienceRules": [
+    {
+      "academicYear": "K22",
+      "participationType": "Required"
+    }
+  ]
+}
