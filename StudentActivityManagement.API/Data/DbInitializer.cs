@@ -7,8 +7,6 @@ namespace StudentActivityManagement.API.Data
     {
         public static void Initialize(AppDbContext context)
         {
-            context.Database.EnsureCreated();
-
             // Check if already seeded
             if (context.Users.Any())
             {
