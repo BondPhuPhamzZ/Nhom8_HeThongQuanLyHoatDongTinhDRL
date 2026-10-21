@@ -9,6 +9,9 @@ namespace StudentActivityManagement.API.Services
             string? campus, string? status, string? search, int pageIndex = 1, int pageSize = 10, bool upcomingOnly = false);
 
         Task<ApiResponseDto<ActivityResponseDto>> GetActivityByIdAsync(int id);
+        Task<ApiResponseDto<PagedResultDto<ActivityResponseDto>>> GetStudentActivitiesAsync(
+            int studentId, string? campus, string? search, int pageIndex = 1, int pageSize = 10);
+        Task<ApiResponseDto<ActivityResponseDto>> GetStudentActivityByIdAsync(int id, int studentId);
         Task<ApiResponseDto<ActivityResponseDto>> CreateActivityAsync(ActivityCreateDto request);
         Task<ApiResponseDto<ActivityResponseDto>> UpdateActivityAsync(int id, ActivityUpdateDto request);
         Task<ApiResponseDto<ActivityResponseDto>> UpdateActivityStatusAsync(int id, string newStatus);

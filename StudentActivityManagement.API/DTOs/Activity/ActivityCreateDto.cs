@@ -9,16 +9,9 @@ namespace StudentActivityManagement.API.DTOs.Activity
 
         public string Description { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Địa điểm không được để trống")]
-        public string Location { get; set; } = string.Empty;
-
-        public string Campus { get; set; } = "Cơ sở 1";
-
-        [Required(ErrorMessage = "Thời gian bắt đầu không được để trống")]
-        public DateTime StartTime { get; set; }
-
-        [Required(ErrorMessage = "Thời gian kết thúc không được để trống")]
-        public DateTime EndTime { get; set; }
+        [Required(ErrorMessage = "Đơn vị tổ chức không được để trống")]
+        [StringLength(150)]
+        public string OrganizerName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Thời gian mở đăng ký không được để trống")]
         public DateTime RegistrationOpenTime { get; set; }
@@ -35,5 +28,10 @@ namespace StudentActivityManagement.API.DTOs.Activity
         public string TargetAudience { get; set; } = "Tất cả sinh viên";
 
         public string Status { get; set; } = "Published";
+
+        [Required, MinLength(1, ErrorMessage = "Hoạt động phải có ít nhất một buổi.")]
+        public List<ActivitySessionInputDto> Sessions { get; set; } = [];
+
+        public List<ActivityAudienceRuleInputDto> AudienceRules { get; set; } = [];
     }
 }

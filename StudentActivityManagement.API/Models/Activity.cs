@@ -14,6 +14,10 @@ namespace StudentActivityManagement.API.Models
 
         public string Description { get; set; } = string.Empty;
 
+        [Required]
+        [StringLength(150)]
+        public string OrganizerName { get; set; } = "Phòng Quản lý HSSV";
+
         [StringLength(200)]
         public string Location { get; set; } = string.Empty;
 
@@ -46,5 +50,9 @@ namespace StudentActivityManagement.API.Models
 
         [JsonIgnore]
         public virtual ICollection<ActivityRegistration> Registrations { get; set; } = new List<ActivityRegistration>();
+
+        public virtual ICollection<ActivitySession> Sessions { get; set; } = new List<ActivitySession>();
+
+        public virtual ICollection<ActivityAudienceRule> AudienceRules { get; set; } = new List<ActivityAudienceRule>();
     }
 }

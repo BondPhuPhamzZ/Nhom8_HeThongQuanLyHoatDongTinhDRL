@@ -13,6 +13,8 @@ namespace StudentActivityManagement.API.Data
         public DbSet<Class> Classes { get; set; } = null!;
         public DbSet<Activity> Activities { get; set; } = null!;
         public DbSet<ActivityRegistration> ActivityRegistrations { get; set; } = null!;
+        public DbSet<ActivitySession> ActivitySessions { get; set; } = null!;
+        public DbSet<ActivityAudienceRule> ActivityAudienceRules { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -55,6 +57,31 @@ namespace StudentActivityManagement.API.Data
                       .WithMany(u => u.Registrations)
                       .HasForeignKey(ar => ar.StudentId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ActivitySession>(entity =>
+            {
+                entity.HasIndex(session => new { session.ActivityId, session.SortOrder }).IsUnique();
+
+                entity.HasOne(session => session.Activity)
+                      .WithMany(activity => activity.Sessions)
+                      .HasForeignKey(session => session.ActivityId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ActivityAudienceRule>(entity =>
+            {
+                entity.HasIndex(rule => rule.ActivityId);
+
+                entity.HasOne(rule => rule.Activity)
+                      .WithMany(activity => activity.AudienceRules)
+                      .HasForeignKey(rule => rule.ActivityId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(rule => rule.Class)
+                      .WithMany()
+                      .HasForeignKey(rule => rule.ClassId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }
