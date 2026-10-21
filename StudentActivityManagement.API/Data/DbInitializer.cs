@@ -91,6 +91,7 @@ namespace StudentActivityManagement.API.Data
                 {
                     ActivityName = "Hội thảo Định hướng Nghề nghiệp CNTT 2026",
                     Description = "Hội thảo chia sẻ kinh nghiệm xin việc, phỏng vấn và xu hướng công nghệ AI/Cloud dành cho sinh viên.",
+                    OrganizerName = "Khoa Công nghệ thông tin",
                     Location = "Hội trường A - Cơ sở 1",
                     Campus = "Cơ sở 1",
                     StartTime = now.AddDays(3),
@@ -102,12 +103,25 @@ namespace StudentActivityManagement.API.Data
                     TrainingPoints = 10,
                     TargetAudience = "Tất cả sinh viên CNTT",
                     Status = "Published",
-                    CreatedAt = now
+                    CreatedAt = now,
+                    Sessions =
+                    [
+                        new ActivitySession
+                        {
+                            SessionName = "Hội thảo chính",
+                            Campus = "Cơ sở 1",
+                            Location = "Hội trường A - Cơ sở 1",
+                            StartTime = now.AddDays(3),
+                            EndTime = now.AddDays(3).AddHours(4),
+                            SortOrder = 1
+                        }
+                    ]
                 },
                 new Activity
                 {
                     ActivityName = "Ngày hội Hiến máu Nhân đạo - Giọt Hồng Trẻ",
                     Description = "Chương trình hiến máu tình nguyện đợt 1 năm học 2026.",
+                    OrganizerName = "Đoàn Thanh niên - Hội Sinh viên",
                     Location = "Sảnh Nhà B - Cơ sở 2",
                     Campus = "Cơ sở 2",
                     StartTime = now.AddDays(7),
@@ -119,12 +133,34 @@ namespace StudentActivityManagement.API.Data
                     TrainingPoints = 15,
                     TargetAudience = "Tất cả sinh viên",
                     Status = "Published",
-                    CreatedAt = now
+                    CreatedAt = now,
+                    Sessions =
+                    [
+                        new ActivitySession
+                        {
+                            SessionName = "Ca sáng",
+                            Campus = "Cơ sở 2",
+                            Location = "Sảnh Nhà B - Cơ sở 2",
+                            StartTime = now.AddDays(7),
+                            EndTime = now.AddDays(7).AddHours(4),
+                            SortOrder = 1
+                        },
+                        new ActivitySession
+                        {
+                            SessionName = "Ca chiều",
+                            Campus = "Cơ sở 2",
+                            Location = "Sảnh Nhà B - Cơ sở 2",
+                            StartTime = now.AddDays(7).AddHours(4),
+                            EndTime = now.AddDays(7).AddHours(8),
+                            SortOrder = 2
+                        }
+                    ]
                 },
                 new Activity
                 {
                     ActivityName = "Giải Bóng đá Sinh viên Khóa 2021-2025",
                     Description = "Giải đấu giao lưu thể thao giữa các lớp khóa K21.",
+                    OrganizerName = "Trung tâm Giáo dục thể chất",
                     Location = "Sân bóng đá Cơ sở 1",
                     Campus = "Cơ sở 1",
                     StartTime = now.AddDays(14),
@@ -136,7 +172,36 @@ namespace StudentActivityManagement.API.Data
                     TrainingPoints = 8,
                     TargetAudience = "Sinh viên Khóa K21",
                     Status = "Published",
-                    CreatedAt = now
+                    CreatedAt = now,
+                    Sessions =
+                    [
+                        new ActivitySession
+                        {
+                            SessionName = "Vòng bảng",
+                            Campus = "Cơ sở 1",
+                            Location = "Sân bóng đá Cơ sở 1",
+                            StartTime = now.AddDays(14),
+                            EndTime = now.AddDays(17),
+                            SortOrder = 1
+                        },
+                        new ActivitySession
+                        {
+                            SessionName = "Vòng chung kết",
+                            Campus = "Cơ sở 1",
+                            Location = "Sân bóng đá Cơ sở 1",
+                            StartTime = now.AddDays(18),
+                            EndTime = now.AddDays(20),
+                            SortOrder = 2
+                        }
+                    ],
+                    AudienceRules =
+                    [
+                        new ActivityAudienceRule
+                        {
+                            AcademicYear = "K21",
+                            ParticipationType = AudienceParticipationType.Recommended
+                        }
+                    ]
                 }
             };
 

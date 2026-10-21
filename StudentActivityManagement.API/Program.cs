@@ -26,6 +26,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
+builder.Services.AddScoped<IActivityEligibilityService, ActivityEligibilityService>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
 
 // 3. Configure JWT Authentication

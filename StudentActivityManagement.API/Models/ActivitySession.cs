@@ -1,0 +1,35 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+
+namespace StudentActivityManagement.API.Models;
+
+public class ActivitySession
+{
+    [Key]
+    public int Id { get; set; }
+
+    public int ActivityId { get; set; }
+
+    [ForeignKey(nameof(ActivityId))]
+    [JsonIgnore]
+    public Activity? Activity { get; set; }
+
+    [Required]
+    [StringLength(120)]
+    public string SessionName { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(50)]
+    public string Campus { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(200)]
+    public string Location { get; set; } = string.Empty;
+
+    public DateTime StartTime { get; set; }
+
+    public DateTime EndTime { get; set; }
+
+    public int SortOrder { get; set; }
+}

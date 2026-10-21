@@ -22,43 +22,52 @@ namespace StudentActivityManagement.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetActivities([FromQuery] string? campus, [FromQuery] string? search, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
         {
-            var result = await _activityService.GetActivitiesAsync(campus, "Published", search, pageIndex, pageSize, upcomingOnly: true);
+            if (!TryGetStudentId(out var studentId))
+            {
+                return InvalidSession();
+            }
+
+            var result = await _activityService.GetStudentActivitiesAsync(studentId, campus, search, pageIndex, pageSize);
+            if (!result.Success) return ProblemFrom(result);
             return Ok(result);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetActivityById(int id)
         {
-            var result = await _activityService.GetActivityByIdAsync(id);
-            if (!result.Success || result.Data == null ||
-                !string.Equals(result.Data.Status, "Published", StringComparison.OrdinalIgnoreCase) ||
-                result.Data.EndTime < DateTime.UtcNow)
+            if (!TryGetStudentId(out var studentId))
             {
-                return ApiProblem(
-                    StatusCodes.Status404NotFound,
-                    ApiErrorCodes.ResourceNotFound,
-                    "Không tìm thấy hoạt động đang mở.");
+                return InvalidSession();
             }
 
+            var result = await _activityService.GetStudentActivityByIdAsync(id, studentId);
+            if (!result.Success) return ProblemFrom(result);
             return Ok(result);
         }
 
         [HttpPost("{id}/register")]
         public async Task<IActionResult> RegisterActivity(int id)
         {
-            var studentIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(studentIdStr) || !int.TryParse(studentIdStr, out int studentId))
+            if (!TryGetStudentId(out var studentId))
             {
-                return ApiProblem(
-                    StatusCodes.Status401Unauthorized,
-                    ApiErrorCodes.AuthenticationRequired,
-                    "Không xác định được sinh viên.");
+                return InvalidSession();
             }
 
             var result = await _activityService.RegisterActivityAsync(id, studentId);
             if (!result.Success) return ProblemFrom(result);
             return Ok(result);
         }
+
+        private bool TryGetStudentId(out int studentId)
+        {
+            var studentIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(studentIdValue, out studentId);
+        }
+
+        private ObjectResult InvalidSession() => ApiProblem(
+            StatusCodes.Status401Unauthorized,
+            ApiErrorCodes.AuthenticationRequired,
+            "Không xác định được sinh viên.");
     }
 }
 

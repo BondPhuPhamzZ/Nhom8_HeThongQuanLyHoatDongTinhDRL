@@ -54,6 +54,11 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Property<int>("MaxParticipants")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("OrganizerName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("RegistrationCloseTime")
                         .HasColumnType("TEXT");
 
@@ -82,6 +87,40 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Activities");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityAudienceRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AcademicYear")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ActivityId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Campus")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ClassId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ParticipationType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActivityId");
+
+                    b.HasIndex("ClassId");
+
+                    b.ToTable("ActivityAudienceRules");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityRegistration", b =>
@@ -122,6 +161,47 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("ActivityRegistrations");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ActivitySession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ActivityId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Campus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("EndTime")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SessionName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActivityId", "SortOrder")
+                        .IsUnique();
+
+                    b.ToTable("ActivitySessions");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.Class", b =>
@@ -231,6 +311,24 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityAudienceRule", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.Activity", "Activity")
+                        .WithMany("AudienceRules")
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudentActivityManagement.API.Models.Class", "Class")
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Activity");
+
+                    b.Navigation("Class");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityRegistration", b =>
                 {
                     b.HasOne("StudentActivityManagement.API.Models.Activity", "Activity")
@@ -248,6 +346,17 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Navigation("Activity");
 
                     b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ActivitySession", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.Activity", "Activity")
+                        .WithMany("Sessions")
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Activity");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.Class", b =>
@@ -272,7 +381,11 @@ namespace StudentActivityManagement.API.Data.Migrations
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.Activity", b =>
                 {
+                    b.Navigation("AudienceRules");
+
                     b.Navigation("Registrations");
+
+                    b.Navigation("Sessions");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.Class", b =>

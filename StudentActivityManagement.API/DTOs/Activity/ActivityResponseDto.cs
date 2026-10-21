@@ -5,6 +5,7 @@ namespace StudentActivityManagement.API.DTOs.Activity
         public int Id { get; set; }
         public string ActivityName { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public string OrganizerName { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
         public string Campus { get; set; } = string.Empty;
         public DateTime StartTime { get; set; }
@@ -17,6 +18,10 @@ namespace StudentActivityManagement.API.DTOs.Activity
         public string TargetAudience { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public List<ActivitySessionResponseDto> Sessions { get; set; } = [];
+        public List<ActivityAudienceRuleResponseDto> AudienceRules { get; set; } = [];
+        public ActivityEligibilityDto? Eligibility { get; set; }
+        public int RemainingSlots => Math.Max(0, MaxParticipants - CurrentParticipantsCount);
         public bool IsRegistrationOpen => DateTime.UtcNow >= RegistrationOpenTime && DateTime.UtcNow <= RegistrationCloseTime && CurrentParticipantsCount < MaxParticipants;
     }
 }
