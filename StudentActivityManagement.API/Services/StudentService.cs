@@ -73,7 +73,7 @@ namespace StudentActivityManagement.API.Services
 
             if (student == null)
             {
-                return ApiResponseDto<StudentResponseDto>.Fail("Không tìm thấy sinh viên.");
+                return StudentNotFound<StudentResponseDto>();
             }
 
             return ApiResponseDto<StudentResponseDto>.Ok(MapToStudentResponse(student));
@@ -83,12 +83,12 @@ namespace StudentActivityManagement.API.Services
         {
             if (await _context.Users.AnyAsync(u => u.StudentCode == request.StudentCode))
             {
-                return ApiResponseDto<StudentResponseDto>.Fail("Mã sinh viên đã tồn tại.");
+                return Conflict<StudentResponseDto>("Mã sinh viên đã tồn tại.");
             }
 
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
             {
-                return ApiResponseDto<StudentResponseDto>.Fail("Email đã tồn tại.");
+                return Conflict<StudentResponseDto>("Email đã tồn tại.");
             }
 
             if (request.ClassId.HasValue && !await _context.Classes.AnyAsync(c => c.Id == request.ClassId.Value))
@@ -127,12 +127,12 @@ namespace StudentActivityManagement.API.Services
 
             if (student == null)
             {
-                return ApiResponseDto<StudentResponseDto>.Fail("Không tìm thấy sinh viên.");
+                return StudentNotFound<StudentResponseDto>();
             }
 
             if (student.Email != request.Email && await _context.Users.AnyAsync(u => u.Email == request.Email && u.Id != id))
             {
-                return ApiResponseDto<StudentResponseDto>.Fail("Email đã được sử dụng bởi tài khoản khác.");
+                return Conflict<StudentResponseDto>("Email đã được sử dụng bởi tài khoản khác.");
             }
 
             if (request.ClassId.HasValue && !await _context.Classes.AnyAsync(c => c.Id == request.ClassId.Value))
@@ -169,7 +169,7 @@ namespace StudentActivityManagement.API.Services
                 u.Id == id && (u.Role == Role.Student || u.Role == Role.Monitor));
             if (student == null)
             {
-                return ApiResponseDto<bool>.Fail("Không tìm thấy sinh viên.");
+                return StudentNotFound<bool>();
             }
 
             if (await _context.ActivityRegistrations.AnyAsync(registration => registration.StudentId == id))
@@ -208,7 +208,7 @@ namespace StudentActivityManagement.API.Services
         {
             if (await _context.Classes.AnyAsync(c => c.ClassCode == request.ClassCode))
             {
-                return ApiResponseDto<ClassDto>.Fail("Mã lớp đã tồn tại.");
+                return Conflict<ClassDto>("Mã lớp đã tồn tại.");
             }
 
             var newClass = new Class
@@ -258,11 +258,17 @@ namespace StudentActivityManagement.API.Services
         public async Task<ApiResponseDto<bool>> AssignClassMonitorAsync(int classId, int studentId)
         {
             var targetClass = await _context.Classes.FindAsync(classId);
-            if (targetClass == null) return ApiResponseDto<bool>.Fail("Không tìm thấy lớp học.");
+            if (targetClass == null)
+            {
+                return ApiResponseDto<bool>.Fail(
+                    "Không tìm thấy lớp học.",
+                    StatusCodes.Status404NotFound,
+                    ApiErrorCodes.ResourceNotFound);
+            }
 
             var student = await _context.Users.FirstOrDefaultAsync(u =>
                 u.Id == studentId && (u.Role == Role.Student || u.Role == Role.Monitor));
-            if (student == null) return ApiResponseDto<bool>.Fail("Không tìm thấy sinh viên.");
+            if (student == null) return StudentNotFound<bool>();
 
             if (student.ClassId != classId) return ApiResponseDto<bool>.Fail("Sinh viên này không thuộc lớp.");
 
@@ -284,6 +290,18 @@ namespace StudentActivityManagement.API.Services
             await _context.SaveChangesAsync();
             return ApiResponseDto<bool>.Ok(true, "Chỉ định lớp trưởng thành công.");
         }
+
+        private static ApiResponseDto<T> StudentNotFound<T>() =>
+            ApiResponseDto<T>.Fail(
+                "Không tìm thấy sinh viên.",
+                StatusCodes.Status404NotFound,
+                ApiErrorCodes.ResourceNotFound);
+
+        private static ApiResponseDto<T> Conflict<T>(string message) =>
+            ApiResponseDto<T>.Fail(
+                message,
+                StatusCodes.Status409Conflict,
+                ApiErrorCodes.ResourceConflict);
     }
 }
 

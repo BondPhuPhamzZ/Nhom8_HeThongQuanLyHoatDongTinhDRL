@@ -1,9 +1,12 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StudentActivityManagement.API.Data;
+using StudentActivityManagement.API.DTOs.Common;
+using StudentActivityManagement.API.OpenApi;
 using StudentActivityManagement.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -65,8 +68,34 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole(StudentActivityManagement.API.Models.Role.Student, StudentActivityManagement.API.Models.Role.Monitor));
 });
 
-// 4. Add Controllers
-builder.Services.AddControllers();
+// 4. Add Controllers and one error contract for every client (Web/Mobile).
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        context.ProblemDetails.Extensions.TryAdd("errorCode", ApiErrorCodes.UnexpectedError);
+        context.ProblemDetails.Extensions.TryAdd("traceId", context.HttpContext.TraceIdentifier);
+    };
+});
+builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var problem = new ValidationProblemDetails(context.ModelState)
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Dữ liệu đầu vào không hợp lệ",
+            Type = "https://httpstatuses.com/400",
+            Instance = context.HttpContext.Request.Path
+        };
+        problem.Extensions["errorCode"] = ApiErrorCodes.ValidationFailed;
+        problem.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
+        return new BadRequestObjectResult(problem)
+        {
+            ContentTypes = { "application/problem+json" }
+        };
+    };
+});
 
 // 5. Configure Swagger / OpenAPI with JWT Authorization Support
 builder.Services.AddEndpointsApiExplorer();
@@ -89,20 +118,7 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Nhập Token vào ô theo định dạng: Bearer {token_cua_ban}"
     });
 
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
+    c.OperationFilter<AuthorizeOperationFilter>();
 });
 
 // 6. Configure CORS Policy
@@ -135,6 +151,46 @@ using (var scope = app.Services.CreateScope())
 }
 
 // 8. Configure HTTP Request Pipeline
+app.UseExceptionHandler();
+app.UseStatusCodePages(async statusCodeContext =>
+{
+    var response = statusCodeContext.HttpContext.Response;
+    var request = statusCodeContext.HttpContext.Request;
+    var problemDetailsService = statusCodeContext.HttpContext.RequestServices
+        .GetRequiredService<IProblemDetailsService>();
+
+    var errorCode = response.StatusCode switch
+    {
+        StatusCodes.Status401Unauthorized => ApiErrorCodes.AuthenticationRequired,
+        StatusCodes.Status403Forbidden => ApiErrorCodes.AccessDenied,
+        StatusCodes.Status404NotFound => ApiErrorCodes.ResourceNotFound,
+        _ => ApiErrorCodes.UnexpectedError
+    };
+
+    await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+    {
+        HttpContext = statusCodeContext.HttpContext,
+        ProblemDetails = new ProblemDetails
+        {
+            Status = response.StatusCode,
+            Title = response.StatusCode switch
+            {
+                StatusCodes.Status401Unauthorized => "Chưa xác thực",
+                StatusCodes.Status403Forbidden => "Không có quyền truy cập",
+                StatusCodes.Status404NotFound => "Không tìm thấy endpoint",
+                _ => "Có lỗi xảy ra"
+            },
+            Type = $"https://httpstatuses.com/{response.StatusCode}",
+            Instance = request.Path,
+            Extensions =
+            {
+                ["errorCode"] = errorCode,
+                ["traceId"] = statusCodeContext.HttpContext.TraceIdentifier
+            }
+        }
+    });
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

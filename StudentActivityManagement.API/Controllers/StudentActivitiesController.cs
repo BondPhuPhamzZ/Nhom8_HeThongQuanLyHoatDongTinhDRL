@@ -8,9 +8,9 @@ using System.Security.Claims;
 namespace StudentActivityManagement.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/v1/student-activities")]
     [Authorize(Policy = "StudentOrMonitor")]
-    public class StudentActivitiesController : ControllerBase
+    public class StudentActivitiesController : ApiControllerBase
     {
         private readonly IActivityService _activityService;
 
@@ -34,7 +34,10 @@ namespace StudentActivityManagement.API.Controllers
                 !string.Equals(result.Data.Status, "Published", StringComparison.OrdinalIgnoreCase) ||
                 result.Data.EndTime < DateTime.UtcNow)
             {
-                return NotFound(ApiResponseDto<object>.Fail("Không tìm thấy hoạt động đang mở."));
+                return ApiProblem(
+                    StatusCodes.Status404NotFound,
+                    ApiErrorCodes.ResourceNotFound,
+                    "Không tìm thấy hoạt động đang mở.");
             }
 
             return Ok(result);
@@ -46,11 +49,14 @@ namespace StudentActivityManagement.API.Controllers
             var studentIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(studentIdStr) || !int.TryParse(studentIdStr, out int studentId))
             {
-                return Unauthorized(ApiResponseDto<bool>.Fail("Không xác định được sinh viên."));
+                return ApiProblem(
+                    StatusCodes.Status401Unauthorized,
+                    ApiErrorCodes.AuthenticationRequired,
+                    "Không xác định được sinh viên.");
             }
 
             var result = await _activityService.RegisterActivityAsync(id, studentId);
-            if (!result.Success) return BadRequest(result);
+            if (!result.Success) return ProblemFrom(result);
             return Ok(result);
         }
     }
