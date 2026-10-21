@@ -22,5 +22,11 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="StudentActivityManagement.API.Tests\**\*.cs" />
+    <Content Remove="StudentActivityManagement.API.Tests\**\*" />
+    <None Remove="StudentActivityManagement.API.Tests\**\*" />
+  </ItemGroup>
+
 </Project>
 

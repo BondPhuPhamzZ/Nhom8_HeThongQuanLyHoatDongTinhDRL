@@ -3,7 +3,6 @@ using StudentActivityManagement.API.DTOs.Common;
 
 namespace StudentActivityManagement.API.Controllers;
 
-[Produces("application/json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public abstract class ApiControllerBase : ControllerBase
 {
