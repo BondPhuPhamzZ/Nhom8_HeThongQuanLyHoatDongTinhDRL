@@ -4,20 +4,28 @@ Backend RESTful API cho hệ thống quản lý hoạt động và tính điểm
 
 > Project hiện tại là **backend API**, chưa có giao diện Web/Mobile. Khi chạy, trình duyệt hiển thị Swagger với danh sách endpoint là đúng thiết kế ở giai đoạn này.
 
-## Chạy nhanh
+## Cập nhật và chạy bản mới
 
-Yêu cầu: .NET SDK 8.
+Yêu cầu: .NET SDK 8. Chạy các lệnh sau từ thư mục gốc của repository, nơi có file `Nhom8_ActivitiesManagement.sln`:
 
 ```powershell
-cd StudentActivityManagement.API
-dotnet restore
+git switch main
+git pull --ff-only origin main
+dotnet restore .\Nhom8_ActivitiesManagement.sln
+cd .\StudentActivityManagement.API
 dotnet tool restore
 pwsh -NoProfile -File .\scripts\setup-local.ps1
-pwsh -NoProfile -File .\scripts\update-database.ps1 -ResetLegacyDatabase
+pwsh -NoProfile -File .\scripts\update-database.ps1
 dotnet run --launch-profile http
 ```
 
-Chỉ dùng `-ResetLegacyDatabase` một lần khi chuyển từ database Sprint 1 chưa có migration history. Script đổi tên file DB cũ thành bản `.bak`, không xóa dữ liệu âm thầm. Những lần sau chỉ chạy `pwsh -NoProfile -File .\scripts\update-database.ps1`.
+Máy mới hoặc chưa có database chỉ dùng lệnh ở trên. Nếu máy đang giữ database Sprint 1 cũ chưa có migration history, thay riêng lệnh cập nhật database bằng lệnh dưới đây đúng một lần:
+
+```powershell
+pwsh -NoProfile -File .\scripts\update-database.ps1 -ResetLegacyDatabase
+```
+
+Script đổi tên database cũ thành bản `.bak` trước khi tạo database theo migration. Những lần chạy sau không dùng lại `-ResetLegacyDatabase`.
 
 Mở [http://localhost:5210](http://localhost:5210). Swagger được đặt tại trang gốc khi chạy ở môi trường Development.
 
