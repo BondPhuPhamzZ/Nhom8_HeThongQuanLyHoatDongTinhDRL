@@ -8,9 +8,9 @@ using StudentActivityManagement.API.Services;
 namespace StudentActivityManagement.API.Controllers
 {
     [ApiController]
-    [Route("api/admin/[controller]")]
+    [Route("api/v1/admin/activities")]
     [Authorize(Roles = Role.Admin)]
-    public class ActivitiesController : ControllerBase
+    public class ActivitiesController : ApiControllerBase
     {
         private readonly IActivityService _activityService;
 
@@ -40,13 +40,13 @@ namespace StudentActivityManagement.API.Controllers
         /// </summary>
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(ApiResponseDto<ActivityResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponseDto<ActivityResponseDto>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetActivityById(int id)
         {
             var result = await _activityService.GetActivityByIdAsync(id);
             if (!result.Success)
             {
-                return NotFound(result);
+                return ProblemFrom(result);
             }
             return Ok(result);
         }
@@ -56,18 +56,13 @@ namespace StudentActivityManagement.API.Controllers
         /// </summary>
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponseDto<ActivityResponseDto>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(ApiResponseDto<ActivityResponseDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateActivity([FromBody] ActivityCreateDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ApiResponseDto<ActivityResponseDto>.Fail("Dữ liệu đầu vào không hợp lệ."));
-            }
-
             var result = await _activityService.CreateActivityAsync(request);
             if (!result.Success)
             {
-                return BadRequest(result);
+                return ProblemFrom(result);
             }
 
             return CreatedAtAction(nameof(GetActivityById), new { id = result.Data!.Id }, result);
@@ -78,19 +73,14 @@ namespace StudentActivityManagement.API.Controllers
         /// </summary>
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(ApiResponseDto<ActivityResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponseDto<ActivityResponseDto>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponseDto<ActivityResponseDto>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateActivity(int id, [FromBody] ActivityUpdateDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ApiResponseDto<ActivityResponseDto>.Fail("Dữ liệu đầu vào không hợp lệ."));
-            }
-
             var result = await _activityService.UpdateActivityAsync(id, request);
             if (!result.Success)
             {
-                return BadRequest(result);
+                return ProblemFrom(result);
             }
 
             return Ok(result);
@@ -101,19 +91,14 @@ namespace StudentActivityManagement.API.Controllers
         /// </summary>
         [HttpPatch("{id}/status")]
         [ProducesResponseType(typeof(ApiResponseDto<ActivityResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponseDto<ActivityResponseDto>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponseDto<ActivityResponseDto>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateActivityStatus(int id, [FromBody] UpdateActivityStatusDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ApiResponseDto<ActivityResponseDto>.Fail("Dữ liệu đầu vào không hợp lệ."));
-            }
-
             var result = await _activityService.UpdateActivityStatusAsync(id, request.Status);
             if (!result.Success)
             {
-                return BadRequest(result);
+                return ProblemFrom(result);
             }
 
             return Ok(result);
@@ -124,13 +109,13 @@ namespace StudentActivityManagement.API.Controllers
         /// </summary>
         [HttpDelete("{id}")]
         [ProducesResponseType(typeof(ApiResponseDto<bool>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponseDto<bool>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteActivity(int id)
         {
             var result = await _activityService.DeleteActivityAsync(id);
             if (!result.Success)
             {
-                return NotFound(result);
+                return ProblemFrom(result);
             }
 
             return Ok(result);

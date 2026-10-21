@@ -8,9 +8,9 @@ using StudentActivityManagement.API.Services;
 namespace StudentActivityManagement.API.Controllers
 {
     [ApiController]
-    [Route("api/admin/[controller]")]
+    [Route("api/v1/admin/classes")]
     [Authorize(Roles = Role.Admin)]
-    public class ClassesController : ControllerBase
+    public class ClassesController : ApiControllerBase
     {
         private readonly IStudentService _studentService;
 
@@ -35,18 +35,13 @@ namespace StudentActivityManagement.API.Controllers
         /// </summary>
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponseDto<ClassDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponseDto<ClassDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateClass([FromBody] ClassCreateDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ApiResponseDto<ClassDto>.Fail("Dữ liệu đầu vào không hợp lệ."));
-            }
-
             var result = await _studentService.CreateClassAsync(request);
             if (!result.Success)
             {
-                return BadRequest(result);
+                return ProblemFrom(result);
             }
 
             return Ok(result);
@@ -60,7 +55,7 @@ namespace StudentActivityManagement.API.Controllers
         public async Task<IActionResult> AssignMonitor(int id, int studentId)
         {
             var result = await _studentService.AssignClassMonitorAsync(id, studentId);
-            if (!result.Success) return BadRequest(result);
+            if (!result.Success) return ProblemFrom(result);
             return Ok(result);
         }
     }

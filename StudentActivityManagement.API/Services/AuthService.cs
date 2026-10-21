@@ -25,12 +25,18 @@ namespace StudentActivityManagement.API.Services
 
             if (user == null)
             {
-                return ApiResponseDto<AuthResponseDto>.Fail("Tên đăng nhập / Mã sinh viên hoặc mật khẩu không chính xác.");
+                return ApiResponseDto<AuthResponseDto>.Fail(
+                    "Tên đăng nhập / Mã sinh viên hoặc mật khẩu không chính xác.",
+                    StatusCodes.Status401Unauthorized,
+                    ApiErrorCodes.InvalidCredentials);
             }
 
             if (!PasswordHasher.VerifyPassword(request.Password, user.PasswordHash))
             {
-                return ApiResponseDto<AuthResponseDto>.Fail("Tên đăng nhập / Mã sinh viên hoặc mật khẩu không chính xác.");
+                return ApiResponseDto<AuthResponseDto>.Fail(
+                    "Tên đăng nhập / Mã sinh viên hoặc mật khẩu không chính xác.",
+                    StatusCodes.Status401Unauthorized,
+                    ApiErrorCodes.InvalidCredentials);
             }
 
             if (PasswordHasher.NeedsRehash(user.PasswordHash))
@@ -58,17 +64,26 @@ namespace StudentActivityManagement.API.Services
         {
             if (await _context.Users.AnyAsync(u => u.StudentCode == request.StudentCode))
             {
-                return ApiResponseDto<UserDto>.Fail("Mã sinh viên đã tồn tại trong hệ thống.");
+                return ApiResponseDto<UserDto>.Fail(
+                    "Mã sinh viên đã tồn tại trong hệ thống.",
+                    StatusCodes.Status409Conflict,
+                    ApiErrorCodes.ResourceConflict);
             }
 
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
             {
-                return ApiResponseDto<UserDto>.Fail("Email đã được sử dụng.");
+                return ApiResponseDto<UserDto>.Fail(
+                    "Email đã được sử dụng.",
+                    StatusCodes.Status409Conflict,
+                    ApiErrorCodes.ResourceConflict);
             }
 
             if (request.ClassId.HasValue && !await _context.Classes.AnyAsync(c => c.Id == request.ClassId.Value))
             {
-                return ApiResponseDto<UserDto>.Fail("Lớp học không tồn tại.");
+                return ApiResponseDto<UserDto>.Fail(
+                    "Lớp học không tồn tại.",
+                    StatusCodes.Status400BadRequest,
+                    ApiErrorCodes.ValidationFailed);
             }
 
             var newUser = new User
@@ -101,7 +116,10 @@ namespace StudentActivityManagement.API.Services
 
             if (user == null)
             {
-                return ApiResponseDto<UserDto>.Fail("Không tìm thấy thông tin người dùng.");
+                return ApiResponseDto<UserDto>.Fail(
+                    "Không tìm thấy thông tin người dùng.",
+                    StatusCodes.Status404NotFound,
+                    ApiErrorCodes.ResourceNotFound);
             }
 
             return ApiResponseDto<UserDto>.Ok(MapToUserDto(user));

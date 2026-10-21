@@ -8,9 +8,9 @@ using StudentActivityManagement.API.Services;
 namespace StudentActivityManagement.API.Controllers
 {
     [ApiController]
-    [Route("api/admin/[controller]")]
+    [Route("api/v1/admin/students")]
     [Authorize(Roles = Role.Admin)]
-    public class StudentsController : ControllerBase
+    public class StudentsController : ApiControllerBase
     {
         private readonly IStudentService _studentService;
 
@@ -41,13 +41,13 @@ namespace StudentActivityManagement.API.Controllers
         /// </summary>
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(ApiResponseDto<StudentResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponseDto<StudentResponseDto>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetStudentById(int id)
         {
             var result = await _studentService.GetStudentByIdAsync(id);
             if (!result.Success)
             {
-                return NotFound(result);
+                return ProblemFrom(result);
             }
             return Ok(result);
         }
@@ -57,18 +57,13 @@ namespace StudentActivityManagement.API.Controllers
         /// </summary>
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponseDto<StudentResponseDto>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(ApiResponseDto<StudentResponseDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateStudent([FromBody] StudentCreateDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ApiResponseDto<StudentResponseDto>.Fail("Dữ liệu đầu vào không hợp lệ."));
-            }
-
             var result = await _studentService.CreateStudentAsync(request);
             if (!result.Success)
             {
-                return BadRequest(result);
+                return ProblemFrom(result);
             }
 
             return CreatedAtAction(nameof(GetStudentById), new { id = result.Data!.Id }, result);
@@ -79,19 +74,14 @@ namespace StudentActivityManagement.API.Controllers
         /// </summary>
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(ApiResponseDto<StudentResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponseDto<StudentResponseDto>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponseDto<StudentResponseDto>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateStudent(int id, [FromBody] StudentUpdateDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ApiResponseDto<StudentResponseDto>.Fail("Dữ liệu đầu vào không hợp lệ."));
-            }
-
             var result = await _studentService.UpdateStudentAsync(id, request);
             if (!result.Success)
             {
-                return BadRequest(result);
+                return ProblemFrom(result);
             }
 
             return Ok(result);
@@ -102,13 +92,13 @@ namespace StudentActivityManagement.API.Controllers
         /// </summary>
         [HttpDelete("{id}")]
         [ProducesResponseType(typeof(ApiResponseDto<bool>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponseDto<bool>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteStudent(int id)
         {
             var result = await _studentService.DeleteStudentAsync(id);
             if (!result.Success)
             {
-                return NotFound(result);
+                return ProblemFrom(result);
             }
 
             return Ok(result);

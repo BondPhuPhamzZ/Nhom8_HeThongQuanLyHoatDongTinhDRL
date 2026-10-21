@@ -71,7 +71,7 @@ namespace StudentActivityManagement.API.Services
             var activity = await _context.Activities.FindAsync(id);
             if (activity == null)
             {
-                return ApiResponseDto<ActivityResponseDto>.Fail("Không tìm thấy hoạt động.");
+                return NotFoundActivity();
             }
 
             return ApiResponseDto<ActivityResponseDto>.Ok(MapToResponse(activity));
@@ -129,7 +129,7 @@ namespace StudentActivityManagement.API.Services
             var activity = await _context.Activities.FindAsync(id);
             if (activity == null)
             {
-                return ApiResponseDto<ActivityResponseDto>.Fail("Không tìm thấy hoạt động.");
+                return NotFoundActivity();
             }
 
             var normalizedStatus = NormalizeStatus(request.Status);
@@ -182,7 +182,7 @@ namespace StudentActivityManagement.API.Services
             var activity = await _context.Activities.FindAsync(id);
             if (activity == null)
             {
-                return ApiResponseDto<ActivityResponseDto>.Fail("Không tìm thấy hoạt động.");
+                return NotFoundActivity();
             }
 
             var normalizedStatus = NormalizeStatus(newStatus);
@@ -204,7 +204,10 @@ namespace StudentActivityManagement.API.Services
             var activity = await _context.Activities.FindAsync(id);
             if (activity == null)
             {
-                return ApiResponseDto<bool>.Fail("Không tìm thấy hoạt động.");
+                return ApiResponseDto<bool>.Fail(
+                    "Không tìm thấy hoạt động.",
+                    StatusCodes.Status404NotFound,
+                    ApiErrorCodes.ResourceNotFound);
             }
 
             _context.Activities.Remove(activity);
@@ -253,7 +256,10 @@ namespace StudentActivityManagement.API.Services
                 u.Id == studentId && (u.Role == Role.Student || u.Role == Role.Monitor));
             if (!isStudent)
             {
-                return ApiResponseDto<bool>.Fail("Tài khoản sinh viên không hợp lệ.");
+                return ApiResponseDto<bool>.Fail(
+                    "Tài khoản sinh viên không hợp lệ.",
+                    StatusCodes.Status403Forbidden,
+                    ApiErrorCodes.AccessDenied);
             }
 
             await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
@@ -262,7 +268,10 @@ namespace StudentActivityManagement.API.Services
                 if (await _context.ActivityRegistrations.AnyAsync(ar =>
                         ar.ActivityId == activityId && ar.StudentId == studentId))
                 {
-                    return ApiResponseDto<bool>.Fail("Bạn đã đăng ký hoạt động này rồi.");
+                    return ApiResponseDto<bool>.Fail(
+                        "Bạn đã đăng ký hoạt động này rồi.",
+                        StatusCodes.Status409Conflict,
+                        ApiErrorCodes.ResourceConflict);
                 }
 
                 var updatedRows = await _context.Activities
@@ -278,10 +287,16 @@ namespace StudentActivityManagement.API.Services
                 {
                     var activity = await _context.Activities.AsNoTracking().FirstOrDefaultAsync(a => a.Id == activityId);
                     if (activity == null || activity.Status != "Published")
-                        return ApiResponseDto<bool>.Fail("Hoạt động không tồn tại hoặc chưa mở.");
+                        return ApiResponseDto<bool>.Fail(
+                            "Hoạt động không tồn tại hoặc chưa mở.",
+                            activity == null ? StatusCodes.Status404NotFound : StatusCodes.Status409Conflict,
+                            activity == null ? ApiErrorCodes.ResourceNotFound : ApiErrorCodes.BusinessRuleViolation);
                     if (now < activity.RegistrationOpenTime || now > activity.RegistrationCloseTime)
                         return ApiResponseDto<bool>.Fail("Không trong thời gian đăng ký.");
-                    return ApiResponseDto<bool>.Fail("Hoạt động đã đủ số lượng.");
+                    return ApiResponseDto<bool>.Fail(
+                        "Hoạt động đã đủ số lượng.",
+                        StatusCodes.Status409Conflict,
+                        ApiErrorCodes.ResourceConflict);
                 }
 
                 _context.ActivityRegistrations.Add(new ActivityRegistration
@@ -299,9 +314,18 @@ namespace StudentActivityManagement.API.Services
             catch (DbUpdateException)
             {
                 await transaction.RollbackAsync();
-                return ApiResponseDto<bool>.Fail("Không thể đăng ký do dữ liệu đã thay đổi. Vui lòng thử lại.");
+                return ApiResponseDto<bool>.Fail(
+                    "Không thể đăng ký do dữ liệu đã thay đổi. Vui lòng thử lại.",
+                    StatusCodes.Status409Conflict,
+                    ApiErrorCodes.ConcurrencyConflict);
             }
         }
+
+        private static ApiResponseDto<ActivityResponseDto> NotFoundActivity() =>
+            ApiResponseDto<ActivityResponseDto>.Fail(
+                "Không tìm thấy hoạt động.",
+                StatusCodes.Status404NotFound,
+                ApiErrorCodes.ResourceNotFound);
     }
 }
 
