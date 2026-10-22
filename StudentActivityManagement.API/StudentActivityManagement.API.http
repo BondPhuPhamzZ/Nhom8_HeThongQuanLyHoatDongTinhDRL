@@ -1,4 +1,4 @@
-@host = http://localhost:5210
+﻿@host = http://localhost:5210
 @studentToken = paste-student-jwt-here
 @adminToken = paste-admin-jwt-here
 
@@ -21,6 +21,10 @@ Authorization: Bearer {{studentToken}}
 
 ### Đăng ký hoạt động
 POST {{host}}/api/v1/student-activities/2/register
+Authorization: Bearer {{studentToken}}
+
+### Hủy đăng ký hoạt động trước hạn (US-05)
+DELETE {{host}}/api/v1/student-activities/2/registration
 Authorization: Bearer {{studentToken}}
 
 ### Đăng nhập Admin
