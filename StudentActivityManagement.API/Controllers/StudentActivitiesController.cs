@@ -58,6 +58,24 @@ namespace StudentActivityManagement.API.Controllers
             return Ok(result);
         }
 
+        [HttpDelete("{activityId}/registration")]
+        [ProducesResponseType(typeof(ApiResponseDto<bool>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> CancelRegistration(int activityId)
+        {
+            if (!TryGetStudentId(out var studentId))
+            {
+                return InvalidSession();
+            }
+
+            var result = await _activityService.CancelRegistrationAsync(activityId, studentId);
+            if (!result.Success) return ProblemFrom(result);
+            return Ok(result);
+        }
+
         private bool TryGetStudentId(out int studentId)
         {
             var studentIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
