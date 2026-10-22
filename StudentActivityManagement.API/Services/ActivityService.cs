@@ -387,10 +387,19 @@ public sealed class ActivityService : IActivityService
                     ApiErrorCodes.ConcurrencyConflict);
             }
 
-            await _context.Activities
+            var decrementedRows = await _context.Activities
                 .Where(item => item.Id == activityId && item.CurrentParticipantsCount > 0)
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(item => item.CurrentParticipantsCount, item => item.CurrentParticipantsCount - 1));
+
+            if (decrementedRows != 1)
+            {
+                await transaction.RollbackAsync();
+                return ApiResponseDto<bool>.Fail(
+                    "Số lượng tham gia không khớp với dữ liệu đăng ký. Vui lòng kiểm tra lại.",
+                    StatusCodes.Status409Conflict,
+                    ApiErrorCodes.ConcurrencyConflict);
+            }
 
             await transaction.CommitAsync();
             return ApiResponseDto<bool>.Ok(true, "Hủy đăng ký hoạt động thành công.");
