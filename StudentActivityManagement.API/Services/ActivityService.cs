@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using StudentActivityManagement.API.Data;
 using StudentActivityManagement.API.DTOs.Activity;
 using StudentActivityManagement.API.DTOs.Common;
@@ -304,6 +304,102 @@ public sealed class ActivityService : IActivityService
             await transaction.RollbackAsync();
             return ApiResponseDto<bool>.Fail(
                 "Không thể đăng ký do dữ liệu đã thay đổi. Vui lòng thử lại.",
+                StatusCodes.Status409Conflict,
+                ApiErrorCodes.ConcurrencyConflict);
+        }
+    }
+
+    public async Task<ApiResponseDto<bool>> CancelRegistrationAsync(int activityId, int studentId)
+    {
+        var student = await FindStudentAsync(studentId);
+        if (student == null)
+        {
+            return ApiResponseDto<bool>.Fail(
+                "Tài khoản sinh viên không hợp lệ.",
+                StatusCodes.Status403Forbidden,
+                ApiErrorCodes.AccessDenied);
+        }
+
+        var activity = await _context.Activities.AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == activityId);
+        if (activity == null)
+        {
+            return ApiResponseDto<bool>.Fail(
+                "Không tìm thấy hoạt động.",
+                StatusCodes.Status404NotFound,
+                ApiErrorCodes.ResourceNotFound);
+        }
+
+        await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        try
+        {
+            var registration = await _context.ActivityRegistrations
+                .FirstOrDefaultAsync(item => item.ActivityId == activityId && item.StudentId == studentId);
+
+            if (registration == null)
+            {
+                return ApiResponseDto<bool>.Fail(
+                    "Bạn chưa đăng ký tham gia hoạt động này.",
+                    StatusCodes.Status404NotFound,
+                    ApiErrorCodes.ResourceNotFound);
+            }
+
+            if (string.Equals(registration.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+            {
+                return ApiResponseDto<bool>.Ok(true, "Đăng ký đã được hủy trước đó.");
+            }
+
+            if (!string.Equals(registration.Status, "Registered", StringComparison.OrdinalIgnoreCase))
+            {
+                return ApiResponseDto<bool>.Fail(
+                    "Chỉ có thể hủy đăng ký khi ở trạng thái đã đăng ký.",
+                    StatusCodes.Status409Conflict,
+                    ApiErrorCodes.BusinessRuleViolation);
+            }
+
+            var now = DateTime.UtcNow;
+            if (now > activity.RegistrationCloseTime)
+            {
+                return ApiResponseDto<bool>.Fail(
+                    "Đã hết thời hạn hủy đăng ký hoạt động.",
+                    StatusCodes.Status409Conflict,
+                    ApiErrorCodes.ResourceConflict);
+            }
+
+            var updatedRows = await _context.ActivityRegistrations
+                .Where(item => item.Id == registration.Id && item.Status == "Registered")
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(item => item.Status, "Cancelled"));
+
+            if (updatedRows == 0)
+            {
+                var recheck = await _context.ActivityRegistrations.AsNoTracking()
+                    .FirstOrDefaultAsync(item => item.Id == registration.Id);
+                if (recheck != null && string.Equals(recheck.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+                {
+                    await transaction.CommitAsync();
+                    return ApiResponseDto<bool>.Ok(true, "Đăng ký đã được hủy trước đó.");
+                }
+
+                return ApiResponseDto<bool>.Fail(
+                    "Không thể hủy đăng ký do dữ liệu đã thay đổi. Vui lòng thử lại.",
+                    StatusCodes.Status409Conflict,
+                    ApiErrorCodes.ConcurrencyConflict);
+            }
+
+            await _context.Activities
+                .Where(item => item.Id == activityId && item.CurrentParticipantsCount > 0)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(item => item.CurrentParticipantsCount, item => item.CurrentParticipantsCount - 1));
+
+            await transaction.CommitAsync();
+            return ApiResponseDto<bool>.Ok(true, "Hủy đăng ký hoạt động thành công.");
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync();
+            return ApiResponseDto<bool>.Fail(
+                "Không thể hủy đăng ký do xung đột dữ liệu. Vui lòng thử lại.",
                 StatusCodes.Status409Conflict,
                 ApiErrorCodes.ConcurrencyConflict);
         }

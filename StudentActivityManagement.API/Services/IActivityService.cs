@@ -17,6 +17,7 @@ namespace StudentActivityManagement.API.Services
         Task<ApiResponseDto<ActivityResponseDto>> UpdateActivityStatusAsync(int id, string newStatus);
         Task<ApiResponseDto<bool>> DeleteActivityAsync(int id);
         Task<ApiResponseDto<bool>> RegisterActivityAsync(int activityId, int studentId);
+        Task<ApiResponseDto<bool>> CancelRegistrationAsync(int activityId, int studentId);
     }
 }
 
