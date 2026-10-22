@@ -78,6 +78,35 @@ public sealed class RegistrationCancellationTests : IClassFixture<CustomWebAppli
     }
 
     [Fact]
+    public async Task CancelRegistration_InconsistentCapacity_RollsBackStatusChange()
+    {
+        await AuthorizeAsync("ADMIN001", "Admin123@");
+        var activityId = await CreateActivityAsync($"Cancel-Inconsistent-{Guid.NewGuid():N}");
+
+        await AuthorizeAsync("SV210002", "123456");
+        var registerResponse = await _client.PostAsync($"/api/v1/student-activities/{activityId}/register", null);
+        Assert.Equal(HttpStatusCode.OK, registerResponse.StatusCode);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await db.Activities.Where(activity => activity.Id == activityId)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(activity => activity.CurrentParticipantsCount, 0));
+        }
+
+        var cancelResponse = await _client.DeleteAsync($"/api/v1/student-activities/{activityId}/registration");
+        Assert.Equal(HttpStatusCode.Conflict, cancelResponse.StatusCode);
+
+        using var verifyScope = _factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var registration = await verifyDb.ActivityRegistrations.AsNoTracking()
+            .FirstAsync(item => item.ActivityId == activityId);
+        Assert.Equal("Registered", registration.Status);
+        Assert.Equal(0, await verifyDb.Activities.Where(item => item.Id == activityId)
+            .Select(item => item.CurrentParticipantsCount).SingleAsync());
+    }
+
+    [Fact]
     public async Task CancelRegistration_MissingRegistration_Returns404ProblemDetails()
     {
         await AuthorizeAsync("ADMIN001", "Admin123@");
