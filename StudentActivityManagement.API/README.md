@@ -1,4 +1,4 @@
-# Student Activity Management API
+﻿# Student Activity Management API
 
 Backend RESTful API cho hệ thống quản lý hoạt động và tính điểm rèn luyện. API được thiết kế để Web và Mobile dùng chung dữ liệu, phân quyền và nghiệp vụ.
 
@@ -43,6 +43,7 @@ Tài khoản dữ liệu mẫu:
 2. Sao chép giá trị `data.token` trong response.
 3. Chọn nút **Authorize** ở đầu Swagger, nhập `Bearer <token>`.
 4. Sinh viên thử nhóm `/api/v1/student-activities`; Admin thử `/api/v1/admin/students`, `/api/v1/admin/classes` và `/api/v1/admin/activities`.
+5. Sinh viên có thể hủy đăng ký trước hạn qua DELETE /api/v1/student-activities/{activityId}/registration (US-05: idempotent, hoàn capacity và bảo lưu lịch sử).
 
 Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động có `organizerName`, danh sách `sessions` và `audienceRules`. Sinh viên chỉ thấy và đăng ký hoạt động phù hợp cơ sở, khóa hoặc lớp của mình.
 
