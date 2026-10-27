@@ -38,23 +38,6 @@ namespace StudentActivityManagement.API.Controllers
         }
 
         /// <summary>
-        /// Đăng ký tài khoản Sinh viên mới
-        /// </summary>
-        [HttpPost("register")]
-        [ProducesResponseType(typeof(ApiResponseDto<UserDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> Register([FromBody] RegisterDto request)
-        {
-            var result = await _authService.RegisterAsync(request);
-            if (!result.Success)
-            {
-                return ProblemFrom(result);
-            }
-
-            return Ok(result);
-        }
-
-        /// <summary>
         /// Lấy thông tin người dùng hiện tại đang đăng nhập
         /// </summary>
         [HttpGet("me")]

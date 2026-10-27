@@ -52,9 +52,10 @@ public sealed class ActivityStructureTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(HttpStatusCode.NotFound, hiddenDetail.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, blockedRegistration.StatusCode);
 
+        // Sinh viên do Phòng QL HSSV tạo (US-25 đã gỡ tự đăng ký công khai).
         var suffix = Guid.NewGuid().ToString("N")[..10];
-        _client.DefaultRequestHeaders.Authorization = null;
-        var registration = await _client.PostAsJsonAsync("/api/v1/auth/register", new
+        await AuthorizeAsync("ADMIN001", "Admin123@");
+        var registration = await _client.PostAsJsonAsync("/api/v1/admin/students", new
         {
             studentCode = $"SV22{suffix}",
             fullName = "Sinh viên K22 kiểm thử",
@@ -65,7 +66,7 @@ public sealed class ActivityStructureTests : IClassFixture<CustomWebApplicationF
             academicYear = "K22",
             classId = 2
         });
-        registration.EnsureSuccessStatusCode();
+        Assert.Equal(HttpStatusCode.Created, registration.StatusCode);
         await AuthorizeAsync($"SV22{suffix}", "123456");
 
         var visibleList = await _client.GetFromJsonAsync<JsonElement>(
