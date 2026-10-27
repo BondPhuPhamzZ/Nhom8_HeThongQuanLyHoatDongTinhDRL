@@ -4,6 +4,13 @@ namespace StudentActivityManagement.API.DTOs.Activity;
 
 public class ActivitySessionInputDto
 {
+    /// <summary>
+    /// Id of an existing session when updating an activity. Sessions sent with an Id keep that Id
+    /// (check-in data will reference it); sessions without an Id are created; existing sessions
+    /// missing from the request are removed.
+    /// </summary>
+    public int? Id { get; set; }
+
     [Required, StringLength(120)]
     public string SessionName { get; set; } = string.Empty;
 
@@ -21,9 +28,15 @@ public class ActivitySessionInputDto
     public int SortOrder { get; set; } = 1;
 }
 
-public class ActivitySessionResponseDto : ActivitySessionInputDto
+public class ActivitySessionResponseDto
 {
     public int Id { get; set; }
+    public string SessionName { get; set; } = string.Empty;
+    public string Campus { get; set; } = string.Empty;
+    public string Location { get; set; } = string.Empty;
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+    public int SortOrder { get; set; }
 }
 
 public class ActivityAudienceRuleInputDto

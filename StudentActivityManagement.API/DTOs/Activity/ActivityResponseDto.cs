@@ -21,6 +21,8 @@ namespace StudentActivityManagement.API.DTOs.Activity
         public List<ActivitySessionResponseDto> Sessions { get; set; } = [];
         public List<ActivityAudienceRuleResponseDto> AudienceRules { get; set; } = [];
         public ActivityEligibilityDto? Eligibility { get; set; }
+        /// <summary>Caller's own registration status (Registered, Cancelled, ...) on student endpoints; null when never registered or for staff.</summary>
+        public string? MyRegistrationStatus { get; set; }
         public int RemainingSlots => Math.Max(0, MaxParticipants - CurrentParticipantsCount);
         public bool IsRegistrationOpen => DateTime.UtcNow >= RegistrationOpenTime && DateTime.UtcNow <= RegistrationCloseTime && CurrentParticipantsCount < MaxParticipants;
     }

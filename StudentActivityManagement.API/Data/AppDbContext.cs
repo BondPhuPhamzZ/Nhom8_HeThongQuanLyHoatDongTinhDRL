@@ -16,6 +16,13 @@ namespace StudentActivityManagement.API.Data
         public DbSet<ActivitySession> ActivitySessions { get; set; } = null!;
         public DbSet<ActivityAudienceRule> ActivityAudienceRules { get; set; } = null!;
 
+        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        {
+            // SQLite has no time zone type: store every DateTime as UTC and mark it UTC when read back.
+            configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+            configurationBuilder.Properties<DateTime?>().HaveConversion<NullableUtcDateTimeConverter>();
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

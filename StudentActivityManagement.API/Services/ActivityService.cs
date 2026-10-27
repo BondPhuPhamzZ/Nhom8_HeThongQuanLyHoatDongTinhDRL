@@ -11,6 +11,10 @@ public sealed class ActivityService : IActivityService
     private static readonly string[] AllowedStatuses =
         ["Draft", "Published", "Ongoing", "Completed", "Cancelled"];
 
+    // Ongoing stays visible so students can open the activity to check in while it runs;
+    // registration itself still requires Published.
+    private static readonly string[] StudentVisibleStatuses = ["Published", "Ongoing"];
+
     private readonly AppDbContext _context;
     private readonly IActivityEligibilityService _eligibilityService;
 
@@ -48,7 +52,8 @@ public sealed class ActivityService : IActivityService
                 ApiErrorCodes.AccessDenied);
         }
 
-        var query = BuildActivityQuery(campus, "Published", search, upcomingOnly: true);
+        var query = BuildActivityQuery(campus, null, search, upcomingOnly: true)
+            .Where(activity => StudentVisibleStatuses.Contains(activity.Status));
         query = _eligibilityService.ApplyEligibleFor(query, student);
         return await ToPagedResultAsync(query, pageIndex, pageSize, student);
     }
@@ -66,15 +71,21 @@ public sealed class ActivityService : IActivityService
 
         var now = DateTime.UtcNow;
         var query = WithStructure(_context.Activities.AsNoTracking())
-            .Where(activity => activity.Id == id && activity.Status == "Published" && activity.EndTime >= now);
+            .Where(activity => activity.Id == id && StudentVisibleStatuses.Contains(activity.Status) && activity.EndTime >= now);
         var activity = await _eligibilityService.ApplyEligibleFor(query, student).FirstOrDefaultAsync();
-
-        return activity == null
-            ? ApiResponseDto<ActivityResponseDto>.Fail(
+        if (activity == null)
+        {
+            return ApiResponseDto<ActivityResponseDto>.Fail(
                 "Không tìm thấy hoạt động phù hợp với đối tượng sinh viên.",
                 StatusCodes.Status404NotFound,
-                ApiErrorCodes.ResourceNotFound)
-            : ApiResponseDto<ActivityResponseDto>.Ok(MapToResponse(activity, student));
+                ApiErrorCodes.ResourceNotFound);
+        }
+
+        var registrationStatus = await _context.ActivityRegistrations.AsNoTracking()
+            .Where(registration => registration.ActivityId == id && registration.StudentId == student.Id)
+            .Select(registration => registration.Status)
+            .FirstOrDefaultAsync();
+        return ApiResponseDto<ActivityResponseDto>.Ok(MapToResponse(activity, student, registrationStatus));
     }
 
     public async Task<ApiResponseDto<ActivityResponseDto>> CreateActivityAsync(ActivityCreateDto request)
@@ -146,6 +157,17 @@ public sealed class ActivityService : IActivityService
             return InvalidActivity("Sức chứa không được nhỏ hơn số sinh viên đã đăng ký.");
         }
 
+        var existingSessionIds = activity.Sessions.Select(session => session.Id).ToHashSet();
+        var requestedSessionIds = request.Sessions.Where(session => session.Id.HasValue).Select(session => session.Id!.Value).ToList();
+        if (requestedSessionIds.Any(sessionId => !existingSessionIds.Contains(sessionId)))
+        {
+            return InvalidActivity("Một hoặc nhiều buổi không thuộc hoạt động này.");
+        }
+        if (requestedSessionIds.Distinct().Count() != requestedSessionIds.Count)
+        {
+            return InvalidActivity("Mỗi buổi chỉ được gửi một lần.");
+        }
+
         var orderedSessions = request.Sessions.OrderBy(session => session.SortOrder).ToList();
         var firstSession = orderedSessions[0];
         activity.ActivityName = request.ActivityName.Trim();
@@ -163,12 +185,13 @@ public sealed class ActivityService : IActivityService
         activity.Status = NormalizeStatus(request.Status)!;
         activity.UpdatedAt = DateTime.UtcNow;
 
-        _context.ActivitySessions.RemoveRange(activity.Sessions);
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await SyncSessionsAsync(activity, request.Sessions);
         _context.ActivityAudienceRules.RemoveRange(activity.AudienceRules);
-        activity.Sessions = request.Sessions.Select(MapSession).ToList();
         activity.AudienceRules = request.AudienceRules.Select(MapAudienceRule).ToList();
 
         await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
         await LoadStructureAsync(activity);
 
         return ApiResponseDto<ActivityResponseDto>.Ok(
@@ -231,8 +254,10 @@ public sealed class ActivityService : IActivityService
         await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
         try
         {
-            if (await _context.ActivityRegistrations.AnyAsync(registration =>
-                    registration.ActivityId == activityId && registration.StudentId == studentId))
+            // A cancelled registration is reactivated instead of inserting a second row (one row per student and activity).
+            var existingRegistration = await _context.ActivityRegistrations.FirstOrDefaultAsync(registration =>
+                registration.ActivityId == activityId && registration.StudentId == studentId);
+            if (existingRegistration != null && existingRegistration.Status != RegistrationStatus.Cancelled)
             {
                 return ApiResponseDto<bool>.Fail(
                     "Bạn đã đăng ký hoạt động này rồi.",
@@ -287,17 +312,25 @@ public sealed class ActivityService : IActivityService
                     ApiErrorCodes.ResourceConflict);
             }
 
-            _context.ActivityRegistrations.Add(new ActivityRegistration
+            if (existingRegistration != null)
             {
-                ActivityId = activityId,
-                StudentId = studentId,
-                RegisteredAt = now,
-                Status = "Registered"
-            });
+                existingRegistration.Status = RegistrationStatus.Registered;
+                existingRegistration.RegisteredAt = now;
+            }
+            else
+            {
+                _context.ActivityRegistrations.Add(new ActivityRegistration
+                {
+                    ActivityId = activityId,
+                    StudentId = studentId,
+                    RegisteredAt = now,
+                    Status = RegistrationStatus.Registered
+                });
+            }
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
-            return ApiResponseDto<bool>.Ok(true, "Đăng ký thành công.");
+            return ApiResponseDto<bool>.Ok(true, existingRegistration != null ? "Đăng ký lại thành công." : "Đăng ký thành công.");
         }
         catch (DbUpdateException)
         {
@@ -455,9 +488,20 @@ public sealed class ActivityService : IActivityService
             .AsSplitQuery()
             .ToListAsync();
 
+        var registrationStatuses = new Dictionary<int, string>();
+        if (student != null)
+        {
+            var activityIds = activities.Select(activity => activity.Id).ToList();
+            registrationStatuses = await _context.ActivityRegistrations.AsNoTracking()
+                .Where(registration => registration.StudentId == student.Id && activityIds.Contains(registration.ActivityId))
+                .ToDictionaryAsync(registration => registration.ActivityId, registration => registration.Status);
+        }
+
         return ApiResponseDto<PagedResultDto<ActivityResponseDto>>.Ok(new PagedResultDto<ActivityResponseDto>
         {
-            Items = activities.Select(activity => MapToResponse(activity, student)).ToList(),
+            Items = activities
+                .Select(activity => MapToResponse(activity, student, registrationStatuses.GetValueOrDefault(activity.Id)))
+                .ToList(),
             TotalCount = totalCount,
             PageIndex = pageIndex,
             PageSize = pageSize
@@ -523,6 +567,47 @@ public sealed class ActivityService : IActivityService
             .LoadAsync();
     }
 
+    /// <summary>
+    /// Updates sessions in place so their Ids survive an edit: matched by Id, new ones added,
+    /// missing ones removed. Kept sessions first move to temporary negative sort orders so that
+    /// reordering never collides with the unique (ActivityId, SortOrder) index mid-update.
+    /// </summary>
+    private async Task SyncSessionsAsync(Activity activity, IReadOnlyCollection<ActivitySessionInputDto> requested)
+    {
+        var keptIds = requested.Where(session => session.Id.HasValue).Select(session => session.Id!.Value).ToHashSet();
+        var removed = activity.Sessions.Where(session => !keptIds.Contains(session.Id)).ToList();
+        _context.ActivitySessions.RemoveRange(removed);
+        foreach (var session in removed)
+        {
+            activity.Sessions.Remove(session);
+        }
+
+        foreach (var session in activity.Sessions)
+        {
+            session.SortOrder = -session.Id;
+        }
+        await _context.SaveChangesAsync();
+
+        foreach (var source in requested)
+        {
+            var session = source.Id.HasValue
+                ? activity.Sessions.First(item => item.Id == source.Id.Value)
+                : null;
+            if (session == null)
+            {
+                activity.Sessions.Add(MapSession(source));
+                continue;
+            }
+
+            session.SessionName = source.SessionName.Trim();
+            session.Campus = source.Campus.Trim();
+            session.Location = source.Location.Trim();
+            session.StartTime = source.StartTime;
+            session.EndTime = source.EndTime;
+            session.SortOrder = source.SortOrder;
+        }
+    }
+
     private static ActivitySession MapSession(ActivitySessionInputDto source) => new()
     {
         SessionName = source.SessionName.Trim(),
@@ -542,9 +627,10 @@ public sealed class ActivityService : IActivityService
             value.Equals(source.ParticipationType.Trim(), StringComparison.OrdinalIgnoreCase))
     };
 
-    private ActivityResponseDto MapToResponse(Activity activity, User? student = null) => new()
+    private ActivityResponseDto MapToResponse(Activity activity, User? student = null, string? registrationStatus = null) => new()
     {
         Id = activity.Id,
+        MyRegistrationStatus = registrationStatus,
         ActivityName = activity.ActivityName,
         Description = activity.Description,
         OrganizerName = activity.OrganizerName,
