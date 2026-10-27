@@ -46,6 +46,11 @@ namespace StudentActivityManagement.API.Models
 
         public bool IsClassMonitor { get; set; } = false;
 
+        /// <summary>
+        /// Tài khoản bị khóa (false) không đăng nhập được và token đã phát bị từ chối.
+        /// </summary>
+        public bool IsActive { get; set; } = true;
+
         public int AccumulatedPoints { get; set; } = 0;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
