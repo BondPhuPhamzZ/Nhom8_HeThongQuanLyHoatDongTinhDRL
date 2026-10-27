@@ -1,0 +1,58 @@
+@model ActivityListViewModel
+@{
+    ViewData["Title"] = "Quản lý hoạt động";
+    var statuses = new[] { ("", "Mọi trạng thái"), ("Draft", "Nháp"), ("Published", "Đang mở"), ("Ongoing", "Đang diễn ra"), ("Completed", "Đã kết thúc"), ("Cancelled", "Đã hủy") };
+}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+    <div>
+        <h1 class="h3 mb-1">Quản lý hoạt động rèn luyện</h1>
+        <p class="text-muted mb-0">Tạo, công bố, cập nhật và theo dõi số lượng đăng ký.</p>
+    </div>
+    <a class="btn btn-primary" asp-action="Create">+ Tạo hoạt động</a>
+</div>
+<form asp-action="Index" method="get" class="d-flex flex-wrap gap-2 mb-3">
+    <input name="search" value="@Model.Search" class="form-control w-auto flex-grow-1" placeholder="Tìm theo tên, đơn vị, địa điểm" />
+    <select name="status" class="form-select w-auto">
+        @foreach (var (value, label) in statuses)
+        {
+            <option value="@value" selected="@(Model.Status == value || (Model.Status == null && value == ""))">@label</option>
+        }
+    </select>
+    <button class="btn btn-outline-primary" type="submit">Lọc</button>
+</form>
+
+@if (Model.Page.Items.Count == 0)
+{
+    <div class="empty-state">Chưa có hoạt động nào.</div>
+}
+else
+{
+    <div class="table-responsive card shadow-sm border-0 mb-3">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Hoạt động</th><th>Buổi đầu</th><th>Đóng đăng ký</th><th class="text-center">Đăng ký</th><th class="text-center">Điểm</th><th>Trạng thái</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var activity in Model.Page.Items)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@activity.ActivityName</div>
+                            <div class="small text-muted">@activity.OrganizerName · @activity.Sessions.Count buổi</div>
+                        </td>
+                        <td class="small"><vn-time value="@activity.StartTime" /></td>
+                        <td class="small"><vn-time value="@activity.RegistrationCloseTime" /></td>
+                        <td class="text-center">@activity.CurrentParticipantsCount/@activity.MaxParticipants</td>
+                        <td class="text-center">@activity.TrainingPoints</td>
+                        <td><status-badge value="@activity.Status" /></td>
+                        <td class="text-end text-nowrap">
+                            <a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@activity.Id">Xem</a>
+                            <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@activity.Id">Sửa</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+<partial name="_Pagination" model="Model" />

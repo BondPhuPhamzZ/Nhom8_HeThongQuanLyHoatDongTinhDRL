@@ -1,0 +1,73 @@
+@model ActivityDto
+@{
+    ViewData["Title"] = Model.ActivityName;
+    // Next steps offered for each status; the API accepts any listed status.
+    var transitions = Model.Status switch
+    {
+        "Draft" => new[] { ("Published", "Công bố", "btn-success"), ("Cancelled", "Hủy hoạt động", "btn-outline-danger") },
+        "Published" => new[] { ("Ongoing", "Bắt đầu diễn ra", "btn-primary"), ("Cancelled", "Hủy hoạt động", "btn-outline-danger") },
+        "Ongoing" => new[] { ("Completed", "Kết thúc", "btn-dark") },
+        _ => Array.Empty<(string, string, string)>()
+    };
+}
+<a asp-action="Index" class="small">&larr; Danh sách hoạt động</a>
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mt-2 mb-3">
+    <div>
+        <status-badge value="@Model.Status" />
+        <h1 class="h3 mt-2 mb-1">@Model.ActivityName</h1>
+        <p class="text-muted mb-0">@Model.OrganizerName · tạo ngày <vn-time value="@Model.CreatedAt" format="date" /></p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        @foreach (var (status, label, css) in transitions)
+        {
+            <form asp-action="ChangeStatus" asp-route-id="@Model.Id" method="post">
+                <input type="hidden" name="status" value="@status" />
+                <button class="btn @css" type="submit">@label</button>
+            </form>
+        }
+        <a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@Model.Id">Sửa</a>
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Xóa hoạt động này? Thao tác không hoàn tác được.');">
+            <button class="btn btn-outline-danger" type="submit">Xóa</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3"><div class="stat-tile"><div class="stat-value">@Model.CurrentParticipantsCount/@Model.MaxParticipants</div><div class="stat-label">Đã đăng ký</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-tile"><div class="stat-value">@Model.TrainingPoints</div><div class="stat-label">Điểm rèn luyện</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-tile"><div class="stat-value small-value"><vn-time value="@Model.RegistrationOpenTime" /></div><div class="stat-label">Mở đăng ký</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-tile"><div class="stat-value small-value"><vn-time value="@Model.RegistrationCloseTime" /></div><div class="stat-label">Đóng đăng ký</div></div></div>
+</div>
+
+<p class="pre-line">@Model.Description</p>
+
+<h2 class="h5 mt-4">Các buổi tổ chức</h2>
+<div class="table-responsive">
+    <table class="table table-sm align-middle">
+        <thead><tr><th>#</th><th>Buổi</th><th>Bắt đầu</th><th>Kết thúc</th><th>Cơ sở</th><th>Địa điểm</th></tr></thead>
+        <tbody>
+            @foreach (var session in Model.Sessions.OrderBy(s => s.SortOrder))
+            {
+                <tr><td>@session.SortOrder</td><td>@session.SessionName</td><td><vn-time value="@session.StartTime" /></td><td><vn-time value="@session.EndTime" /></td><td>@session.Campus</td><td>@session.Location</td></tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<h2 class="h5 mt-4">Đối tượng tham gia</h2>
+@if (Model.AudienceRules.Count == 0)
+{
+    <p class="text-muted">Mọi sinh viên (@Model.TargetAudience).</p>
+}
+else
+{
+    <ul class="list-unstyled">
+        @foreach (var rule in Model.AudienceRules)
+        {
+            <li class="mb-1">
+                <status-badge value="@rule.ParticipationType" />
+                @string.Join(" · ", new[] { rule.Campus, rule.AcademicYear is { } year ? $"Khóa {year}" : null, rule.ClassCode is { } code ? $"Lớp {code}" : null }.Where(x => !string.IsNullOrEmpty(x)))
+            </li>
+        }
+    </ul>
+}

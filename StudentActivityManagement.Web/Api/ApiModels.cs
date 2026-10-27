@@ -1,0 +1,130 @@
+namespace StudentActivityManagement.Web.Api;
+
+// Client-side copies of the API contract (/api/v1). Times from the API are UTC.
+
+public sealed class PagedResult<T>
+{
+    public List<T> Items { get; set; } = [];
+    public int TotalCount { get; set; }
+    public int PageIndex { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
+}
+
+public sealed class AuthResponse
+{
+    public string Token { get; set; } = string.Empty;
+    public DateTime ExpiresAt { get; set; }
+    public UserInfo User { get; set; } = new();
+}
+
+public sealed class UserInfo
+{
+    public int Id { get; set; }
+    public string StudentCode { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public string Campus { get; set; } = string.Empty;
+    public string AcademicYear { get; set; } = string.Empty;
+    public string? ClassCode { get; set; }
+    public string? ClassName { get; set; }
+    public bool IsClassMonitor { get; set; }
+    public int AccumulatedPoints { get; set; }
+}
+
+public sealed class ActivityDto
+{
+    public int Id { get; set; }
+    public string ActivityName { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string OrganizerName { get; set; } = string.Empty;
+    public string Location { get; set; } = string.Empty;
+    public string Campus { get; set; } = string.Empty;
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+    public DateTime RegistrationOpenTime { get; set; }
+    public DateTime RegistrationCloseTime { get; set; }
+    public int MaxParticipants { get; set; }
+    public int CurrentParticipantsCount { get; set; }
+    public int TrainingPoints { get; set; }
+    public string TargetAudience { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public List<SessionDto> Sessions { get; set; } = [];
+    public List<AudienceRuleDto> AudienceRules { get; set; } = [];
+    public EligibilityDto? Eligibility { get; set; }
+    public string? MyRegistrationStatus { get; set; }
+    public int RemainingSlots { get; set; }
+    public bool IsRegistrationOpen { get; set; }
+}
+
+public sealed class SessionDto
+{
+    public int Id { get; set; }
+    public string SessionName { get; set; } = string.Empty;
+    public string Campus { get; set; } = string.Empty;
+    public string Location { get; set; } = string.Empty;
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+    public int SortOrder { get; set; }
+}
+
+public sealed class AudienceRuleDto
+{
+    public int Id { get; set; }
+    public string? Campus { get; set; }
+    public string? AcademicYear { get; set; }
+    public int? ClassId { get; set; }
+    public string? ClassCode { get; set; }
+    public string ParticipationType { get; set; } = "Optional";
+}
+
+public sealed class EligibilityDto
+{
+    public bool IsEligible { get; set; }
+    public string? ParticipationType { get; set; }
+    public string Reason { get; set; } = string.Empty;
+}
+
+public sealed class ClassDto
+{
+    public int Id { get; set; }
+    public string ClassCode { get; set; } = string.Empty;
+    public string ClassName { get; set; } = string.Empty;
+}
+
+/// <summary>Request body for POST/PUT /admin/activities. Times carry the Vietnam offset.</summary>
+public sealed class ActivityWriteRequest
+{
+    public string ActivityName { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string OrganizerName { get; set; } = string.Empty;
+    public DateTimeOffset RegistrationOpenTime { get; set; }
+    public DateTimeOffset RegistrationCloseTime { get; set; }
+    public int MaxParticipants { get; set; }
+    public int TrainingPoints { get; set; }
+    public string TargetAudience { get; set; } = string.Empty;
+    public string Status { get; set; } = "Draft";
+    public List<SessionWriteRequest> Sessions { get; set; } = [];
+    public List<AudienceRuleWriteRequest> AudienceRules { get; set; } = [];
+}
+
+public sealed class SessionWriteRequest
+{
+    public int? Id { get; set; }
+    public string SessionName { get; set; } = string.Empty;
+    public string Campus { get; set; } = string.Empty;
+    public string Location { get; set; } = string.Empty;
+    public DateTimeOffset StartTime { get; set; }
+    public DateTimeOffset EndTime { get; set; }
+    public int SortOrder { get; set; }
+}
+
+public sealed class AudienceRuleWriteRequest
+{
+    public string? Campus { get; set; }
+    public string? AcademicYear { get; set; }
+    public int? ClassId { get; set; }
+    public string ParticipationType { get; set; } = "Optional";
+}
