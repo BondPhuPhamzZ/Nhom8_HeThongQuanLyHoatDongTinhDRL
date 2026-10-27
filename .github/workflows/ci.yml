@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      # Startup rejects a missing/short secret before tests can override it.
+      # This throwaway value only satisfies that check; integration tests sign tokens with their own key.
+      JwtSettings__Secret: ci-only-placeholder-secret-not-used-for-real-tokens
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore Nhom8_ActivitiesManagement.sln
+
+      - name: Build
+        run: dotnet build Nhom8_ActivitiesManagement.sln --no-restore --configuration Release -warnaserror
+
+      - name: Check migrations match the model
+        working-directory: StudentActivityManagement.API
+        run: |
+          dotnet tool restore
+          dotnet ef migrations has-pending-model-changes --no-build --configuration Release
+
+      - name: Test
+        run: >
+          dotnet test Nhom8_ActivitiesManagement.sln --no-build --configuration Release
+          --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/*.trx
+          if-no-files-found: ignore
