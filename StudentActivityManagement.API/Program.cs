@@ -30,6 +30,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IActivityEligibilityService, ActivityEligibilityService>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
 
 // 3. Configure JWT Authentication
 var jwtSecret = builder.Configuration["JwtSettings:Secret"];
