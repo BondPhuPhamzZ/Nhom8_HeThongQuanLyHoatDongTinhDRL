@@ -31,6 +31,7 @@ builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IActivityEligibilityService, ActivityEligibilityService>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IAccountAccessValidator, AccountAccessValidator>();
 
 // 3. Configure JWT Authentication
 var jwtSecret = builder.Configuration["JwtSettings:Secret"];
@@ -63,6 +64,19 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
         ClockSkew = TimeSpan.Zero
+    };
+    // US-25: token của tài khoản đã bị khóa, bị xóa hoặc đã đổi vai trò bị từ chối ngay (401),
+    // client phải đăng nhập lại để nhận token mới.
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var validator = context.HttpContext.RequestServices.GetRequiredService<IAccountAccessValidator>();
+            if (!await validator.IsTokenStillValidAsync(context.Principal!, context.HttpContext.RequestAborted))
+            {
+                context.Fail("Tài khoản đã bị khóa hoặc quyền đã thay đổi. Vui lòng đăng nhập lại.");
+            }
+        }
     };
 });
 

@@ -39,6 +39,15 @@ namespace StudentActivityManagement.API.Services
                     ApiErrorCodes.InvalidCredentials);
             }
 
+            // Kiểm tra sau mật khẩu để không tiết lộ trạng thái tài khoản cho người không biết mật khẩu.
+            if (!user.IsActive)
+            {
+                return ApiResponseDto<AuthResponseDto>.Fail(
+                    "Tài khoản đã bị khóa. Vui lòng liên hệ Phòng Quản lý HSSV.",
+                    StatusCodes.Status403Forbidden,
+                    ApiErrorCodes.AccountDisabled);
+            }
+
             if (PasswordHasher.NeedsRehash(user.PasswordHash))
             {
                 user.PasswordHash = PasswordHasher.HashPassword(request.Password);
