@@ -33,17 +33,34 @@ Tài khoản dữ liệu mẫu:
 
 | Quyền | Tên đăng nhập | Mật khẩu |
 |---|---|---|
-| Admin | `ADMIN001` | `Admin123@` |
-| Lớp trưởng | `SV210001` | `123456` |
-| Sinh viên | `SV210002` | `123456` |
+| Quản trị viên hệ thống (`SystemAdmin`) | `ADMIN001` | `Admin123@` |
+| Phòng Quản lý HSSV (`HSSV`) | `HSSV001` | `Hssv123@` |
+| Lớp trưởng (`Monitor`) | `SV210001` | `123456` |
+| Sinh viên (`Student`) | `SV210002` | `123456` |
+
+`HSSV001` được bổ sung tự động khi chạy ở môi trường Development, kể cả trên database đã có dữ liệu từ trước.
 
 Để thử API có phân quyền:
 
 1. Mở `POST /api/v1/auth/login`, chọn **Try it out** và đăng nhập.
 2. Sao chép giá trị `data.token` trong response.
 3. Chọn nút **Authorize** ở đầu Swagger, nhập `Bearer <token>`.
-4. Sinh viên thử nhóm `/api/v1/student-activities`; Admin thử `/api/v1/admin/students`, `/api/v1/admin/classes` và `/api/v1/admin/activities`.
+4. Sinh viên/lớp trưởng thử nhóm `/api/v1/student-activities`; HSSV hoặc SystemAdmin thử `/api/v1/admin/students`, `/api/v1/admin/classes` và `/api/v1/admin/activities`; chỉ SystemAdmin dùng `/api/v1/admin/accounts`.
 5. Sinh viên có thể hủy đăng ký trước hạn qua DELETE /api/v1/student-activities/{activityId}/registration (US-05: idempotent, hoàn capacity và bảo lưu lịch sử).
+
+## Phân quyền (US-25)
+
+| Nhóm endpoint | Student | Monitor | HSSV | SystemAdmin |
+|---|---|---|---|---|
+| `/api/v1/auth/me` | ✓ | ✓ | ✓ | ✓ |
+| `/api/v1/student-activities/*` | ✓ | ✓ | 403 | 403 |
+| `/api/v1/admin/students`, `/classes`, `/activities` | 403 | 403 | ✓ | ✓ |
+| `/api/v1/admin/accounts/*` | 403 | 403 | 403 | ✓ |
+
+- Tài khoản sinh viên do Phòng QL HSSV tạo qua `POST /api/v1/admin/students`. Endpoint tự đăng ký `POST /api/v1/auth/register` đã được gỡ (breaking change).
+- API tài khoản chỉ tạo tài khoản cán bộ (`HSSV`, `SystemAdmin`) và chỉ đổi vai trò giữa hai role này. Lớp trưởng (`Monitor`) chỉ được chỉ định qua `PUT /api/v1/admin/classes/{id}/monitor/{studentId}`.
+- Không thể tự đổi vai trò, tự khóa tài khoản của mình, hoặc làm hệ thống không còn `SystemAdmin` đang hoạt động.
+- Khóa tài khoản hoặc đổi vai trò (kể cả chỉ định lớp trưởng mới) có hiệu lực ngay: token cũ nhận `401`, client phải đăng nhập lại. Tài khoản bị khóa đăng nhập nhận `403` với `errorCode = account_disabled`.
 
 Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động có `organizerName`, danh sách `sessions` và `audienceRules`. Sinh viên chỉ thấy và đăng ký hoạt động phù hợp cơ sở, khóa hoặc lớp của mình.
 
@@ -53,7 +70,7 @@ Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động c
 - [`StudentActivityManagement.API.http`](StudentActivityManagement.API.http): request mẫu dùng trong Visual Studio, Rider hoặc VS Code REST Client.
 - `scripts/setup-local.ps1`: cấu hình JWT secret an toàn cho máy local.
 - `scripts/update-database.ps1`: restore EF tool và áp dụng migration đã commit.
-- `StudentActivityManagement.API.Tests`: integration test cho JWT, phân quyền, OpenAPI, lịch nhiều buổi và đối tượng tham gia.
+- `StudentActivityManagement.API.Tests`: integration test cho JWT, phân quyền, OpenAPI, lịch nhiều buổi, đối tượng tham gia, hủy đăng ký và quản lý tài khoản.
 
 Backlog, Sprint, báo cáo, kịch bản demo và hướng dẫn thành viên được quản lý ngoài repository để Git chỉ chứa phần mềm cần build/chạy.
 
