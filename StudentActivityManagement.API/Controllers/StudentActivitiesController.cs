@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using StudentActivityManagement.API.Authorization;
 using StudentActivityManagement.API.DTOs.Common;
 using StudentActivityManagement.API.Models;
 using StudentActivityManagement.API.Services;
@@ -9,7 +10,7 @@ namespace StudentActivityManagement.API.Controllers
 {
     [ApiController]
     [Route("api/v1/student-activities")]
-    [Authorize(Policy = "StudentOrMonitor")]
+    [Authorize(Policy = AuthorizationPolicies.StudentOrMonitor)]
     public class StudentActivitiesController : ApiControllerBase
     {
         private readonly IActivityService _activityService;

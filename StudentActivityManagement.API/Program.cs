@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using StudentActivityManagement.API.Authorization;
 using StudentActivityManagement.API.Data;
 using StudentActivityManagement.API.DTOs.Common;
+using StudentActivityManagement.API.Models;
 using StudentActivityManagement.API.OpenApi;
 using StudentActivityManagement.API.Services;
 
@@ -65,8 +67,12 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("StudentOrMonitor", policy =>
-        policy.RequireRole(StudentActivityManagement.API.Models.Role.Student, StudentActivityManagement.API.Models.Role.Monitor));
+    options.AddPolicy(AuthorizationPolicies.StudentOrMonitor, policy =>
+        policy.RequireRole(Role.StudentRoles));
+    options.AddPolicy(AuthorizationPolicies.BusinessAdmin, policy =>
+        policy.RequireRole(Role.StaffRoles));
+    options.AddPolicy(AuthorizationPolicies.SystemAdminOnly, policy =>
+        policy.RequireRole(Role.SystemAdmin));
 });
 
 // 4. Add Controllers and one error contract for every client (Web/Mobile).
@@ -149,6 +155,10 @@ using (var scope = app.Services.CreateScope())
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     context.Database.Migrate();
     DbInitializer.Initialize(context);
+    if (app.Environment.IsDevelopment())
+    {
+        DbInitializer.EnsureDevelopmentAccounts(context);
+    }
 }
 
 // 8. Configure HTTP Request Pipeline

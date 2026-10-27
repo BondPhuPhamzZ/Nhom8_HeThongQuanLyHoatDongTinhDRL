@@ -30,15 +30,15 @@ namespace StudentActivityManagement.API.Data
             context.Classes.AddRange(class1, class2);
             context.SaveChanges();
 
-            // Seed Admin User
+            // Seed System Admin User
             var adminUser = new User
             {
                 StudentCode = "ADMIN001",
-                FullName = "Phòng Quản lý HSSV",
+                FullName = "Quản trị hệ thống",
                 Email = "admin@school.edu.vn",
                 PasswordHash = PasswordHasher.HashPassword("Admin123@"),
                 Phone = "0901234567",
-                Role = Role.Admin,
+                Role = Role.SystemAdmin,
                 Campus = "Cơ sở 1",
                 AcademicYear = "Staff",
                 AccumulatedPoints = 0
@@ -217,6 +217,35 @@ namespace StudentActivityManagement.API.Data
                 Status = "Registered"
             };
             context.ActivityRegistrations.Add(reg);
+            context.SaveChanges();
+        }
+
+        /// <summary>
+        /// Bổ sung tài khoản demo cho môi trường Development. Idempotent: chỉ tạo khi chưa tồn tại,
+        /// nên chạy được cả trên database đã seed từ Sprint trước.
+        /// </summary>
+        public static void EnsureDevelopmentAccounts(AppDbContext context)
+        {
+            const string hssvCode = "HSSV001";
+            const string hssvEmail = "hssv@school.edu.vn";
+
+            if (context.Users.Any(user => user.StudentCode == hssvCode || user.Email == hssvEmail))
+            {
+                return;
+            }
+
+            context.Users.Add(new User
+            {
+                StudentCode = hssvCode,
+                FullName = "Phòng Quản lý HSSV",
+                Email = hssvEmail,
+                PasswordHash = PasswordHasher.HashPassword("Hssv123@"),
+                Phone = "0901234568",
+                Role = Role.HSSV,
+                Campus = "Cơ sở 1",
+                AcademicYear = "Staff",
+                CreatedAt = DateTime.UtcNow
+            });
             context.SaveChanges();
         }
     }
