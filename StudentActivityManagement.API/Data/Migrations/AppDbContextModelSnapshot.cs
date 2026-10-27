@@ -273,6 +273,9 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsClassMonitor")
                         .HasColumnType("INTEGER");
 
