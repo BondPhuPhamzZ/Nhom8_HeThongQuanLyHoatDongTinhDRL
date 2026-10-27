@@ -9,6 +9,7 @@ using StudentActivityManagement.API.Data;
 using StudentActivityManagement.API.DTOs.Common;
 using StudentActivityManagement.API.Models;
 using StudentActivityManagement.API.OpenApi;
+using StudentActivityManagement.API.Serialization;
 using StudentActivityManagement.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -103,7 +104,9 @@ builder.Services.AddProblemDetails(options =>
         context.ProblemDetails.Extensions.TryAdd("traceId", context.HttpContext.TraceIdentifier);
     };
 });
-builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter()))
+    .ConfigureApiBehaviorOptions(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
     {
