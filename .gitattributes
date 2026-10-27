@@ -1,0 +1,15 @@
+# Store text with LF in the repository; each checkout converts to the platform's line ending.
+* text=auto
+
+# Windows-only tooling keeps CRLF in the working tree on every platform.
+*.sln text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files are never normalized or diffed as text.
+*.xlsx binary
+*.docx binary
+*.pptx binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.db binary
