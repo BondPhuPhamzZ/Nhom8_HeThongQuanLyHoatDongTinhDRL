@@ -165,7 +165,7 @@
                 container.appendChild(document.getElementById(`tpl-${kind}`).content.cloneNode(true));
                 if (kind === 'session') {
                     const rows = container.querySelectorAll('[data-row]');
-                    rows[rows.length - 1].querySelector('[data-field="SessionName" aria-label="Tên buổi"]').value = `Buổi ${rows.length}`;
+                    rows[rows.length - 1].querySelector('[data-field="SessionName"]').value = `Buổi ${rows.length}`;
                 }
             }));
             form.addEventListener('click', event => {
