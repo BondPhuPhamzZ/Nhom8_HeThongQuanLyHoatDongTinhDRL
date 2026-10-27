@@ -8,6 +8,8 @@ Backend RESTful API cho hệ thống quản lý hoạt động và tính điểm
 
 Yêu cầu: .NET SDK 8. Chạy các lệnh sau từ thư mục gốc của repository, nơi có file `Nhom8_ActivitiesManagement.sln`:
 
+> Chỉ dùng `Nhom8_ActivitiesManagement.sln` ở gốc repository: file này chứa cả API và project test. Nếu thư mục cha (ngoài Git) còn một file `.sln` cùng tên do Visual Studio tạo lúc khởi tạo, file đó chỉ có project API, thiếu project test và không được theo dõi trong Git, nên không mở file đó.
+
 ```powershell
 git switch main
 git pull --ff-only origin main
