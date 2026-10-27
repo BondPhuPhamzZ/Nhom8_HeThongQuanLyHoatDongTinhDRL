@@ -1,0 +1,162 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+
+namespace StudentActivityManagement.Web.Api;
+
+/// <summary>Result of one API call: either Data, or the ProblemDetails message/errors to show the user.</summary>
+public sealed class ApiResult<T>
+{
+    public bool Success { get; init; }
+    public T? Data { get; init; }
+    public string Message { get; init; } = string.Empty;
+    public HttpStatusCode StatusCode { get; init; }
+    public string? ErrorCode { get; init; }
+    public Dictionary<string, string[]> Errors { get; init; } = [];
+}
+
+/// <summary>Thrown when the API rejects the stored token (expired, account locked, role changed).</summary>
+public sealed class ApiUnauthorizedException : Exception
+{
+    public ApiUnauthorizedException(string message) : base(message) { }
+}
+
+/// <summary>
+/// Typed HttpClient for the shared RESTful API. The bearer token of the signed-in user is attached by
+/// <see cref="BearerTokenHandler"/>; every response is read through one place so errors look the same everywhere.
+/// </summary>
+public sealed class ApiClient
+{
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    private readonly HttpClient _http;
+
+    public ApiClient(HttpClient http) => _http = http;
+
+    // ---- Auth
+    public Task<ApiResult<AuthResponse>> LoginAsync(string usernameOrEmail, string password) =>
+        SendAsync<AuthResponse>(HttpMethod.Post, "api/v1/auth/login", new { usernameOrEmail, password }, throwOn401: false);
+
+    // ---- Student
+    public Task<ApiResult<PagedResult<ActivityDto>>> GetStudentActivitiesAsync(string? search, string? campus, int page, int pageSize = 9) =>
+        SendAsync<PagedResult<ActivityDto>>(HttpMethod.Get, $"api/v1/student-activities?{Query(("search", search), ("campus", campus), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
+
+    public Task<ApiResult<ActivityDto>> GetStudentActivityAsync(int id) =>
+        SendAsync<ActivityDto>(HttpMethod.Get, $"api/v1/student-activities/{id}");
+
+    public Task<ApiResult<bool>> RegisterAsync(int id) =>
+        SendAsync<bool>(HttpMethod.Post, $"api/v1/student-activities/{id}/register");
+
+    public Task<ApiResult<bool>> CancelRegistrationAsync(int id) =>
+        SendAsync<bool>(HttpMethod.Delete, $"api/v1/student-activities/{id}/registration");
+
+    // ---- Activity management (HSSV, SystemAdmin)
+    public Task<ApiResult<PagedResult<ActivityDto>>> GetActivitiesAsync(string? search, string? status, int page, int pageSize = 10) =>
+        SendAsync<PagedResult<ActivityDto>>(HttpMethod.Get, $"api/v1/admin/activities?{Query(("search", search), ("status", status), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
+
+    public Task<ApiResult<ActivityDto>> GetActivityAsync(int id) =>
+        SendAsync<ActivityDto>(HttpMethod.Get, $"api/v1/admin/activities/{id}");
+
+    public Task<ApiResult<ActivityDto>> CreateActivityAsync(ActivityWriteRequest request) =>
+        SendAsync<ActivityDto>(HttpMethod.Post, "api/v1/admin/activities", request);
+
+    public Task<ApiResult<ActivityDto>> UpdateActivityAsync(int id, ActivityWriteRequest request) =>
+        SendAsync<ActivityDto>(HttpMethod.Put, $"api/v1/admin/activities/{id}", request);
+
+    public Task<ApiResult<ActivityDto>> UpdateActivityStatusAsync(int id, string status) =>
+        SendAsync<ActivityDto>(HttpMethod.Patch, $"api/v1/admin/activities/{id}/status", new { status });
+
+    public Task<ApiResult<bool>> DeleteActivityAsync(int id) =>
+        SendAsync<bool>(HttpMethod.Delete, $"api/v1/admin/activities/{id}");
+
+    public Task<ApiResult<List<ClassDto>>> GetClassesAsync() =>
+        SendAsync<List<ClassDto>>(HttpMethod.Get, "api/v1/admin/classes");
+
+    private async Task<ApiResult<T>> SendAsync<T>(HttpMethod method, string url, object? body = null, bool throwOn401 = true)
+    {
+        using var request = new HttpRequestMessage(method, url);
+        if (body != null)
+        {
+            request.Content = JsonContent.Create(body, options: Json);
+        }
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await _http.SendAsync(request);
+        }
+        catch (HttpRequestException)
+        {
+            return new ApiResult<T>
+            {
+                StatusCode = HttpStatusCode.ServiceUnavailable,
+                Message = "Không kết nối được API. Hãy kiểm tra StudentActivityManagement.API đang chạy."
+            };
+        }
+
+        using (response)
+        {
+            var text = await response.Content.ReadAsStringAsync();
+            if (response.StatusCode == HttpStatusCode.Unauthorized && throwOn401)
+            {
+                throw new ApiUnauthorizedException("Phiên đăng nhập đã hết hạn hoặc tài khoản đã thay đổi quyền. Vui lòng đăng nhập lại.");
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                using var document = JsonDocument.Parse(string.IsNullOrWhiteSpace(text) ? "{}" : text);
+                var root = document.RootElement;
+                return new ApiResult<T>
+                {
+                    Success = true,
+                    StatusCode = response.StatusCode,
+                    Message = root.TryGetProperty("message", out var message) ? message.GetString() ?? string.Empty : string.Empty,
+                    Data = root.TryGetProperty("data", out var data) ? data.Deserialize<T>(Json) : default
+                };
+            }
+
+            return ReadProblem<T>(response.StatusCode, text);
+        }
+    }
+
+    private static ApiResult<T> ReadProblem<T>(HttpStatusCode status, string text)
+    {
+        var errors = new Dictionary<string, string[]>();
+        string? message = null, errorCode = null;
+        try
+        {
+            using var document = JsonDocument.Parse(text);
+            var root = document.RootElement;
+            message = root.TryGetProperty("detail", out var detail) && detail.ValueKind == JsonValueKind.String ? detail.GetString()
+                : root.TryGetProperty("title", out var title) ? title.GetString() : null;
+            errorCode = root.TryGetProperty("errorCode", out var code) ? code.GetString() : null;
+            if (root.TryGetProperty("errors", out var list) && list.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var item in list.EnumerateObject())
+                {
+                    errors[item.Name] = item.Value.EnumerateArray().Select(value => value.GetString() ?? string.Empty).ToArray();
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // Non-JSON error body: fall back to a generic message below.
+        }
+
+        return new ApiResult<T>
+        {
+            StatusCode = status,
+            ErrorCode = errorCode,
+            Errors = errors,
+            Message = message ?? status switch
+            {
+                HttpStatusCode.Forbidden => "Bạn không có quyền thực hiện thao tác này.",
+                HttpStatusCode.NotFound => "Không tìm thấy dữ liệu.",
+                _ => "Có lỗi xảy ra. Vui lòng thử lại."
+            }
+        };
+    }
+
+    private static string Query(params (string Key, string? Value)[] values) => string.Join("&", values
+        .Where(item => !string.IsNullOrWhiteSpace(item.Value))
+        .Select(item => $"{item.Key}={Uri.EscapeDataString(item.Value!)}"));
+}

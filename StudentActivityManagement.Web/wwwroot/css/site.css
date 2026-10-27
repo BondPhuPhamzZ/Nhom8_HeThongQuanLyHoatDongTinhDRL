@@ -1,0 +1,42 @@
+:root {
+  --app-primary: #1f4e8c;
+  --app-primary-dark: #163a69;
+  --app-surface: #f5f7fb;
+  --app-accent: #f2a900;
+}
+
+html { font-size: 15px; }
+body { background: var(--app-surface); }
+
+/* The bundled Bootstrap is 5.1 (no --bs-btn-* variables, no text-bg-* helpers), so colours are set directly. */
+.btn-primary { background-color: var(--app-primary); border-color: var(--app-primary); }
+.btn-primary:hover, .btn-primary:focus { background-color: var(--app-primary-dark); border-color: var(--app-primary-dark); }
+.btn-outline-primary { color: var(--app-primary); border-color: var(--app-primary); }
+.btn-outline-primary:hover { background-color: var(--app-primary); border-color: var(--app-primary); color: #fff; }
+a { color: var(--app-primary); }
+.page-item.active .page-link { background-color: var(--app-primary); border-color: var(--app-primary); }
+
+.text-bg-success { background-color: #198754; color: #fff; }
+.text-bg-primary { background-color: var(--app-primary); color: #fff; }
+.text-bg-secondary { background-color: #6c757d; color: #fff; }
+.text-bg-danger { background-color: #dc3545; color: #fff; }
+.text-bg-warning { background-color: #ffc107; color: #212529; }
+.text-bg-info { background-color: #0dcaf0; color: #212529; }
+.text-bg-dark { background-color: #212529; color: #fff; }
+.text-bg-light { background-color: #f8f9fa; color: #212529; }
+
+.app-navbar { background: linear-gradient(90deg, var(--app-primary-dark), var(--app-primary)); }
+.brand-mark { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: .5rem; background: var(--app-accent); color: #1b1b1b; font-weight: 700; margin-right: .35rem; }
+
+.activity-card { border: 0; transition: transform .12s ease, box-shadow .12s ease; }
+.activity-card:hover { transform: translateY(-2px); box-shadow: 0 .5rem 1rem rgba(31, 78, 140, .12) !important; }
+.points-chip { background: #fff4d6; color: #7a5600; border-radius: 999px; padding: .1rem .6rem; font-size: .8rem; font-weight: 600; white-space: nowrap; }
+
+.stat-tile { background: #fff; border-radius: .75rem; padding: .9rem 1rem; box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .05); height: 100%; }
+.stat-value { font-size: 1.4rem; font-weight: 700; color: var(--app-primary); }
+.stat-value.small-value { font-size: 1rem; }
+.stat-label { color: #6c757d; font-size: .85rem; }
+
+.empty-state { background: #fff; border: 1px dashed #c8d1e0; border-radius: .75rem; padding: 2.5rem 1rem; text-align: center; color: #6c757d; }
+.pre-line { white-space: pre-line; }
+.validation-summary-valid.empty-hidden { display: none; }

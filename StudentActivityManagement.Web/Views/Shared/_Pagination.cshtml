@@ -1,0 +1,19 @@
+@model ActivityListViewModel
+@{
+    var totalPages = Model.Page.TotalPages;
+}
+@if (totalPages > 1)
+{
+    <nav aria-label="Phân trang">
+        <ul class="pagination justify-content-center">
+            @for (var pageNumber = 1; pageNumber <= totalPages; pageNumber++)
+            {
+                <li class="page-item @(pageNumber == Model.Page.PageIndex ? "active" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@pageNumber" asp-route-search="@Model.Search"
+                       asp-route-campus="@Model.Campus" asp-route-status="@Model.Status">@pageNumber</a>
+                </li>
+            }
+        </ul>
+    </nav>
+}
+<p class="text-center text-muted small">Tổng cộng @Model.Page.TotalCount hoạt động</p>

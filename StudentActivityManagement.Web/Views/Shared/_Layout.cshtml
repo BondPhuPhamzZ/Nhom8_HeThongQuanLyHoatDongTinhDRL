@@ -1,0 +1,58 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] – Rèn luyện SV</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <header>
+        <nav class="navbar navbar-expand-md navbar-dark app-navbar mb-4">
+            <div class="container">
+                <a class="navbar-brand fw-semibold" asp-controller="Home" asp-action="Index">
+                    <span class="brand-mark">RL</span> Hoạt động &amp; Điểm rèn luyện
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+                        aria-controls="mainNav" aria-expanded="false" aria-label="Mở menu">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="mainNav">
+                    <ul class="navbar-nav me-auto">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            if (WebPolicies.IsStaff(User))
+                            {
+                                <li class="nav-item"><a class="nav-link" asp-controller="ManageActivities" asp-action="Index">Quản lý hoạt động</a></li>
+                                <li class="nav-item"><a class="nav-link" asp-controller="ManageActivities" asp-action="Create">Tạo hoạt động</a></li>
+                            }
+                            else
+                            {
+                                <li class="nav-item"><a class="nav-link" asp-controller="StudentActivities" asp-action="Index">Hoạt động dành cho tôi</a></li>
+                            }
+                        }
+                    </ul>
+                    @await Component.InvokeAsync("UserPanel")
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main role="main" class="container flex-grow-1 pb-4">
+        <partial name="_Flash" />
+        @RenderBody()
+    </main>
+
+    <footer class="border-top py-3 text-muted small">
+        <div class="container d-flex justify-content-between flex-wrap gap-2">
+            <span>Nhóm 8 – Hệ thống quản lý hoạt động và tính điểm rèn luyện</span>
+            <span>Giờ hiển thị: Việt Nam (UTC+7)</span>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

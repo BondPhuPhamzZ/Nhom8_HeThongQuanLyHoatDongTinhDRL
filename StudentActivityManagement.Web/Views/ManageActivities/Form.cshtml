@@ -1,0 +1,186 @@
+@model ActivityFormViewModel
+@{
+    var isEdit = Model.Id.HasValue;
+    ViewData["Title"] = isEdit ? "Sửa hoạt động" : "Tạo hoạt động";
+    var statuses = new[] { ("Draft", "Nháp"), ("Published", "Công bố ngay"), ("Ongoing", "Đang diễn ra"), ("Completed", "Đã kết thúc"), ("Cancelled", "Đã hủy") };
+    var participation = new[] { ("Required", "Bắt buộc"), ("Recommended", "Khuyến khích"), ("Optional", "Tự chọn") };
+}
+<a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@Model.Id" class="small">&larr; Quay lại</a>
+<h1 class="h3 mt-2 mb-3">@ViewData["Title"]</h1>
+
+<form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" id="activityForm" novalidate>
+    <div asp-validation-summary="All" class="alert alert-danger py-2 small empty-hidden"></div>
+
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body row g-3">
+            <div class="col-md-8">
+                <label asp-for="ActivityName" class="form-label"></label>
+                <input asp-for="ActivityName" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" class="form-select">
+                    @foreach (var (value, label) in statuses) { <option value="@value">@label</option> }
+                </select>
+            </div>
+            <div class="col-md-8">
+                <label asp-for="OrganizerName" class="form-label"></label>
+                <input asp-for="OrganizerName" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label asp-for="TargetAudience" class="form-label"></label>
+                <input asp-for="TargetAudience" class="form-control" />
+            </div>
+            <div class="col-12">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="RegistrationOpenTime" class="form-label"></label>
+                <input asp-for="RegistrationOpenTime" type="datetime-local" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="RegistrationCloseTime" class="form-label"></label>
+                <input asp-for="RegistrationCloseTime" type="datetime-local" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="MaxParticipants" class="form-label"></label>
+                <input asp-for="MaxParticipants" class="form-control" />
+                @if (isEdit && Model.CurrentParticipantsCount > 0)
+                {
+                    <div class="form-text">Đã có @Model.CurrentParticipantsCount sinh viên đăng ký.</div>
+                }
+            </div>
+            <div class="col-md-3">
+                <label asp-for="TrainingPoints" class="form-label"></label>
+                <input asp-for="TrainingPoints" class="form-control" />
+            </div>
+            <div class="col-12 form-text">Thời gian nhập theo giờ Việt Nam. Thời gian đóng đăng ký không được sau buổi đầu tiên.</div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h5 mb-0">Các buổi tổ chức</h2>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-add-row="session">+ Thêm buổi</button>
+            </div>
+            <div data-rows="session">
+                @for (var i = 0; i < Model.Sessions.Count; i++)
+                {
+                    <div class="row g-2 align-items-end border-bottom py-2" data-row>
+                        <input type="hidden" asp-for="Sessions[i].Id" data-field="Id" />
+                        <div class="col-md-3"><label class="form-label small">Tên buổi</label><input asp-for="Sessions[i].SessionName" class="form-control form-control-sm" data-field="SessionName" aria-label="Tên buổi" /></div>
+                        <div class="col-md-2"><label class="form-label small">Cơ sở</label><input asp-for="Sessions[i].Campus" class="form-control form-control-sm" data-field="Campus" aria-label="Cơ sở" /></div>
+                        <div class="col-md-2"><label class="form-label small">Địa điểm</label><input asp-for="Sessions[i].Location" class="form-control form-control-sm" data-field="Location" aria-label="Địa điểm" /></div>
+                        <div class="col-md-2"><label class="form-label small">Bắt đầu</label><input asp-for="Sessions[i].StartTime" type="datetime-local" class="form-control form-control-sm" data-field="StartTime" aria-label="Bắt đầu" /></div>
+                        <div class="col-md-2"><label class="form-label small">Kết thúc</label><input asp-for="Sessions[i].EndTime" type="datetime-local" class="form-control form-control-sm" data-field="EndTime" aria-label="Kết thúc" /></div>
+                        <div class="col-md-1 text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-remove-row>Xóa</button></div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <h2 class="h5 mb-0">Đối tượng tham gia</h2>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-add-row="rule">+ Thêm quy tắc</button>
+            </div>
+            <p class="form-text mt-0">Không có quy tắc nào: mọi sinh viên đều thấy và đăng ký được. Mỗi quy tắc cần ít nhất cơ sở, khóa hoặc lớp.</p>
+            <div data-rows="rule">
+                @for (var i = 0; i < Model.AudienceRules.Count; i++)
+                {
+                    <div class="row g-2 align-items-end border-bottom py-2" data-row>
+                        <div class="col-md-3"><label class="form-label small">Cơ sở</label><input asp-for="AudienceRules[i].Campus" class="form-control form-control-sm" data-field="Campus" aria-label="Cơ sở" /></div>
+                        <div class="col-md-2"><label class="form-label small">Khóa</label><input asp-for="AudienceRules[i].AcademicYear" class="form-control form-control-sm" placeholder="K22" data-field="AcademicYear" aria-label="Khóa" /></div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Lớp</label>
+                            <select asp-for="AudienceRules[i].ClassId" class="form-select form-select-sm" data-field="ClassId" aria-label="Lớp">
+                                <option value="">— Mọi lớp —</option>
+                                @foreach (var item in Model.Classes) { <option value="@item.Id">@item.ClassCode – @item.ClassName</option> }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Mức tham gia</label>
+                            <select asp-for="AudienceRules[i].ParticipationType" class="form-select form-select-sm" data-field="ParticipationType" aria-label="Mức tham gia">
+                                @foreach (var (value, label) in participation) { <option value="@value">@label</option> }
+                            </select>
+                        </div>
+                        <div class="col-md-1 text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-remove-row>Xóa</button></div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">@(isEdit ? "Lưu thay đổi" : "Tạo hoạt động")</button>
+        <a class="btn btn-outline-secondary" asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@Model.Id">Hủy</a>
+    </div>
+</form>
+
+<template id="tpl-session">
+    <div class="row g-2 align-items-end border-bottom py-2" data-row>
+        <input type="hidden" data-field="Id" value="" />
+        <div class="col-md-3"><label class="form-label small">Tên buổi</label><input class="form-control form-control-sm" data-field="SessionName" aria-label="Tên buổi" /></div>
+        <div class="col-md-2"><label class="form-label small">Cơ sở</label><input class="form-control form-control-sm" data-field="Campus" aria-label="Cơ sở" value="Cơ sở 1" /></div>
+        <div class="col-md-2"><label class="form-label small">Địa điểm</label><input class="form-control form-control-sm" data-field="Location" aria-label="Địa điểm" /></div>
+        <div class="col-md-2"><label class="form-label small">Bắt đầu</label><input type="datetime-local" class="form-control form-control-sm" data-field="StartTime" aria-label="Bắt đầu" /></div>
+        <div class="col-md-2"><label class="form-label small">Kết thúc</label><input type="datetime-local" class="form-control form-control-sm" data-field="EndTime" aria-label="Kết thúc" /></div>
+        <div class="col-md-1 text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-remove-row>Xóa</button></div>
+    </div>
+</template>
+<template id="tpl-rule">
+    <div class="row g-2 align-items-end border-bottom py-2" data-row>
+        <div class="col-md-3"><label class="form-label small">Cơ sở</label><input class="form-control form-control-sm" data-field="Campus" aria-label="Cơ sở" /></div>
+        <div class="col-md-2"><label class="form-label small">Khóa</label><input class="form-control form-control-sm" placeholder="K22" data-field="AcademicYear" aria-label="Khóa" /></div>
+        <div class="col-md-3">
+            <label class="form-label small">Lớp</label>
+            <select class="form-select form-select-sm" data-field="ClassId" aria-label="Lớp">
+                <option value="">— Mọi lớp —</option>
+                @foreach (var item in Model.Classes) { <option value="@item.Id">@item.ClassCode – @item.ClassName</option> }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small">Mức tham gia</label>
+            <select class="form-select form-select-sm" data-field="ParticipationType" aria-label="Mức tham gia">
+                @foreach (var (value, label) in participation) { <option value="@value">@label</option> }
+            </select>
+        </div>
+        <div class="col-md-1 text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-remove-row>Xóa</button></div>
+    </div>
+</template>
+
+@section Scripts {
+    <script>
+        // Rows are renumbered on submit so the model binder receives Sessions[0..n] / AudienceRules[0..n] without gaps.
+        (function () {
+            const form = document.getElementById('activityForm');
+            const prefixes = { session: 'Sessions', rule: 'AudienceRules' };
+            document.querySelectorAll('[data-add-row]').forEach(button => button.addEventListener('click', () => {
+                const kind = button.dataset.addRow;
+                const container = document.querySelector(`[data-rows="${kind}"]`);
+                container.appendChild(document.getElementById(`tpl-${kind}`).content.cloneNode(true));
+                if (kind === 'session') {
+                    const rows = container.querySelectorAll('[data-row]');
+                    rows[rows.length - 1].querySelector('[data-field="SessionName" aria-label="Tên buổi"]').value = `Buổi ${rows.length}`;
+                }
+            }));
+            form.addEventListener('click', event => {
+                if (event.target.matches('[data-remove-row]')) event.target.closest('[data-row]').remove();
+            });
+            form.addEventListener('submit', () => {
+                for (const [kind, prefix] of Object.entries(prefixes)) {
+                    document.querySelectorAll(`[data-rows="${kind}"] [data-row]`).forEach((row, index) => {
+                        row.querySelectorAll('[data-field]').forEach(input => {
+                            input.name = `${prefix}[${index}].${input.dataset.field}`;
+                            input.id = `${prefix}_${index}__${input.dataset.field}`;
+                        });
+                    });
+                }
+            });
+        })();
+    </script>
+}

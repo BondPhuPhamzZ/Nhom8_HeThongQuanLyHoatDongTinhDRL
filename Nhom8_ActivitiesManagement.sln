@@ -9,6 +9,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StudentActivityManagement.API.Tests", "StudentActivityManagement.API\StudentActivityManagement.API.Tests\StudentActivityManagement.API.Tests.csproj", "{943E6551-2AFD-4E4D-8D67-96C049D8869C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StudentActivityManagement.Web", "StudentActivityManagement.Web\StudentActivityManagement.Web.csproj", "{A034EE39-1C67-496C-9B0B-3F9E9DA9F36E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +45,18 @@ Global
 		{943E6551-2AFD-4E4D-8D67-96C049D8869C}.Release|x64.Build.0 = Release|Any CPU
 		{943E6551-2AFD-4E4D-8D67-96C049D8869C}.Release|x86.ActiveCfg = Release|Any CPU
 		{943E6551-2AFD-4E4D-8D67-96C049D8869C}.Release|x86.Build.0 = Release|Any CPU
+		{A034EE39-1C67-496C-9B0B-3F9E9DA9F36E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A034EE39-1C67-496C-9B0B-3F9E9DA9F36E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A034EE39-1C67-496C-9B0B-3F9E9DA9F36E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A034EE39-1C67-496C-9B0B-3F9E9DA9F36E}.Debug|x64.Build.0 = Debug|Any CPU
+		{A034EE39-1C67-496C-9B0B-3F9E9DA9F36E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A034EE39-1C67-496C-9B0B-3F9E9DA9F36E}.Debug|x86.Build.0 = Debug|Any CPU
+		{A034EE39-1C67-496C-9B0B-3F9E9DA9F36E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A034EE39-1C67-496C-9B0B-3F9E9DA9F36E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A034EE39-1C67-496C-9B0B-3F9E9DA9F36E}.Release|x64.ActiveCfg = Release|Any CPU
+		{A034EE39-1C67-496C-9B0B-3F9E9DA9F36E}.Release|x64.Build.0 = Release|Any CPU
+		{A034EE39-1C67-496C-9B0B-3F9E9DA9F36E}.Release|x86.ActiveCfg = Release|Any CPU
+		{A034EE39-1C67-496C-9B0B-3F9E9DA9F36E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,82 @@
+@model ActivityDto
+@{
+    ViewData["Title"] = Model.ActivityName;
+    var registered = Model.MyRegistrationStatus == "Registered";
+    var now = DateTime.UtcNow;
+    var inWindow = now >= Model.RegistrationOpenTime && now <= Model.RegistrationCloseTime;
+    var canRegister = !registered && Model.Status == "Published" && inWindow && Model.RemainingSlots > 0;
+    var canCancel = registered && now <= Model.RegistrationCloseTime;
+}
+<a asp-action="Index" class="small">&larr; Danh sách hoạt động</a>
+<div class="row g-4 mt-1">
+    <div class="col-lg-8">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+            <status-badge value="@Model.Status" />
+            @if (Model.Eligibility?.ParticipationType is string type)
+            {
+                <status-badge value="@type" />
+            }
+            <span class="points-chip">+@Model.TrainingPoints điểm rèn luyện</span>
+        </div>
+        <h1 class="h3">@Model.ActivityName</h1>
+        <p class="text-muted">Đơn vị tổ chức: @Model.OrganizerName</p>
+        <p class="pre-line">@Model.Description</p>
+
+        <h2 class="h5 mt-4">Lịch tổ chức</h2>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead><tr><th>Buổi</th><th>Bắt đầu</th><th>Kết thúc</th><th>Cơ sở</th><th>Địa điểm</th></tr></thead>
+                <tbody>
+                    @foreach (var session in Model.Sessions.OrderBy(s => s.SortOrder))
+                    {
+                        <tr>
+                            <td>@session.SessionName</td>
+                            <td><vn-time value="@session.StartTime" /></td>
+                            <td><vn-time value="@session.EndTime" /></td>
+                            <td>@session.Campus</td>
+                            <td>@session.Location</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h2 class="h6">Đăng ký tham gia</h2>
+                <dl class="row small mb-3">
+                    <dt class="col-6">Mở đăng ký</dt><dd class="col-6"><vn-time value="@Model.RegistrationOpenTime" /></dd>
+                    <dt class="col-6">Đóng đăng ký</dt><dd class="col-6"><vn-time value="@Model.RegistrationCloseTime" /></dd>
+                    <dt class="col-6">Còn chỗ</dt><dd class="col-6">@Model.RemainingSlots / @Model.MaxParticipants</dd>
+                    <dt class="col-6">Trạng thái của bạn</dt>
+                    <dd class="col-6">
+                        @if (Model.MyRegistrationStatus is string mine) { <status-badge value="@mine" /> } else { <span>Chưa đăng ký</span> }
+                    </dd>
+                </dl>
+                @if (canRegister)
+                {
+                    <form asp-action="Register" asp-route-id="@Model.Id" method="post">
+                        <button class="btn btn-primary w-100" type="submit">
+                            @(Model.MyRegistrationStatus == "Cancelled" ? "Đăng ký lại" : "Đăng ký tham gia")
+                        </button>
+                    </form>
+                }
+                else if (canCancel)
+                {
+                    <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Hủy đăng ký hoạt động này?');">
+                        <button class="btn btn-outline-danger w-100" type="submit">Hủy đăng ký</button>
+                    </form>
+                }
+                else
+                {
+                    <p class="small text-muted mb-0">
+                        @(registered ? "Đã hết hạn hủy đăng ký." :
+                          Model.Status == "Ongoing" ? "Hoạt động đang diễn ra, không nhận đăng ký mới." :
+                          !inWindow ? "Ngoài thời gian đăng ký." : "Hoạt động đã đủ số lượng.")
+                    </p>
+                }
+            </div>
+        </div>
+    </div>
+</div>

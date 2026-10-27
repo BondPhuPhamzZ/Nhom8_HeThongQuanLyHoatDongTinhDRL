@@ -1,0 +1,36 @@
+@model ActivityListViewModel
+@{
+    ViewData["Title"] = "Hoạt động dành cho tôi";
+}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+    <div>
+        <h1 class="h3 mb-1">Hoạt động dành cho tôi</h1>
+        <p class="text-muted mb-0">Chỉ hiển thị hoạt động bạn thuộc đối tượng tham gia, sắp diễn ra hoặc đang diễn ra.</p>
+    </div>
+    <form asp-action="Index" method="get" class="d-flex flex-wrap gap-2">
+        <input name="search" value="@Model.Search" class="form-control" placeholder="Tìm theo tên, đơn vị, địa điểm" />
+        <select name="campus" class="form-select w-auto">
+            <option value="">Mọi cơ sở</option>
+            @foreach (var campus in new[] { "Cơ sở 1", "Cơ sở 2", "Cơ sở 3" })
+            {
+                <option value="@campus" selected="@(Model.Campus == campus)">@campus</option>
+            }
+        </select>
+        <button class="btn btn-primary" type="submit">Lọc</button>
+    </form>
+</div>
+
+@if (Model.Page.Items.Count == 0)
+{
+    <div class="empty-state">Chưa có hoạt động phù hợp với bạn.</div>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-3">
+        @foreach (var activity in Model.Page.Items)
+        {
+            <div class="col"><partial name="_ActivityCard" model="activity" /></div>
+        }
+    </div>
+}
+<partial name="_Pagination" model="Model" />

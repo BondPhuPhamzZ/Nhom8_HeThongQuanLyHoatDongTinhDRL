@@ -1,0 +1,12 @@
+@model UserPanelModel
+<div class="d-flex align-items-center gap-3 text-white">
+    <div class="text-end lh-sm">
+        <div class="fw-semibold">@Model.FullName</div>
+        <div class="small opacity-75">
+            @Model.Code · @Model.RoleLabel@(string.IsNullOrEmpty(Model.ClassCode) ? "" : $" · {Model.ClassCode}")
+        </div>
+    </div>
+    <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+        <button type="submit" class="btn btn-sm btn-outline-light">Đăng xuất</button>
+    </form>
+</div>
