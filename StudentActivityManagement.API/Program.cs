@@ -20,9 +20,13 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 // 1. Add DbContext
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=student_activity.db";
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(connectionString));
+// Read the connection string when the context is resolved, not while the builder runs:
+// WebApplicationFactory applies its configuration overrides after this point, so an eager
+// read would make every integration test share one persistent database.
+builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+    options.UseSqlite(
+        serviceProvider.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")
+        ?? "Data Source=student_activity.db"));
 
 // 2. Add Dependency Injection Services
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
