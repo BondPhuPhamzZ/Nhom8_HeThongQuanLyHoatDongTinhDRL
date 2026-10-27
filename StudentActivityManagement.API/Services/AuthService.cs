@@ -69,54 +69,6 @@ namespace StudentActivityManagement.API.Services
             return ApiResponseDto<AuthResponseDto>.Ok(response, "Đăng nhập thành công.");
         }
 
-        public async Task<ApiResponseDto<UserDto>> RegisterAsync(RegisterDto request)
-        {
-            if (await _context.Users.AnyAsync(u => u.StudentCode == request.StudentCode))
-            {
-                return ApiResponseDto<UserDto>.Fail(
-                    "Mã sinh viên đã tồn tại trong hệ thống.",
-                    StatusCodes.Status409Conflict,
-                    ApiErrorCodes.ResourceConflict);
-            }
-
-            if (await _context.Users.AnyAsync(u => u.Email == request.Email))
-            {
-                return ApiResponseDto<UserDto>.Fail(
-                    "Email đã được sử dụng.",
-                    StatusCodes.Status409Conflict,
-                    ApiErrorCodes.ResourceConflict);
-            }
-
-            if (request.ClassId.HasValue && !await _context.Classes.AnyAsync(c => c.Id == request.ClassId.Value))
-            {
-                return ApiResponseDto<UserDto>.Fail(
-                    "Lớp học không tồn tại.",
-                    StatusCodes.Status400BadRequest,
-                    ApiErrorCodes.ValidationFailed);
-            }
-
-            var newUser = new User
-            {
-                StudentCode = request.StudentCode,
-                FullName = request.FullName,
-                Email = request.Email,
-                PasswordHash = PasswordHasher.HashPassword(request.Password),
-                Phone = request.Phone,
-                Role = Role.Student,
-                Campus = request.Campus,
-                AcademicYear = request.AcademicYear,
-                ClassId = request.ClassId,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.Users.Add(newUser);
-            await _context.SaveChangesAsync();
-
-            await _context.Entry(newUser).Reference(u => u.Class).LoadAsync();
-
-            return ApiResponseDto<UserDto>.Ok(MapToUserDto(newUser), "Đăng ký tài khoản thành công.");
-        }
-
         public async Task<ApiResponseDto<UserDto>> GetCurrentUserAsync(int userId)
         {
             var user = await _context.Users
