@@ -35,8 +35,9 @@ namespace StudentActivityManagement.API.Controllers
         /// Tạo mới lớp học (Dành cho Admin)
         /// </summary>
         [HttpPost]
-        [ProducesResponseType(typeof(ApiResponseDto<ClassDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponseDto<ClassDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> CreateClass([FromBody] ClassCreateDto request)
         {
             var result = await _studentService.CreateClassAsync(request);
@@ -45,14 +46,16 @@ namespace StudentActivityManagement.API.Controllers
                 return ProblemFrom(result);
             }
 
-            return Ok(result);
+            // No single-class GET exists yet, so Location points at the class list.
+            return Created("/api/v1/admin/classes", result);
         }
         /// <summary>
         /// Chỉ định hoặc thay đổi lớp trưởng cho một lớp
         /// </summary>
         [HttpPut("{id}/monitor/{studentId}")]
         [ProducesResponseType(typeof(ApiResponseDto<bool>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponseDto<bool>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> AssignMonitor(int id, int studentId)
         {
             var result = await _studentService.AssignClassMonitorAsync(id, studentId);

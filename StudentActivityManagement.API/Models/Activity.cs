@@ -14,6 +14,10 @@ namespace StudentActivityManagement.API.Models
 
         public string Description { get; set; } = string.Empty;
 
+        /// <summary>What participants must prepare or bring; shown on the detail page and in reminders.</summary>
+        [StringLength(2000)]
+        public string Requirements { get; set; } = string.Empty;
+
         [Required]
         [StringLength(150)]
         public string OrganizerName { get; set; } = "Phòng Quản lý HSSV";
@@ -42,7 +46,7 @@ namespace StudentActivityManagement.API.Models
         public string TargetAudience { get; set; } = "Tất cả sinh viên";
 
         [StringLength(30)]
-        public string Status { get; set; } = "Published"; // Draft, Published, Ongoing, Completed, Cancelled
+        public string Status { get; set; } = ActivityStatus.Published;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
