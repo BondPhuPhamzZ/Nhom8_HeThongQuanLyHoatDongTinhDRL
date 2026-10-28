@@ -25,6 +25,9 @@ public sealed class StatusBadgeTagHelper : TagHelper
             "Required" => ("Bắt buộc", "text-bg-danger"),
             "Recommended" => ("Khuyến khích", "text-bg-warning"),
             "Optional" => ("Tự chọn", "text-bg-info"),
+            "Pending" => ("Chờ duyệt", "text-bg-warning"),
+            "Accepted" => ("Đã duyệt", "text-bg-success"),
+            "Rejected" => ("Từ chối", "text-bg-danger"),
             _ => (Value ?? string.Empty, "text-bg-light")
         };
         output.TagName = "span";

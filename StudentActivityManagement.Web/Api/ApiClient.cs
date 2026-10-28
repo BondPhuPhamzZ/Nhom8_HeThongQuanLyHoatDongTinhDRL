@@ -80,6 +80,57 @@ public sealed class ApiClient
     public Task<ApiResult<SessionCheckInCode>> GenerateCheckInCodeAsync(int activityId, int sessionId) =>
         SendAsync<SessionCheckInCode>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-in-code");
 
+    public Task<ApiResult<ActivityParticipants>> GetParticipantsAsync(int activityId, string? status, string? search, bool pendingOnly, int page, int pageSize = 20) =>
+        SendAsync<ActivityParticipants>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/participants?{Query(
+            ("status", status), ("search", search), ("hasPendingEvidence", pendingOnly ? "true" : null),
+            ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
+
+    public Task<ApiResult<ParticipantDetail>> GetParticipantAsync(int activityId, int registrationId) =>
+        SendAsync<ParticipantDetail>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/participants/{registrationId}");
+
+    public Task<ApiResult<ParticipantDetail>> RecordCheckInAsync(int activityId, int sessionId, int registrationId) =>
+        SendAsync<ParticipantDetail>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-ins", new { registrationId });
+
+    public Task<ApiResult<ParticipantDetail>> RemoveCheckInAsync(int activityId, int sessionId, int registrationId) =>
+        SendAsync<ParticipantDetail>(HttpMethod.Delete, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-ins/{registrationId}");
+
+    public Task<ApiResult<StaffEvidence>> ReviewEvidenceAsync(int activityId, int evidenceId, string status, string? note) =>
+        SendAsync<StaffEvidence>(HttpMethod.Patch, $"api/v1/admin/activities/{activityId}/evidences/{evidenceId}/review", new { status, note });
+
+    /// <summary>Downloads an evidence file; files are capped at 5 MB by the API, so buffering is fine.</summary>
+    public async Task<ApiResult<ApiFile>> GetEvidenceFileAsync(int activityId, int evidenceId)
+    {
+        HttpResponseMessage raw;
+        try
+        {
+            raw = await _http.GetAsync($"api/v1/admin/activities/{activityId}/evidences/{evidenceId}/file");
+        }
+        catch (HttpRequestException)
+        {
+            return new ApiResult<ApiFile> { StatusCode = HttpStatusCode.ServiceUnavailable, Message = "Không kết nối được API." };
+        }
+
+        using var response = raw;
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            throw new ApiUnauthorizedException("Phiên đăng nhập đã hết hạn hoặc tài khoản đã thay đổi quyền. Vui lòng đăng nhập lại.");
+        }
+        if (!response.IsSuccessStatusCode)
+        {
+            return ReadProblem<ApiFile>(response.StatusCode, await response.Content.ReadAsStringAsync());
+        }
+
+        return new ApiResult<ApiFile>
+        {
+            Success = true,
+            StatusCode = response.StatusCode,
+            Data = new ApiFile(
+                await response.Content.ReadAsByteArrayAsync(),
+                response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream",
+                response.Content.Headers.ContentDisposition?.FileNameStar ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? $"minh-chung-{evidenceId}")
+        };
+    }
+
     public Task<ApiResult<List<ClassDto>>> GetClassesAsync() =>
         SendAsync<List<ClassDto>>(HttpMethod.Get, "api/v1/admin/classes");
 

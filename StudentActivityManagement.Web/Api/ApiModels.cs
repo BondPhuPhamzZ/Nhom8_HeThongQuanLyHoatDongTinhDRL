@@ -185,3 +185,84 @@ public sealed class CheckInResult
     public DateTime CheckedInAt { get; set; }
     public string RegistrationStatus { get; set; } = string.Empty;
 }
+
+// ---- Participants and evidence review (US-21)
+
+public sealed class ActivityParticipants
+{
+    public int ActivityId { get; set; }
+    public string ActivityName { get; set; } = string.Empty;
+    public string ActivityStatus { get; set; } = string.Empty;
+    public ParticipantSummary Summary { get; set; } = new();
+    public List<SessionAttendance> Sessions { get; set; } = [];
+    public PagedResult<Participant> Participants { get; set; } = new();
+}
+
+public sealed class ParticipantSummary
+{
+    public int Active { get; set; }
+    public int Registered { get; set; }
+    public int Attended { get; set; }
+    public int Cancelled { get; set; }
+    public int PendingEvidence { get; set; }
+}
+
+public sealed class SessionAttendance
+{
+    public int SessionId { get; set; }
+    public string SessionName { get; set; } = string.Empty;
+    public DateTime StartTime { get; set; }
+    public int CheckInCount { get; set; }
+}
+
+public class Participant
+{
+    public int RegistrationId { get; set; }
+    public int StudentId { get; set; }
+    public string StudentCode { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string? ClassCode { get; set; }
+    public string Campus { get; set; } = string.Empty;
+    public string AcademicYear { get; set; } = string.Empty;
+    public string RegistrationStatus { get; set; } = string.Empty;
+    public DateTime RegisteredAt { get; set; }
+    public List<ParticipantCheckIn> CheckIns { get; set; } = [];
+    public int PendingEvidenceCount { get; set; }
+    public int AcceptedEvidenceCount { get; set; }
+    public int RejectedEvidenceCount { get; set; }
+}
+
+public sealed class ParticipantDetail : Participant
+{
+    public List<StaffEvidence> Evidences { get; set; } = [];
+}
+
+public sealed class ParticipantCheckIn
+{
+    public int SessionId { get; set; }
+    public DateTime CheckedInAt { get; set; }
+    public string Method { get; set; } = string.Empty;
+    public string? RecordedByName { get; set; }
+}
+
+public sealed class StaffEvidence
+{
+    public int Id { get; set; }
+    public int? SessionId { get; set; }
+    public string? SessionName { get; set; }
+    public string EvidenceType { get; set; } = string.Empty;
+    public string? ConfirmationCode { get; set; }
+    public string? Note { get; set; }
+    public string? OriginalFileName { get; set; }
+    public string? ContentType { get; set; }
+    public long? SizeBytes { get; set; }
+    public string? FileUrl { get; set; }
+    public string ReviewStatus { get; set; } = string.Empty;
+    public string? ReviewNote { get; set; }
+    public string? ReviewedByName { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public DateTime UploadedAt { get; set; }
+}
+
+/// <summary>A file downloaded from the API (evidence), passed through to the browser.</summary>
+public sealed record ApiFile(byte[] Content, string ContentType, string FileName);
