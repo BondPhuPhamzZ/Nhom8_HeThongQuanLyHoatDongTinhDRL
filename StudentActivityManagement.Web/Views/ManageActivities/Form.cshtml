@@ -2,7 +2,10 @@
 @{
     var isEdit = Model.Id.HasValue;
     ViewData["Title"] = isEdit ? "Sửa hoạt động" : "Tạo hoạt động";
-    var statuses = new[] { ("Draft", "Nháp"), ("Published", "Công bố ngay"), ("Ongoing", "Đang diễn ra"), ("Completed", "Đã kết thúc"), ("Cancelled", "Đã hủy") };
+    // Only statuses the API lifecycle allows from here (StatusOptions comes from allowedNextStatuses).
+    var statuses = new[] { ("Draft", "Nháp"), ("Published", isEdit ? "Đang mở đăng ký" : "Công bố ngay"), ("Ongoing", "Đang diễn ra"), ("Completed", "Đã kết thúc"), ("Cancelled", "Đã hủy") }
+        .Where(option => Model.StatusOptions.Contains(option.Item1))
+        .ToArray();
     var participation = new[] { ("Required", "Bắt buộc"), ("Recommended", "Khuyến khích"), ("Optional", "Tự chọn") };
 }
 <a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@Model.Id" class="small">&larr; Quay lại</a>
@@ -22,6 +25,10 @@
                 <select asp-for="Status" class="form-select">
                     @foreach (var (value, label) in statuses) { <option value="@value">@label</option> }
                 </select>
+                @for (var i = 0; i < Model.StatusOptions.Count; i++)
+                {
+                    <input type="hidden" name="StatusOptions[@i]" value="@Model.StatusOptions[i]" />
+                }
             </div>
             <div class="col-md-8">
                 <label asp-for="OrganizerName" class="form-label"></label>
@@ -34,6 +41,10 @@
             <div class="col-12">
                 <label asp-for="Description" class="form-label"></label>
                 <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+            </div>
+            <div class="col-12">
+                <label asp-for="Requirements" class="form-label"></label>
+                <textarea asp-for="Requirements" class="form-control" rows="2" placeholder="Ví dụ: mặc áo đoàn, mang thẻ sinh viên, có mặt trước 15 phút"></textarea>
             </div>
             <div class="col-md-3">
                 <label asp-for="RegistrationOpenTime" class="form-label"></label>

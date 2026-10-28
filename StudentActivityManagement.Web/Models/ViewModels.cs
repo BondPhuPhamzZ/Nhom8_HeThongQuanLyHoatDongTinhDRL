@@ -38,6 +38,10 @@ public sealed class ActivityFormViewModel
     [Display(Name = "Mô tả")]
     public string Description { get; set; } = string.Empty;
 
+    [StringLength(2000, ErrorMessage = "Yêu cầu chuẩn bị tối đa 2000 ký tự.")]
+    [Display(Name = "Yêu cầu cần chuẩn bị")]
+    public string? Requirements { get; set; }
+
     [Required(ErrorMessage = "Nhập đơn vị tổ chức."), StringLength(120)]
     [Display(Name = "Đơn vị tổ chức")]
     public string OrganizerName { get; set; } = string.Empty;
@@ -68,6 +72,8 @@ public sealed class ActivityFormViewModel
 
     // Display only
     public int CurrentParticipantsCount { get; set; }
+    /// <summary>Statuses the status dropdown offers: Draft/Published on create, current + API-allowed next statuses on edit.</summary>
+    public List<string> StatusOptions { get; set; } = ["Draft", "Published"];
     public List<ClassDto> Classes { get; set; } = [];
 
     public static ActivityFormViewModel NewDefault()
@@ -86,6 +92,7 @@ public sealed class ActivityFormViewModel
         Id = activity.Id,
         ActivityName = activity.ActivityName,
         Description = activity.Description,
+        Requirements = activity.Requirements,
         OrganizerName = activity.OrganizerName,
         RegistrationOpenTime = VnTime.FromUtc(activity.RegistrationOpenTime),
         RegistrationCloseTime = VnTime.FromUtc(activity.RegistrationCloseTime),
@@ -93,6 +100,7 @@ public sealed class ActivityFormViewModel
         TrainingPoints = activity.TrainingPoints,
         TargetAudience = activity.TargetAudience,
         Status = activity.Status,
+        StatusOptions = [activity.Status, .. activity.AllowedNextStatuses ?? []],
         CurrentParticipantsCount = activity.CurrentParticipantsCount,
         Sessions = activity.Sessions.OrderBy(s => s.SortOrder).Select(s => new SessionFormItem
         {
@@ -110,6 +118,7 @@ public sealed class ActivityFormViewModel
     {
         ActivityName = ActivityName.Trim(),
         Description = Description.Trim(),
+        Requirements = Requirements?.Trim() ?? string.Empty,
         OrganizerName = OrganizerName.Trim(),
         RegistrationOpenTime = VnTime.ToOffset(RegistrationOpenTime),
         RegistrationCloseTime = VnTime.ToOffset(RegistrationCloseTime),

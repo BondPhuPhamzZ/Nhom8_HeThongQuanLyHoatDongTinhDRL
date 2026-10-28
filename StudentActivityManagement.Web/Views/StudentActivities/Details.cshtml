@@ -21,6 +21,10 @@
         <h1 class="h3">@Model.ActivityName</h1>
         <p class="text-muted">Đơn vị tổ chức: @Model.OrganizerName</p>
         <p class="pre-line">@Model.Description</p>
+        @if (!string.IsNullOrWhiteSpace(Model.Requirements))
+        {
+            <div class="alert alert-light border pre-line"><strong>Yêu cầu cần chuẩn bị:</strong> @Model.Requirements</div>
+        }
 
         <h2 class="h5 mt-4">Lịch tổ chức</h2>
         <div class="table-responsive">
