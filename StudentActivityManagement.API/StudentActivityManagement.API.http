@@ -161,3 +161,38 @@ Content-Type: application/json
 {
   "code": "ABC234"
 }
+
+### US-21 — Danh sách người tham gia (lọc trạng thái, tìm kiếm, còn minh chứng chờ duyệt)
+GET {{host}}/api/v1/admin/activities/1/participants?status=Registered&search=SV21&hasPendingEvidence=false&pageIndex=1&pageSize=20
+Authorization: Bearer {{hssvToken}}
+
+### US-21 — Chi tiết một người đăng ký kèm minh chứng
+GET {{host}}/api/v1/admin/activities/1/participants/1
+Authorization: Bearer {{hssvToken}}
+
+### US-21 — Điểm danh thủ công một buổi
+POST {{host}}/api/v1/admin/activities/1/sessions/1/check-ins
+Authorization: Bearer {{hssvToken}}
+Content-Type: application/json
+
+{
+  "registrationId": 1
+}
+
+### US-21 — Hủy điểm danh nhầm
+DELETE {{host}}/api/v1/admin/activities/1/sessions/1/check-ins/1
+Authorization: Bearer {{hssvToken}}
+
+### US-21 — Duyệt minh chứng (Rejected bắt buộc ghi chú)
+PATCH {{host}}/api/v1/admin/activities/1/evidences/1/review
+Authorization: Bearer {{hssvToken}}
+Content-Type: application/json
+
+{
+  "status": "Rejected",
+  "note": "Ảnh không thấy rõ sinh viên tại hoạt động"
+}
+
+### US-21 — Tải file minh chứng
+GET {{host}}/api/v1/admin/activities/1/evidences/1/file
+Authorization: Bearer {{hssvToken}}
