@@ -140,3 +140,24 @@ Content-Type: application/json
 {
   "isActive": true
 }
+
+### US-07 — HSSV xem mã và cửa sổ check-in của các buổi
+GET {{host}}/api/v1/admin/activities/1/check-in-codes
+Authorization: Bearer {{hssvToken}}
+
+### US-07 — HSSV phát hoặc đổi mã check-in cho buổi (mã cũ hết hiệu lực)
+POST {{host}}/api/v1/admin/activities/1/sessions/1/check-in-code
+Authorization: Bearer {{hssvToken}}
+
+### US-07 — Sinh viên xem trạng thái check-in của mình
+GET {{host}}/api/v1/student-activities/1/check-in-status
+Authorization: Bearer {{studentToken}}
+
+### US-07 — Sinh viên check-in bằng mã (trong cửa sổ check-in của buổi)
+POST {{host}}/api/v1/student-activities/1/sessions/1/check-in
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "code": "ABC234"
+}
