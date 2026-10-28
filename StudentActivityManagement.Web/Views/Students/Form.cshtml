@@ -1,0 +1,60 @@
+@model StudentFormViewModel
+@{
+    var isEdit = Model.Id.HasValue;
+    ViewData["Title"] = isEdit ? "Sửa sinh viên" : "Thêm sinh viên";
+}
+<a asp-action="Index" class="small">&larr; Danh sách sinh viên</a>
+<h1 class="h3 mt-2 mb-3">@ViewData["Title"]</h1>
+
+<form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" novalidate>
+    <div asp-validation-summary="All" class="alert alert-danger py-2 small empty-hidden"></div>
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body row g-3">
+            <div class="col-md-4">
+                <label asp-for="StudentCode" class="form-label"></label>
+                <input asp-for="StudentCode" class="form-control" readonly="@isEdit" />
+                @if (isEdit) { <div class="form-text">Mã sinh viên không đổi sau khi tạo.</div> }
+            </div>
+            <div class="col-md-8">
+                <label asp-for="FullName" class="form-label"></label>
+                <input asp-for="FullName" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" type="email" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Phone" class="form-label"></label>
+                <input asp-for="Phone" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Campus" class="form-label"></label>
+                <select asp-for="Campus" class="form-select">
+                    <option>Cơ sở 1</option>
+                    <option>Cơ sở 2</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="AcademicYear" class="form-label"></label>
+                <input asp-for="AcademicYear" class="form-control" placeholder="K22" />
+            </div>
+            <div class="col-md-4">
+                <label asp-for="ClassId" class="form-label"></label>
+                <select asp-for="ClassId" class="form-select">
+                    <option value="">— Chưa xếp lớp —</option>
+                    @foreach (var item in Model.Classes) { <option value="@item.Id">@item.ClassCode – @item.ClassName</option> }
+                </select>
+                @if (Model.IsClassMonitor) { <div class="form-text">Sinh viên đang là lớp trưởng.</div> }
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" autocomplete="new-password" />
+                <div class="form-text">@(isEdit ? "Để trống nếu giữ nguyên mật khẩu." : "Mật khẩu đăng nhập ban đầu, tối thiểu 6 ký tự.")</div>
+            </div>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">@(isEdit ? "Lưu thay đổi" : "Thêm sinh viên")</button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Hủy</a>
+    </div>
+</form>
