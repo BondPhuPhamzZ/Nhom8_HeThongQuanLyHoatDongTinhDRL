@@ -39,4 +39,6 @@ a { color: var(--app-primary); }
 
 .empty-state { background: #fff; border: 1px dashed #c8d1e0; border-radius: .75rem; padding: 2.5rem 1rem; text-align: center; color: #6c757d; }
 .pre-line { white-space: pre-line; }
+.checkin-code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 1.25rem; font-weight: 700; letter-spacing: .2em; color: var(--app-primary); }
+.checkin-code-input { letter-spacing: .15em; max-width: 16rem; }
 .validation-summary-valid.empty-hidden { display: none; }

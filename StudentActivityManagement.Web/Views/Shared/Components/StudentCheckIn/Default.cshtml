@@ -1,0 +1,39 @@
+@model StudentCheckInStatus
+<h2 class="h5 mt-4">Check-in</h2>
+@if (Model.Method == "Manual")
+{
+    <p class="small text-muted">Hoạt động này điểm danh trực tiếp với ban tổ chức tại buổi, không dùng mã check-in.</p>
+}
+<div class="list-group mb-3">
+    @foreach (var session in Model.Sessions)
+    {
+        <div class="list-group-item">
+            <div class="d-flex flex-wrap justify-content-between gap-2">
+                <div>
+                    <div class="fw-semibold">@session.SessionName</div>
+                    <div class="small text-muted">Mở check-in <vn-time value="@session.OpensAt" /> – <vn-time value="@session.ClosesAt" /></div>
+                </div>
+                <div class="text-end">
+                    @if (session.CheckedInAt is DateTime checkedInAt)
+                    {
+                        <span class="badge rounded-pill text-bg-primary">Đã check-in</span>
+                        <div class="small text-muted"><vn-time value="@checkedInAt" /></div>
+                    }
+                    else if (!session.CanCheckIn)
+                    {
+                        <span class="badge rounded-pill text-bg-light">@(DateTime.UtcNow < session.OpensAt ? "Chưa mở" : DateTime.UtcNow > session.ClosesAt ? "Đã đóng" : "Không khả dụng")</span>
+                    }
+                </div>
+            </div>
+            @if (session.CanCheckIn)
+            {
+                <form asp-controller="StudentActivities" asp-action="CheckIn" asp-route-id="@Model.ActivityId" method="post" class="d-flex gap-2 mt-2">
+                    <input type="hidden" name="sessionId" value="@session.SessionId" />
+                    <input name="code" class="form-control form-control-sm text-uppercase checkin-code-input" maxlength="20" required
+                           placeholder="Nhập mã do ban tổ chức công bố" aria-label="Mã check-in @session.SessionName" autocomplete="off" />
+                    <button type="submit" class="btn btn-sm btn-primary text-nowrap">Check-in</button>
+                </form>
+            }
+        </div>
+    }
+</div>

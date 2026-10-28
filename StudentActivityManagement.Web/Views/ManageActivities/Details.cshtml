@@ -72,6 +72,11 @@
     </table>
 </div>
 
+@if (Model.Status is "Published" or "Ongoing" or "Completed")
+{
+    @await Component.InvokeAsync("CheckInCodes", new { activityId = Model.Id })
+}
+
 <h2 class="h5 mt-4">Đối tượng tham gia</h2>
 @if (Model.AudienceRules.Count == 0)
 {

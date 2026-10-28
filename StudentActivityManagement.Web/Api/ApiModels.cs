@@ -131,3 +131,57 @@ public sealed class AudienceRuleWriteRequest
     public int? ClassId { get; set; }
     public string ParticipationType { get; set; } = "Optional";
 }
+
+// ---- Check-in (US-07)
+
+public sealed class StudentCheckInStatus
+{
+    public int ActivityId { get; set; }
+    public string ActivityStatus { get; set; } = string.Empty;
+    public string Method { get; set; } = string.Empty;
+    public string RegistrationStatus { get; set; } = string.Empty;
+    public List<SessionCheckInStatus> Sessions { get; set; } = [];
+}
+
+public sealed class SessionCheckInStatus
+{
+    public int SessionId { get; set; }
+    public string SessionName { get; set; } = string.Empty;
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+    public DateTime OpensAt { get; set; }
+    public DateTime ClosesAt { get; set; }
+    public bool CanCheckIn { get; set; }
+    public DateTime? CheckedInAt { get; set; }
+}
+
+public sealed class ActivityCheckInCodes
+{
+    public int ActivityId { get; set; }
+    public string ActivityStatus { get; set; } = string.Empty;
+    public string Method { get; set; } = string.Empty;
+    public int OpenBeforeMinutes { get; set; }
+    public int CloseAfterMinutes { get; set; }
+    public List<SessionCheckInCode> Sessions { get; set; } = [];
+}
+
+public sealed class SessionCheckInCode
+{
+    public int SessionId { get; set; }
+    public string SessionName { get; set; } = string.Empty;
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+    public DateTime OpensAt { get; set; }
+    public DateTime ClosesAt { get; set; }
+    public string? Code { get; set; }
+    public DateTime? CodeGeneratedAt { get; set; }
+    public int CheckInCount { get; set; }
+}
+
+public sealed class CheckInResult
+{
+    public int SessionId { get; set; }
+    public string SessionName { get; set; } = string.Empty;
+    public DateTime CheckedInAt { get; set; }
+    public string RegistrationStatus { get; set; } = string.Empty;
+}
