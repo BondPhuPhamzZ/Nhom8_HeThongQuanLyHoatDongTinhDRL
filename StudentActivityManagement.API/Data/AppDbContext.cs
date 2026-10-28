@@ -15,6 +15,10 @@ namespace StudentActivityManagement.API.Data
         public DbSet<ActivityRegistration> ActivityRegistrations { get; set; } = null!;
         public DbSet<ActivitySession> ActivitySessions { get; set; } = null!;
         public DbSet<ActivityAudienceRule> ActivityAudienceRules { get; set; } = null!;
+        public DbSet<ActivityCheckIn> ActivityCheckIns { get; set; } = null!;
+        public DbSet<ActivityCheckInConfig> ActivityCheckInConfigs { get; set; } = null!;
+        public DbSet<ActivityReminderOffset> ActivityReminderOffsets { get; set; } = null!;
+        public DbSet<ActivityEvidence> ActivityEvidences { get; set; } = null!;
 
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
@@ -90,6 +94,73 @@ namespace StudentActivityManagement.API.Data
                       .WithMany()
                       .HasForeignKey(rule => rule.ClassId)
                       .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Check-ins and evidence point at sessions with Restrict: a session that has attendance
+            // data cannot be removed by editing the activity (ActivityService refuses it with 409).
+            modelBuilder.Entity<ActivityCheckIn>(entity =>
+            {
+                entity.HasIndex(checkIn => new { checkIn.RegistrationId, checkIn.SessionId }).IsUnique();
+                entity.HasIndex(checkIn => checkIn.SessionId);
+
+                entity.HasOne(checkIn => checkIn.Registration)
+                      .WithMany()
+                      .HasForeignKey(checkIn => checkIn.RegistrationId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(checkIn => checkIn.Session)
+                      .WithMany()
+                      .HasForeignKey(checkIn => checkIn.SessionId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(checkIn => checkIn.RecordedBy)
+                      .WithMany()
+                      .HasForeignKey(checkIn => checkIn.RecordedById)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<ActivityCheckInConfig>(entity =>
+            {
+                entity.HasOne(config => config.Activity)
+                      .WithOne()
+                      .HasForeignKey<ActivityCheckInConfig>(config => config.ActivityId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(config => config.UpdatedBy)
+                      .WithMany()
+                      .HasForeignKey(config => config.UpdatedById)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<ActivityReminderOffset>(entity =>
+            {
+                entity.HasIndex(offset => new { offset.ActivityId, offset.OffsetMinutes }).IsUnique();
+
+                entity.HasOne(offset => offset.Activity)
+                      .WithMany()
+                      .HasForeignKey(offset => offset.ActivityId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ActivityEvidence>(entity =>
+            {
+                entity.HasIndex(evidence => evidence.RegistrationId);
+                entity.HasIndex(evidence => evidence.ReviewStatus);
+
+                entity.HasOne(evidence => evidence.Registration)
+                      .WithMany()
+                      .HasForeignKey(evidence => evidence.RegistrationId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(evidence => evidence.Session)
+                      .WithMany()
+                      .HasForeignKey(evidence => evidence.SessionId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(evidence => evidence.ReviewedBy)
+                      .WithMany()
+                      .HasForeignKey(evidence => evidence.ReviewedById)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
         }
     }

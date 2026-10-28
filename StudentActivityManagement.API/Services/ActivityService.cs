@@ -174,6 +174,15 @@ public sealed class ActivityService : IActivityService
             return InvalidActivity("Mỗi buổi chỉ được gửi một lần.");
         }
 
+        var removedSessionIds = existingSessionIds.Except(requestedSessionIds).ToList();
+        if (removedSessionIds.Count > 0 &&
+            (await _context.ActivityCheckIns.AnyAsync(checkIn => removedSessionIds.Contains(checkIn.SessionId)) ||
+             await _context.ActivityEvidences.AnyAsync(evidence =>
+                 evidence.SessionId.HasValue && removedSessionIds.Contains(evidence.SessionId.Value))))
+        {
+            return ActivityConflict("Không thể xóa buổi đã có dữ liệu check-in hoặc minh chứng.");
+        }
+
         var requestedStatus = NormalizeStatus(request.Status)!;
         var transitionError = await CheckTransitionAsync(activity, requestedStatus);
         if (transitionError != null)
