@@ -19,6 +19,11 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         Path.GetTempPath(),
         $"student-activity-tests-{Guid.NewGuid():N}.db");
 
+    /// <summary>Evidence files of this factory; each test class gets its own folder, removed on dispose.</summary>
+    public string EvidenceRootPath { get; } = Path.Combine(
+        Path.GetTempPath(),
+        $"student-activity-evidence-{Guid.NewGuid():N}");
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
@@ -29,7 +34,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["ConnectionStrings:DefaultConnection"] = $"Data Source={_databasePath}",
                 ["JwtSettings:Secret"] = JwtSecret,
                 ["JwtSettings:Issuer"] = JwtIssuer,
-                ["JwtSettings:Audience"] = JwtAudience
+                ["JwtSettings:Audience"] = JwtAudience,
+                ["EvidenceStorage:RootPath"] = EvidenceRootPath
             });
         });
         builder.ConfigureServices(services =>
@@ -57,6 +63,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         DeleteIfExists(_databasePath);
         DeleteIfExists($"{_databasePath}-shm");
         DeleteIfExists($"{_databasePath}-wal");
+        if (Directory.Exists(EvidenceRootPath))
+        {
+            Directory.Delete(EvidenceRootPath, recursive: true);
+        }
     }
 
     private static void DeleteIfExists(string path)
