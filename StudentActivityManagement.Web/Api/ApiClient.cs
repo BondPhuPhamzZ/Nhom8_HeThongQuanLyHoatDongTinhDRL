@@ -134,6 +134,24 @@ public sealed class ApiClient
     public Task<ApiResult<List<ClassDto>>> GetClassesAsync() =>
         SendAsync<List<ClassDto>>(HttpMethod.Get, "api/v1/admin/classes");
 
+    // ---- Students (US-17)
+    public Task<ApiResult<PagedResult<StudentDto>>> GetStudentsAsync(string? search, string? campus, string? academicYear, int? classId, int page, int pageSize = 15) =>
+        SendAsync<PagedResult<StudentDto>>(HttpMethod.Get, $"api/v1/admin/students?{Query(
+            ("search", search), ("campus", campus), ("academicYear", academicYear), ("classId", classId?.ToString()),
+            ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
+
+    public Task<ApiResult<StudentDto>> GetStudentAsync(int id) =>
+        SendAsync<StudentDto>(HttpMethod.Get, $"api/v1/admin/students/{id}");
+
+    public Task<ApiResult<StudentDto>> CreateStudentAsync(StudentWriteRequest request) =>
+        SendAsync<StudentDto>(HttpMethod.Post, "api/v1/admin/students", request);
+
+    public Task<ApiResult<StudentDto>> UpdateStudentAsync(int id, StudentWriteRequest request) =>
+        SendAsync<StudentDto>(HttpMethod.Put, $"api/v1/admin/students/{id}", request);
+
+    public Task<ApiResult<bool>> DeleteStudentAsync(int id) =>
+        SendAsync<bool>(HttpMethod.Delete, $"api/v1/admin/students/{id}");
+
     private async Task<ApiResult<T>> SendAsync<T>(HttpMethod method, string url, object? body = null, bool throwOn401 = true)
     {
         using var request = new HttpRequestMessage(method, url);

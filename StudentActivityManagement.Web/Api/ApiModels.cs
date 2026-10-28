@@ -266,3 +266,35 @@ public sealed class StaffEvidence
 
 /// <summary>A file downloaded from the API (evidence), passed through to the browser.</summary>
 public sealed record ApiFile(byte[] Content, string ContentType, string FileName);
+
+// ---- Students (US-17)
+
+public sealed class StudentDto
+{
+    public int Id { get; set; }
+    public string StudentCode { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public string Campus { get; set; } = string.Empty;
+    public string AcademicYear { get; set; } = string.Empty;
+    public int? ClassId { get; set; }
+    public string? ClassCode { get; set; }
+    public string? ClassName { get; set; }
+    public bool IsClassMonitor { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>Body of POST/PUT /admin/students; Password is required on create and optional (keep current) on update.</summary>
+public sealed class StudentWriteRequest
+{
+    public string? StudentCode { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? Password { get; set; }
+    public string Phone { get; set; } = string.Empty;
+    public string Campus { get; set; } = string.Empty;
+    public string AcademicYear { get; set; } = string.Empty;
+    public int? ClassId { get; set; }
+}
