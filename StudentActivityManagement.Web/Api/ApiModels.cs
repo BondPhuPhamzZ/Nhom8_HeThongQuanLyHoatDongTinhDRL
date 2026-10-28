@@ -38,6 +38,7 @@ public sealed class ActivityDto
     public int Id { get; set; }
     public string ActivityName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string Requirements { get; set; } = string.Empty;
     public string OrganizerName { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
     public string Campus { get; set; } = string.Empty;
@@ -50,6 +51,7 @@ public sealed class ActivityDto
     public int TrainingPoints { get; set; }
     public string TargetAudience { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public List<string>? AllowedNextStatuses { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<SessionDto> Sessions { get; set; } = [];
     public List<AudienceRuleDto> AudienceRules { get; set; } = [];
@@ -99,6 +101,7 @@ public sealed class ActivityWriteRequest
 {
     public string ActivityName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string Requirements { get; set; } = string.Empty;
     public string OrganizerName { get; set; } = string.Empty;
     public DateTimeOffset RegistrationOpenTime { get; set; }
     public DateTimeOffset RegistrationCloseTime { get; set; }
