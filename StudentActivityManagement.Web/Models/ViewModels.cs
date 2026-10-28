@@ -26,6 +26,26 @@ public sealed class ActivityListViewModel
     public string? Status { get; set; }
 }
 
+public sealed class ParticipantListViewModel
+{
+    public ActivityParticipants Data { get; set; } = new();
+    public string? Status { get; set; }
+    public string? Search { get; set; }
+    public bool PendingOnly { get; set; }
+
+    /// <summary>Attendance can be changed while the activity is open, running or just finished (same rule as the API).</summary>
+    public bool CanEditAttendance => Data.ActivityStatus is "Published" or "Ongoing" or "Completed";
+}
+
+public sealed class ParticipantDetailViewModel
+{
+    public ActivityDto Activity { get; set; } = new();
+    public ParticipantDetail Participant { get; set; } = new();
+
+    public bool CanEditAttendance =>
+        Activity.Status is "Published" or "Ongoing" or "Completed" && Participant.RegistrationStatus != "Cancelled";
+}
+
 public sealed class ActivityFormViewModel
 {
     public int? Id { get; set; }

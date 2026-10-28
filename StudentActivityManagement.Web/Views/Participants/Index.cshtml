@@ -1,0 +1,116 @@
+@model ParticipantListViewModel
+@{
+    var data = Model.Data;
+    ViewData["Title"] = $"Người tham gia – {data.ActivityName}";
+    var statuses = new[] { ("", "Mọi trạng thái"), ("Registered", "Đã đăng ký"), ("Attended", "Đã tham gia"), ("Cancelled", "Đã hủy") };
+    var returnTo = Context.Request.Path + Context.Request.QueryString;
+    var paged = data.Participants;
+}
+<a asp-controller="ManageActivities" asp-action="Details" asp-route-id="@data.ActivityId" class="small">&larr; @data.ActivityName</a>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-2 mb-3">
+    <div>
+        <status-badge value="@data.ActivityStatus" />
+        <h1 class="h3 mt-2 mb-0">Người tham gia</h1>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3"><div class="stat-tile"><div class="stat-value">@data.Summary.Active</div><div class="stat-label">Đang giữ chỗ</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-tile"><div class="stat-value">@data.Summary.Attended</div><div class="stat-label">Đã tham gia</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-tile"><div class="stat-value">@data.Summary.Cancelled</div><div class="stat-label">Đã hủy đăng ký</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-tile"><div class="stat-value">@data.Summary.PendingEvidence</div><div class="stat-label">Minh chứng chờ duyệt</div></div></div>
+</div>
+
+<form asp-action="Index" asp-route-id="@data.ActivityId" method="get" class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <input name="search" value="@Model.Search" class="form-control w-auto flex-grow-1" placeholder="Tìm theo mã hoặc tên sinh viên" aria-label="Tìm sinh viên" />
+    <select name="status" class="form-select w-auto" aria-label="Trạng thái đăng ký">
+        @foreach (var (value, label) in statuses)
+        {
+            <option value="@value" selected="@(Model.Status == value || (Model.Status == null && value == ""))">@label</option>
+        }
+    </select>
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="pending" value="true" id="pendingOnly" checked="@Model.PendingOnly" />
+        <label class="form-check-label" for="pendingOnly">Còn minh chứng chờ duyệt</label>
+    </div>
+    <button class="btn btn-outline-primary" type="submit">Lọc</button>
+</form>
+
+@if (paged.Items.Count == 0)
+{
+    <div class="empty-state">Không có sinh viên phù hợp.</div>
+}
+else
+{
+    <div class="table-responsive card shadow-sm border-0 mb-3">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Sinh viên</th><th>Lớp</th><th>Trạng thái</th>
+                    @foreach (var session in data.Sessions)
+                    {
+                        <th class="text-center">@session.SessionName<div class="small fw-normal text-muted">@session.CheckInCount lượt</div></th>
+                    }
+                    <th class="text-center">Minh chứng</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var participant in paged.Items)
+                {
+                    <tr>
+                        <td><div class="fw-semibold">@participant.FullName</div><div class="small text-muted">@participant.StudentCode</div></td>
+                        <td>@participant.ClassCode</td>
+                        <td><status-badge value="@participant.RegistrationStatus" /></td>
+                        @foreach (var session in data.Sessions)
+                        {
+                            var checkIn = participant.CheckIns.FirstOrDefault(item => item.SessionId == session.SessionId);
+                            <td class="text-center">
+                                @if (checkIn != null)
+                                {
+                                    <span class="text-success fw-semibold" title="@(checkIn.RecordedByName ?? "Sinh viên tự check-in")">&#10003; <vn-time value="@checkIn.CheckedInAt" /></span>
+                                    <div class="small text-muted">@(checkIn.Method == "Manual" ? "Thủ công" : "Mã")</div>
+                                }
+                                else if (Model.CanEditAttendance && participant.RegistrationStatus != "Cancelled")
+                                {
+                                    <form asp-action="RecordCheckIn" asp-route-id="@data.ActivityId" method="post" class="m-0">
+                                        <input type="hidden" name="sessionId" value="@session.SessionId" />
+                                        <input type="hidden" name="registrationId" value="@participant.RegistrationId" />
+                                        <input type="hidden" name="returnTo" value="@returnTo" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success"
+                                                aria-label="Điểm danh @participant.FullName buổi @session.SessionName">Điểm danh</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">–</span>
+                                }
+                            </td>
+                        }
+                        <td class="text-center small">
+                            @if (participant.PendingEvidenceCount > 0) { <span class="badge rounded-pill text-bg-warning">@participant.PendingEvidenceCount chờ duyệt</span> }
+                            @if (participant.AcceptedEvidenceCount > 0) { <span class="badge rounded-pill text-bg-success">@participant.AcceptedEvidenceCount đã duyệt</span> }
+                            @if (participant.RejectedEvidenceCount > 0) { <span class="badge rounded-pill text-bg-danger">@participant.RejectedEvidenceCount từ chối</span> }
+                        </td>
+                        <td class="text-end"><a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@data.ActivityId" asp-route-registrationId="@participant.RegistrationId">Chi tiết</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (paged.TotalPages > 1)
+    {
+        <nav aria-label="Phân trang">
+            <ul class="pagination justify-content-center">
+                @for (var pageNumber = 1; pageNumber <= paged.TotalPages; pageNumber++)
+                {
+                    <li class="page-item @(pageNumber == paged.PageIndex ? "active" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-id="@data.ActivityId" asp-route-page="@pageNumber"
+                           asp-route-status="@Model.Status" asp-route-search="@Model.Search" asp-route-pending="@(Model.PendingOnly ? "true" : null)">@pageNumber</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+    <p class="text-center text-muted small">Tổng cộng @paged.TotalCount sinh viên</p>
+}

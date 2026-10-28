@@ -33,6 +33,10 @@
                 <button class="btn @css" type="submit">@label</button>
             </form>
         }
+        @if (Model.Status != "Draft")
+        {
+            <a class="btn btn-outline-secondary" asp-controller="Participants" asp-action="Index" asp-route-id="@Model.Id">Người tham gia</a>
+        }
         @if (!isFinal)
         {
             <a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@Model.Id">Sửa</a>

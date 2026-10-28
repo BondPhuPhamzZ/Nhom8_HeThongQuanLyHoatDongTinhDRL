@@ -1,0 +1,110 @@
+@model ParticipantDetailViewModel
+@{
+    var participant = Model.Participant;
+    var activity = Model.Activity;
+    ViewData["Title"] = $"{participant.FullName} – {activity.ActivityName}";
+}
+<a asp-action="Index" asp-route-id="@activity.Id" class="small">&larr; Người tham gia: @activity.ActivityName</a>
+<div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+    <status-badge value="@participant.RegistrationStatus" />
+    <span class="text-muted small">Đăng ký lúc <vn-time value="@participant.RegisteredAt" /></span>
+</div>
+<h1 class="h3 mt-2 mb-1">@participant.FullName</h1>
+<p class="text-muted">@participant.StudentCode · @(participant.ClassCode ?? "Chưa có lớp") · @participant.AcademicYear · @participant.Campus</p>
+
+<h2 class="h5 mt-4">Tham gia từng buổi</h2>
+<div class="table-responsive">
+    <table class="table table-sm align-middle">
+        <thead><tr><th>Buổi</th><th>Thời gian</th><th>Check-in</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var session in activity.Sessions.OrderBy(item => item.SortOrder))
+            {
+                var checkIn = participant.CheckIns.FirstOrDefault(item => item.SessionId == session.Id);
+                <tr>
+                    <td>@session.SessionName</td>
+                    <td class="small"><vn-time value="@session.StartTime" /> – <vn-time value="@session.EndTime" /></td>
+                    <td>
+                        @if (checkIn != null)
+                        {
+                            <span class="text-success fw-semibold">&#10003; <vn-time value="@checkIn.CheckedInAt" /></span>
+                            <span class="small text-muted">· @(checkIn.Method == "Manual" ? $"Thủ công ({checkIn.RecordedByName})" : "Sinh viên nhập mã")</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Chưa check-in</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        @if (Model.CanEditAttendance)
+                        {
+                            <form asp-action="@(checkIn == null ? "RecordCheckIn" : "RemoveCheckIn")" asp-route-id="@activity.Id" method="post" class="m-0"
+                                  onsubmit="@(checkIn == null ? "" : "return confirm('Hủy ghi nhận tham gia buổi này?');")">
+                                <input type="hidden" name="sessionId" value="@session.Id" />
+                                <input type="hidden" name="registrationId" value="@participant.RegistrationId" />
+                                <button type="submit" class="btn btn-sm @(checkIn == null ? "btn-outline-success" : "btn-outline-danger")">
+                                    @(checkIn == null ? "Điểm danh" : "Hủy điểm danh")
+                                </button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<h2 class="h5 mt-4">Minh chứng</h2>
+@if (participant.Evidences.Count == 0)
+{
+    <div class="empty-state py-4">Sinh viên chưa nộp minh chứng.</div>
+}
+@foreach (var evidence in participant.Evidences)
+{
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between gap-2">
+                <div>
+                    <status-badge value="@evidence.ReviewStatus" />
+                    <span class="fw-semibold ms-1">
+                        @(evidence.EvidenceType switch { "Image" => "Hình ảnh", "Document" => "Tài liệu", _ => "Mã xác nhận" })
+                    </span>
+                    @if (evidence.SessionName != null) { <span class="text-muted small">· @evidence.SessionName</span> }
+                    <div class="small text-muted">Nộp lúc <vn-time value="@evidence.UploadedAt" /></div>
+                </div>
+                <div>
+                    @if (evidence.FileUrl != null)
+                    {
+                        <a class="btn btn-sm btn-outline-primary" asp-action="EvidenceFile" asp-route-id="@activity.Id"
+                           asp-route-evidenceId="@evidence.Id" asp-route-registrationId="@participant.RegistrationId" target="_blank">
+                            Xem file (@evidence.OriginalFileName)
+                        </a>
+                    }
+                    else if (evidence.ConfirmationCode != null)
+                    {
+                        <span class="checkin-code">@evidence.ConfirmationCode</span>
+                    }
+                </div>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(evidence.Note)) { <p class="small mt-2 mb-0 pre-line">Ghi chú của sinh viên: @evidence.Note</p> }
+            @if (evidence.ReviewedByName != null && evidence.ReviewedAt is DateTime reviewedAt)
+            {
+                <p class="small text-muted mt-2 mb-0">Duyệt bởi @evidence.ReviewedByName lúc <vn-time value="@reviewedAt" />@(evidence.ReviewNote is string reason ? $": {reason}" : "")</p>
+            }
+            @if (participant.RegistrationStatus != "Cancelled")
+            {
+                <form asp-action="ReviewEvidence" asp-route-id="@activity.Id" method="post" class="d-flex flex-wrap gap-2 mt-3">
+                    <input type="hidden" name="registrationId" value="@participant.RegistrationId" />
+                    <input type="hidden" name="evidenceId" value="@evidence.Id" />
+                    <select name="status" class="form-select form-select-sm w-auto" aria-label="Kết quả duyệt">
+                        <option value="Accepted" selected="@(evidence.ReviewStatus == "Accepted")">Chấp nhận</option>
+                        <option value="Rejected" selected="@(evidence.ReviewStatus == "Rejected")">Từ chối</option>
+                        <option value="Pending" selected="@(evidence.ReviewStatus == "Pending")">Chờ duyệt</option>
+                    </select>
+                    <input name="note" value="@evidence.ReviewNote" class="form-control form-control-sm flex-grow-1 w-auto" maxlength="500"
+                           placeholder="Ghi chú (bắt buộc khi từ chối)" aria-label="Ghi chú duyệt" />
+                    <button type="submit" class="btn btn-sm btn-primary">Lưu kết quả</button>
+                </form>
+            }
+        </div>
+    </div>
+}
