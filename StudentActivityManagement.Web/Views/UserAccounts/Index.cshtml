@@ -1,0 +1,98 @@
+@model AccountListViewModel
+@{
+    ViewData["Title"] = "Tài khoản và phân quyền";
+    var paged = Model.Page;
+    var returnTo = Context.Request.Path + Context.Request.QueryString;
+    var roles = new[] { ("", "Mọi vai trò"), ("Student", "Sinh viên"), ("Monitor", "Lớp trưởng"), ("HSSV", "Phòng QL HSSV"), ("SystemAdmin", "Quản trị hệ thống") };
+}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+    <div>
+        <h1 class="h3 mb-1">Tài khoản và phân quyền</h1>
+        <p class="text-muted mb-0">Tài khoản sinh viên tạo ở mục Sinh viên; lớp trưởng chỉ định ở mục Lớp. Khóa tài khoản có hiệu lực ngay với phiên đang đăng nhập.</p>
+    </div>
+    <a class="btn btn-primary" asp-action="Create">+ Tạo tài khoản cán bộ</a>
+</div>
+
+<form asp-action="Index" method="get" class="d-flex flex-wrap gap-2 mb-3">
+    <input name="search" value="@Model.Search" class="form-control w-auto flex-grow-1" placeholder="Tìm theo mã, tên, email" aria-label="Tìm tài khoản" />
+    <select name="role" class="form-select w-auto" aria-label="Vai trò">
+        @foreach (var (value, label) in roles)
+        {
+            <option value="@value" selected="@(Model.Role == value || (Model.Role == null && value == ""))">@label</option>
+        }
+    </select>
+    <select name="active" class="form-select w-auto" aria-label="Trạng thái">
+        <option value="" selected="@string.IsNullOrEmpty(Model.Active)">Mọi trạng thái</option>
+        <option value="true" selected="@(Model.Active == "true")">Đang hoạt động</option>
+        <option value="false" selected="@(Model.Active == "false")">Đã khóa</option>
+    </select>
+    <button class="btn btn-outline-primary" type="submit">Lọc</button>
+</form>
+
+@if (paged.Items.Count == 0)
+{
+    <div class="empty-state">Không có tài khoản phù hợp.</div>
+}
+else
+{
+    <div class="table-responsive card shadow-sm border-0 mb-3">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light"><tr><th>Tài khoản</th><th>Email</th><th>Vai trò</th><th>Trạng thái</th><th class="text-end">Thao tác</th></tr></thead>
+            <tbody>
+                @foreach (var account in paged.Items)
+                {
+                    var isSelf = account.Id == Model.CurrentUserId;
+                    var isStaff = account.Role is "HSSV" or "SystemAdmin";
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@account.FullName @(isSelf ? "(bạn)" : "")</div>
+                            <div class="small text-muted">@account.StudentCode@(account.ClassCode is string code ? $" · {code}" : "")</div>
+                        </td>
+                        <td class="small">@account.Email</td>
+                        <td>@WebPolicies.RoleLabel(account.Role)</td>
+                        <td>
+                            @if (account.IsActive) { <span class="badge rounded-pill text-bg-success">Hoạt động</span> }
+                            else { <span class="badge rounded-pill text-bg-danger">Đã khóa</span> }
+                        </td>
+                        <td class="text-end text-nowrap">
+                            @if (isStaff && !isSelf)
+                            {
+                                var target = account.Role == "HSSV" ? "SystemAdmin" : "HSSV";
+                                <form asp-action="ChangeRole" asp-route-id="@account.Id" method="post" class="d-inline">
+                                    <input type="hidden" name="role" value="@target" />
+                                    <input type="hidden" name="returnTo" value="@returnTo" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Đổi thành @WebPolicies.RoleLabel(target)</button>
+                                </form>
+                            }
+                            @if (!isSelf)
+                            {
+                                <form asp-action="SetActive" asp-route-id="@account.Id" method="post" class="d-inline"
+                                      onsubmit="@(account.IsActive ? $"return confirm('Khóa tài khoản {account.StudentCode}? Người dùng bị đăng xuất ngay.');" : "")">
+                                    <input type="hidden" name="isActive" value="@((!account.IsActive).ToString().ToLowerInvariant())" />
+                                    <input type="hidden" name="returnTo" value="@returnTo" />
+                                    <button type="submit" class="btn btn-sm @(account.IsActive ? "btn-outline-danger" : "btn-outline-success")">@(account.IsActive ? "Khóa" : "Mở khóa")</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (paged.TotalPages > 1)
+    {
+        <nav aria-label="Phân trang">
+            <ul class="pagination justify-content-center">
+                @for (var pageNumber = 1; pageNumber <= paged.TotalPages; pageNumber++)
+                {
+                    <li class="page-item @(pageNumber == paged.PageIndex ? "active" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@pageNumber" asp-route-search="@Model.Search"
+                           asp-route-role="@Model.Role" asp-route-active="@Model.Active">@pageNumber</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+    <p class="text-center text-muted small">Tổng cộng @paged.TotalCount tài khoản</p>
+}

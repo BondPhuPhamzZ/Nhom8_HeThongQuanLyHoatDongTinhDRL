@@ -5,6 +5,7 @@ public static class WebPolicies
 {
     public const string Student = "StudentOrMonitor";
     public const string Staff = "BusinessAdmin";
+    public const string SystemAdmin = "SystemAdminOnly";
 
     public static bool IsStaff(System.Security.Claims.ClaimsPrincipal user) => user.IsInRole("HSSV") || user.IsInRole("SystemAdmin");
 
