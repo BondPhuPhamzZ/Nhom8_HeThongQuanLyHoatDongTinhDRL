@@ -1,0 +1,50 @@
+@model ClassDetailViewModel
+@{
+    ViewData["Title"] = $"Lớp {Model.Class.ClassCode}";
+}
+<a asp-action="Index" class="small">&larr; Danh sách lớp</a>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-2 mb-3">
+    <div>
+        <h1 class="h3 mb-1">@Model.Class.ClassCode – @Model.Class.ClassName</h1>
+        <p class="text-muted mb-0">@Model.Class.Department · Sĩ số @Model.Class.TotalStudents · Lớp trưởng: @(Model.Class.MonitorStudentName ?? "chưa chỉ định")</p>
+    </div>
+    <a class="btn btn-outline-primary" asp-controller="Students" asp-action="Create" asp-route-classId="@Model.Class.Id">+ Thêm sinh viên vào lớp</a>
+</div>
+
+@if (Model.Students.Count == 0)
+{
+    <div class="empty-state">Lớp chưa có sinh viên.</div>
+}
+else
+{
+    <div class="table-responsive card shadow-sm border-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light"><tr><th>Sinh viên</th><th>Email</th><th>Khóa</th><th>Vai trò</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var student in Model.Students)
+                {
+                    var isMonitor = student.Id == Model.Class.MonitorStudentId;
+                    <tr>
+                        <td><div class="fw-semibold">@student.FullName</div><div class="small text-muted">@student.StudentCode</div></td>
+                        <td class="small">@student.Email</td>
+                        <td>@student.AcademicYear</td>
+                        <td>
+                            @if (isMonitor) { <span class="badge rounded-pill text-bg-primary">Lớp trưởng</span> }
+                            else { <span>Sinh viên</span> }
+                        </td>
+                        <td class="text-end">
+                            @if (!isMonitor)
+                            {
+                                <form asp-action="AssignMonitor" asp-route-id="@Model.Class.Id" method="post" class="m-0"
+                                      onsubmit="return confirm('Chỉ định @student.FullName làm lớp trưởng? Lớp trưởng hiện tại (nếu có) trở về vai trò sinh viên.');">
+                                    <input type="hidden" name="studentId" value="@student.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">Chỉ định lớp trưởng</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
