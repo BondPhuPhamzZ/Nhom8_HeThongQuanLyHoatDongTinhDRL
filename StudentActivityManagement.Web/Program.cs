@@ -33,6 +33,7 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(WebPolicies.Student, policy => policy.RequireRole("Student", "Monitor"));
     options.AddPolicy(WebPolicies.Staff, policy => policy.RequireRole("HSSV", "SystemAdmin"));
+    options.AddPolicy(WebPolicies.SystemAdmin, policy => policy.RequireRole("SystemAdmin"));
 });
 
 var app = builder.Build();

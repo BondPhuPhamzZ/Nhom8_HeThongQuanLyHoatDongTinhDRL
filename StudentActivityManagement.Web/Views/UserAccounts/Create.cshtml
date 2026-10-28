@@ -1,0 +1,53 @@
+@model AccountCreateViewModel
+@{
+    ViewData["Title"] = "Tạo tài khoản cán bộ";
+}
+<a asp-action="Index" class="small">&larr; Tài khoản và phân quyền</a>
+<h1 class="h3 mt-2 mb-3">Tạo tài khoản cán bộ</h1>
+
+<form asp-action="Create" method="post" novalidate>
+    <div asp-validation-summary="All" class="alert alert-danger py-2 small empty-hidden"></div>
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body row g-3">
+            <div class="col-md-4">
+                <label asp-for="StudentCode" class="form-label"></label>
+                <input asp-for="StudentCode" class="form-control" placeholder="HSSV002" />
+            </div>
+            <div class="col-md-8">
+                <label asp-for="FullName" class="form-label"></label>
+                <input asp-for="FullName" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" type="email" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Phone" class="form-label"></label>
+                <input asp-for="Phone" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Role" class="form-label"></label>
+                <select asp-for="Role" class="form-select">
+                    <option value="HSSV">Phòng QL HSSV</option>
+                    <option value="SystemAdmin">Quản trị hệ thống</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Campus" class="form-label"></label>
+                <select asp-for="Campus" class="form-select">
+                    <option>Cơ sở 1</option>
+                    <option>Cơ sở 2</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" autocomplete="new-password" />
+                <div class="form-text">Tối thiểu 8 ký tự.</div>
+            </div>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Tạo tài khoản</button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Hủy</a>
+    </div>
+</form>

@@ -159,6 +159,21 @@ public sealed class ApiClient
     public Task<ApiResult<bool>> DeleteStudentAsync(int id) =>
         SendAsync<bool>(HttpMethod.Delete, $"api/v1/admin/students/{id}");
 
+    // ---- Accounts (US-25, SystemAdmin only)
+    public Task<ApiResult<PagedResult<AccountDto>>> GetAccountsAsync(string? search, string? role, bool? isActive, int page, int pageSize = 15) =>
+        SendAsync<PagedResult<AccountDto>>(HttpMethod.Get, $"api/v1/admin/accounts?{Query(
+            ("search", search), ("role", role), ("isActive", isActive?.ToString().ToLowerInvariant()),
+            ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
+
+    public Task<ApiResult<AccountDto>> CreateAccountAsync(AccountCreateRequest request) =>
+        SendAsync<AccountDto>(HttpMethod.Post, "api/v1/admin/accounts", request);
+
+    public Task<ApiResult<AccountDto>> UpdateAccountRoleAsync(int id, string role) =>
+        SendAsync<AccountDto>(HttpMethod.Patch, $"api/v1/admin/accounts/{id}/role", new { role });
+
+    public Task<ApiResult<AccountDto>> UpdateAccountActiveAsync(int id, bool isActive) =>
+        SendAsync<AccountDto>(HttpMethod.Patch, $"api/v1/admin/accounts/{id}/active-status", new { isActive });
+
     private async Task<ApiResult<T>> SendAsync<T>(HttpMethod method, string url, object? body = null, bool throwOn401 = true)
     {
         using var request = new HttpRequestMessage(method, url);

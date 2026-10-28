@@ -302,3 +302,31 @@ public sealed class StudentWriteRequest
     public string AcademicYear { get; set; } = string.Empty;
     public int? ClassId { get; set; }
 }
+
+// ---- Accounts (US-25, SystemAdmin only)
+
+public sealed class AccountDto
+{
+    public int Id { get; set; }
+    public string StudentCode { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public string Campus { get; set; } = string.Empty;
+    public string? ClassCode { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>Body of POST /admin/accounts: staff accounts only (HSSV or SystemAdmin).</summary>
+public sealed class AccountCreateRequest
+{
+    public string StudentCode { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string Role { get; set; } = "HSSV";
+    public string Campus { get; set; } = "Cơ sở 1";
+}
