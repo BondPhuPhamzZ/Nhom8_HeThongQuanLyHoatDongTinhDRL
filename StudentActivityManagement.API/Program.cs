@@ -11,6 +11,8 @@ using StudentActivityManagement.API.Models;
 using StudentActivityManagement.API.OpenApi;
 using StudentActivityManagement.API.Serialization;
 using StudentActivityManagement.API.Services;
+using StudentActivityManagement.API.Services.Settings;
+using StudentActivityManagement.API.Services.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +39,12 @@ builder.Services.AddScoped<IActivityEligibilityService, ActivityEligibilityServi
 builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IAccountAccessValidator, AccountAccessValidator>();
+builder.Services.AddScoped<ICheckInConfigProvider, CheckInConfigProvider>();
+
+// Evidence files (US-08): stored outside wwwroot, validated by extension, size and signature.
+builder.Services.Configure<EvidenceStorageOptions>(builder.Configuration.GetSection(EvidenceStorageOptions.SectionName));
+builder.Services.AddSingleton<IEvidenceFileStorage, LocalEvidenceFileStorage>();
+builder.Services.AddSingleton<IEvidenceFileValidator, EvidenceFileValidator>();
 
 // 3. Configure JWT Authentication
 var jwtSecret = builder.Configuration["JwtSettings:Secret"];
