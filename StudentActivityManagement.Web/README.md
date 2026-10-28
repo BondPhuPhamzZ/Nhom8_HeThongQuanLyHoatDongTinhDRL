@@ -21,6 +21,9 @@ Tài khoản demo (seed Development): `SV210002` sinh viên, `SV210001` lớp tr
 |---|---|---|
 | Sinh viên, Lớp trưởng | Danh sách hoạt động phù hợp (tìm kiếm, lọc cơ sở, phân trang); chi tiết; đăng ký, hủy, đăng ký lại; check-in từng buổi bằng mã (US-07) | `GET /student-activities`, `GET /student-activities/{id}`, `POST .../register`, `DELETE .../registration`, `GET .../check-in-status`, `POST .../sessions/{sessionId}/check-in` |
 | Phòng QL HSSV, SystemAdmin | Danh sách hoạt động theo trạng thái; tạo/sửa với nhiều buổi, quy tắc đối tượng và yêu cầu cần chuẩn bị; chuyển trạng thái theo vòng đời (nút và lựa chọn lấy từ `allowedNextStatuses`); xóa hoạt động nháp chưa có đăng ký; phát/đổi mã check-in từng buổi và xem số lượt check-in (US-07); trang "Người tham gia": lọc, điểm danh thủ công/hủy điểm danh, xem và duyệt minh chứng, tải file (US-21) | `/admin/activities`, `/admin/activities/{id}/check-in-codes`, `/admin/activities/{id}/participants`, `.../check-ins`, `.../evidences/{evidenceId}/review`, `/admin/classes` |
+| Phòng QL HSSV, SystemAdmin | "Sinh viên": danh sách lọc theo mã/tên/email, khóa, cơ sở, lớp; thêm, sửa, xóa sinh viên (US-17) | `/admin/students` |
+| Phòng QL HSSV, SystemAdmin | "Lớp": danh sách lớp kèm sĩ số và lớp trưởng; thêm lớp; danh sách sinh viên của lớp; chỉ định lớp trưởng (US-18) | `/admin/classes`, `PUT /admin/classes/{id}/monitor/{studentId}` |
+| SystemAdmin | "Tài khoản": danh sách mọi tài khoản lọc theo vai trò/trạng thái; tạo tài khoản cán bộ; đổi HSSV ↔ SystemAdmin; khóa/mở khóa (US-25) | `/admin/accounts` |
 
 ## Cách tổ chức
 
