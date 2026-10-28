@@ -36,3 +36,6 @@ HuongDanGit_Va_PromptKiet.md
 
 # Proposal artifacts kept in Git on purpose: Product Backlog and Sprint Planning of executed sprints.
 !proposal/**/*.xlsx
+
+# Uploaded evidence files (US-08) and other runtime data
+[Aa]pp_[Dd]ata/
