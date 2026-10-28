@@ -128,6 +128,141 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.ToTable("ActivityAudienceRules");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityCheckIn", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CheckedInAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("RecordedById")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("RegistrationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SessionId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecordedById");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("RegistrationId", "SessionId")
+                        .IsUnique();
+
+                    b.ToTable("ActivityCheckIns");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityCheckInConfig", b =>
+                {
+                    b.Property<int>("ActivityId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CloseAfterMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OpenBeforeMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("UpdatedById")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ActivityId");
+
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("ActivityCheckInConfigs");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityEvidence", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ConfirmationCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EvidenceType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OriginalFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RegistrationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReviewStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ReviewedById")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("SessionId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("SizeBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("StoredFileName")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RegistrationId");
+
+                    b.HasIndex("ReviewStatus");
+
+                    b.HasIndex("ReviewedById");
+
+                    b.HasIndex("SessionId");
+
+                    b.ToTable("ActivityEvidences");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityRegistration", b =>
                 {
                     b.Property<int>("Id")
@@ -168,6 +303,26 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.ToTable("ActivityRegistrations");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityReminderOffset", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ActivityId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("OffsetMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActivityId", "OffsetMinutes")
+                        .IsUnique();
+
+                    b.ToTable("ActivityReminderOffsets");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.ActivitySession", b =>
                 {
                     b.Property<int>("Id")
@@ -180,6 +335,13 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Property<string>("Campus")
                         .IsRequired()
                         .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CheckInCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CheckInCodeGeneratedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("EndTime")
@@ -337,6 +499,75 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Navigation("Class");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityCheckIn", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.User", "RecordedBy")
+                        .WithMany()
+                        .HasForeignKey("RecordedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("StudentActivityManagement.API.Models.ActivityRegistration", "Registration")
+                        .WithMany()
+                        .HasForeignKey("RegistrationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudentActivityManagement.API.Models.ActivitySession", "Session")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RecordedBy");
+
+                    b.Navigation("Registration");
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityCheckInConfig", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.Activity", "Activity")
+                        .WithOne()
+                        .HasForeignKey("StudentActivityManagement.API.Models.ActivityCheckInConfig", "ActivityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudentActivityManagement.API.Models.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Activity");
+
+                    b.Navigation("UpdatedBy");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityEvidence", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.ActivityRegistration", "Registration")
+                        .WithMany()
+                        .HasForeignKey("RegistrationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudentActivityManagement.API.Models.User", "ReviewedBy")
+                        .WithMany()
+                        .HasForeignKey("ReviewedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("StudentActivityManagement.API.Models.ActivitySession", "Session")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Registration");
+
+                    b.Navigation("ReviewedBy");
+
+                    b.Navigation("Session");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityRegistration", b =>
                 {
                     b.HasOne("StudentActivityManagement.API.Models.Activity", "Activity")
@@ -354,6 +585,17 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Navigation("Activity");
 
                     b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityReminderOffset", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.Activity", "Activity")
+                        .WithMany()
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Activity");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.ActivitySession", b =>
