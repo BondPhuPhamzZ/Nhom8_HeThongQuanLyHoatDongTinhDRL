@@ -20,7 +20,7 @@ Tài khoản demo (seed Development): `SV210002` sinh viên, `SV210001` lớp tr
 | Vai trò | Trang | API sử dụng |
 |---|---|---|
 | Sinh viên, Lớp trưởng | Danh sách hoạt động phù hợp (tìm kiếm, lọc cơ sở, phân trang); chi tiết; đăng ký, hủy, đăng ký lại | `GET /student-activities`, `GET /student-activities/{id}`, `POST .../register`, `DELETE .../registration` |
-| Phòng QL HSSV, SystemAdmin | Danh sách hoạt động theo trạng thái; tạo/sửa với nhiều buổi và quy tắc đối tượng; công bố, bắt đầu, kết thúc, hủy; xóa | `/admin/activities`, `/admin/classes` |
+| Phòng QL HSSV, SystemAdmin | Danh sách hoạt động theo trạng thái; tạo/sửa với nhiều buổi, quy tắc đối tượng và yêu cầu cần chuẩn bị; chuyển trạng thái theo vòng đời (nút và lựa chọn lấy từ `allowedNextStatuses`); xóa hoạt động nháp chưa có đăng ký | `/admin/activities`, `/admin/classes` |
 
 ## Cách tổ chức
 

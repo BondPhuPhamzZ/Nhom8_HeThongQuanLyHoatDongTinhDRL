@@ -70,6 +70,43 @@ Tài khoản dữ liệu mẫu:
 - **Sửa hoạt động:** gửi kèm `id` của buổi cũ để giữ nguyên buổi đó (check-in sẽ gắn theo id buổi); buổi không có `id` được tạo mới; buổi cũ không có trong request bị xóa. `id` của hoạt động khác nhận `400`.
 - **Đăng ký lại:** sinh viên đã hủy có thể đăng ký lại nếu còn hạn và còn chỗ; hệ thống dùng lại bản ghi cũ. Endpoint sinh viên trả thêm `myRegistrationStatus` (`Registered`, `Cancelled`, ... hoặc `null`).
 - **Hoạt động đang diễn ra:** sinh viên thấy cả hoạt động `Published` và `Ongoing` (để check-in); chỉ `Published` mới đăng ký được.
+- **Vòng đời hoạt động:**
+  - `Draft → Published | Cancelled`
+  - `Published → Ongoing | Cancelled | Draft` (về `Draft` chỉ khi không còn sinh viên đăng ký)
+  - `Ongoing → Completed | Cancelled`
+  - `Completed`, `Cancelled` là trạng thái cuối, không sửa được nữa.
+
+  Hoạt động mới chỉ tạo ở `Draft` hoặc `Published`. Chuyển sai nhận `409 business_rule_violation`. Response cho cán bộ có `allowedNextStatuses` để client chỉ hiện bước hợp lệ.
+- **Xóa hoạt động:** chỉ xóa được hoạt động `Draft` chưa từng có bản ghi đăng ký. Trường hợp khác nhận `409`; hãy chuyển sang `Cancelled` để giữ lịch sử tham gia.
+- **Yêu cầu chuẩn bị:** trường `requirements` (tối đa 2000 ký tự) trong tạo/sửa và chi tiết hoạt động.
+- **Không xóa buổi đã có dữ liệu:** khi sửa hoạt động, bỏ một buổi đã có check-in hoặc minh chứng nhận `409`.
+
+### Thay đổi status code (breaking change, Sprint 3)
+
+| Trường hợp | Trước | Nay |
+|---|---|---|
+| Đăng ký ngoài thời gian đăng ký | `400` | `409 business_rule_violation` |
+| `POST /api/v1/admin/classes` thành công | `200` | `201 Created` |
+| Xóa hoạt động không phải `Draft`, hoặc nhảy trạng thái sai vòng đời | `200` | `409 business_rule_violation` |
+
+### Nền check-in và minh chứng (Sprint 3)
+
+Migration `Sprint3CheckInAndEvidence` thêm bốn bảng và hai cột vào `ActivitySessions` (`CheckInCode`, `CheckInCodeGeneratedAt`):
+
+| Bảng | Mục đích | Story |
+|---|---|---|
+| `ActivityCheckIns` | Mỗi đăng ký tối đa một check-in cho mỗi buổi; ghi phương thức và cán bộ điểm danh hộ | US-07, US-21 |
+| `ActivityCheckInConfigs` | Phương thức (`Code`/`Manual`) và cửa sổ check-in của hoạt động. Không có dòng thì dùng mặc định `Code`, mở trước 15 phút, đóng sau 30 phút | US-26 |
+| `ActivityReminderOffsets` | Các mốc nhắc (phút trước mỗi buổi). Mặc định `[1440]`; Sprint 3 chỉ lưu | US-26, US-06 |
+| `ActivityEvidences` | Minh chứng file (`Image`, `Document`) hoặc `ConfirmationCode`, trạng thái duyệt `Pending`/`Accepted`/`Rejected` | US-08, US-21 |
+
+Dịch vụ dùng chung (`Services/Storage`, `Services/Settings`):
+
+- `IEvidenceFileStorage`: lưu file ngoài `wwwroot` theo `EvidenceStorage:RootPath` (mặc định `App_Data/evidence`, đã gitignore), tên GUID do server sinh.
+- `IEvidenceFileValidator`: chỉ nhận `.jpg/.jpeg/.png` (ảnh) và `.pdf` (tài liệu), tối đa 5 MB, kiểm tra chữ ký nhị phân.
+- `ICheckInConfigProvider`: cấu hình check-in đang có hiệu lực (dòng đã lưu hoặc mặc định trong `SettingDefaults`).
+
+Giới hạn khác cấu hình ở section `EvidenceStorage` của `appsettings.json`: 5 minh chứng cho mỗi đăng ký, hạn nộp 7 ngày sau buổi cuối.
 
 Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động có `organizerName`, danh sách `sessions` và `audienceRules`. Sinh viên chỉ thấy và đăng ký hoạt động phù hợp cơ sở, khóa hoặc lớp của mình.
 
