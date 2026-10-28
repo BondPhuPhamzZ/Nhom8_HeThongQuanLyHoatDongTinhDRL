@@ -134,6 +134,13 @@ public sealed class ApiClient
     public Task<ApiResult<List<ClassDto>>> GetClassesAsync() =>
         SendAsync<List<ClassDto>>(HttpMethod.Get, "api/v1/admin/classes");
 
+    // ---- Classes and class monitors (US-18)
+    public Task<ApiResult<ClassDto>> CreateClassAsync(string classCode, string className, string department) =>
+        SendAsync<ClassDto>(HttpMethod.Post, "api/v1/admin/classes", new { classCode, className, department });
+
+    public Task<ApiResult<bool>> AssignMonitorAsync(int classId, int studentId) =>
+        SendAsync<bool>(HttpMethod.Put, $"api/v1/admin/classes/{classId}/monitor/{studentId}");
+
     // ---- Students (US-17)
     public Task<ApiResult<PagedResult<StudentDto>>> GetStudentsAsync(string? search, string? campus, string? academicYear, int? classId, int page, int pageSize = 15) =>
         SendAsync<PagedResult<StudentDto>>(HttpMethod.Get, $"api/v1/admin/students?{Query(

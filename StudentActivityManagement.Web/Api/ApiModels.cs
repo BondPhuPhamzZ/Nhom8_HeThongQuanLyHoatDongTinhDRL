@@ -94,6 +94,10 @@ public sealed class ClassDto
     public int Id { get; set; }
     public string ClassCode { get; set; } = string.Empty;
     public string ClassName { get; set; } = string.Empty;
+    public string Department { get; set; } = string.Empty;
+    public int? MonitorStudentId { get; set; }
+    public string? MonitorStudentName { get; set; }
+    public int TotalStudents { get; set; }
 }
 
 /// <summary>Request body for POST/PUT /admin/activities. Times carry the Vietnam offset.</summary>
