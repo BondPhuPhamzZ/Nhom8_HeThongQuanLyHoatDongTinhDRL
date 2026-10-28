@@ -110,6 +110,14 @@ public sealed class ManageActivitiesController : WebControllerBase
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> GenerateCheckInCode(int id, int sessionId)
+    {
+        var result = await _api.GenerateCheckInCodeAsync(id, sessionId);
+        if (result.Success) FlashSuccess($"{result.Message} Mã mới: {result.Data?.Code}"); else FlashError(result.Message);
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _api.DeleteActivityAsync(id);

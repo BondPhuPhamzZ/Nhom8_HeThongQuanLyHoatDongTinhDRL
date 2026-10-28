@@ -49,6 +49,12 @@ public sealed class ApiClient
     public Task<ApiResult<bool>> CancelRegistrationAsync(int id) =>
         SendAsync<bool>(HttpMethod.Delete, $"api/v1/student-activities/{id}/registration");
 
+    public Task<ApiResult<StudentCheckInStatus>> GetCheckInStatusAsync(int activityId) =>
+        SendAsync<StudentCheckInStatus>(HttpMethod.Get, $"api/v1/student-activities/{activityId}/check-in-status");
+
+    public Task<ApiResult<CheckInResult>> CheckInAsync(int activityId, int sessionId, string code) =>
+        SendAsync<CheckInResult>(HttpMethod.Post, $"api/v1/student-activities/{activityId}/sessions/{sessionId}/check-in", new { code });
+
     // ---- Activity management (HSSV, SystemAdmin)
     public Task<ApiResult<PagedResult<ActivityDto>>> GetActivitiesAsync(string? search, string? status, int page, int pageSize = 10) =>
         SendAsync<PagedResult<ActivityDto>>(HttpMethod.Get, $"api/v1/admin/activities?{Query(("search", search), ("status", status), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
@@ -67,6 +73,12 @@ public sealed class ApiClient
 
     public Task<ApiResult<bool>> DeleteActivityAsync(int id) =>
         SendAsync<bool>(HttpMethod.Delete, $"api/v1/admin/activities/{id}");
+
+    public Task<ApiResult<ActivityCheckInCodes>> GetCheckInCodesAsync(int activityId) =>
+        SendAsync<ActivityCheckInCodes>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/check-in-codes");
+
+    public Task<ApiResult<SessionCheckInCode>> GenerateCheckInCodeAsync(int activityId, int sessionId) =>
+        SendAsync<SessionCheckInCode>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-in-code");
 
     public Task<ApiResult<List<ClassDto>>> GetClassesAsync() =>
         SendAsync<List<ClassDto>>(HttpMethod.Get, "api/v1/admin/classes");

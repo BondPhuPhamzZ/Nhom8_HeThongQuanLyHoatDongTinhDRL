@@ -2,9 +2,11 @@
 @{
     ViewData["Title"] = Model.ActivityName;
     var registered = Model.MyRegistrationStatus == "Registered";
+    // Attended (checked in) still holds a place, but it can no longer be cancelled.
+    var attended = Model.MyRegistrationStatus == "Attended";
     var now = DateTime.UtcNow;
     var inWindow = now >= Model.RegistrationOpenTime && now <= Model.RegistrationCloseTime;
-    var canRegister = !registered && Model.Status == "Published" && inWindow && Model.RemainingSlots > 0;
+    var canRegister = !registered && !attended && Model.Status == "Published" && inWindow && Model.RemainingSlots > 0;
     var canCancel = registered && now <= Model.RegistrationCloseTime;
 }
 <a asp-action="Index" class="small">&larr; Danh sách hoạt động</a>
@@ -44,6 +46,7 @@
                 </tbody>
             </table>
         </div>
+        @await Component.InvokeAsync("StudentCheckIn", new { activityId = Model.Id, registrationStatus = Model.MyRegistrationStatus })
     </div>
     <div class="col-lg-4">
         <div class="card shadow-sm border-0">
@@ -75,7 +78,8 @@
                 else
                 {
                     <p class="small text-muted mb-0">
-                        @(registered ? "Đã hết hạn hủy đăng ký." :
+                        @(attended ? "Bạn đã check-in hoạt động này." :
+                          registered ? "Đã hết hạn hủy đăng ký." :
                           Model.Status == "Ongoing" ? "Hoạt động đang diễn ra, không nhận đăng ký mới." :
                           !inWindow ? "Ngoài thời gian đăng ký." : "Hoạt động đã đủ số lượng.")
                     </p>

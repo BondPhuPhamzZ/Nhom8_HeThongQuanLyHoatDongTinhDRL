@@ -46,6 +46,20 @@ public sealed class StudentActivitiesController : WebControllerBase
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CheckIn(int id, int sessionId, string? code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            FlashError("Nhập mã check-in do ban tổ chức công bố.");
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var result = await _api.CheckInAsync(id, sessionId, code);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(int id)
     {
         var result = await _api.CancelRegistrationAsync(id);
