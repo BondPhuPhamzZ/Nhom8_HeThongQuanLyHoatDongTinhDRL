@@ -136,6 +136,25 @@ Mã lỗi:
 
 Điểm danh thủ công (`Manual`) do Phòng QL HSSV thực hiện trên màn hình kiểm tra người tham gia (US-21).
 
+### Kiểm tra người tham gia và duyệt minh chứng (US-21)
+
+Mọi endpoint nằm dưới `/api/v1/admin/activities/{id}`, chỉ dành cho HSSV và SystemAdmin.
+
+| Endpoint | Mô tả |
+|---|---|
+| `GET participants?status=&search=&hasPendingEvidence=&pageIndex=&pageSize=` | Bộ đếm toàn hoạt động (giữ chỗ, đã tham gia, đã hủy, minh chứng chờ duyệt), số lượt check-in từng buổi, và một trang người đăng ký kèm check-in từng buổi và số minh chứng theo trạng thái duyệt |
+| `GET participants/{registrationId}` | Một người đăng ký kèm toàn bộ minh chứng (có `fileUrl` khi là file) |
+| `POST sessions/{sessionId}/check-ins` body `{ "registrationId" }` | Điểm danh thủ công (phương thức `Manual`, ghi người thực hiện). Dùng được cho cả hoạt động check-in bằng mã và ngoài cửa sổ check-in; lần đầu chuyển đăng ký sang `Attended` |
+| `DELETE sessions/{sessionId}/check-ins/{registrationId}` | Hủy ghi nhận nhầm. Không còn buổi nào thì đăng ký trở về `Registered` |
+| `PATCH evidences/{evidenceId}/review` body `{ "status", "note" }` | `Accepted`; `Rejected` (bắt buộc `note`); hoặc `Pending` để mở lại |
+| `GET evidences/{evidenceId}/file` | Tải file minh chứng |
+
+Ràng buộc:
+
+- Chỉ điểm danh hoặc hủy điểm danh khi hoạt động `Published`, `Ongoing` hoặc `Completed`; trường hợp khác trả `409`.
+- Đăng ký đã hủy không điểm danh và không duyệt minh chứng được (`409`).
+- Mã đăng ký, buổi hoặc minh chứng không thuộc hoạt động trả `404`.
+
 Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động có `organizerName`, danh sách `sessions` và `audienceRules`. Sinh viên chỉ thấy và đăng ký hoạt động phù hợp cơ sở, khóa hoặc lớp của mình.
 
 ## Cấu trúc project
