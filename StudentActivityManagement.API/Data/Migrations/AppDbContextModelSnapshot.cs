@@ -65,6 +65,11 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Property<DateTime>("RegistrationOpenTime")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Requirements")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("TEXT");
 
@@ -337,7 +342,7 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.HasOne("StudentActivityManagement.API.Models.Activity", "Activity")
                         .WithMany("Registrations")
                         .HasForeignKey("ActivityId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("StudentActivityManagement.API.Models.User", "Student")

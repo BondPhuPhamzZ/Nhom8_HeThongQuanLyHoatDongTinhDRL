@@ -55,10 +55,11 @@ namespace StudentActivityManagement.API.Data
             {
                 entity.HasIndex(ar => new { ar.ActivityId, ar.StudentId }).IsUnique();
 
+                // Registrations are participation history: an activity that has any must be cancelled, not deleted.
                 entity.HasOne(ar => ar.Activity)
                       .WithMany(a => a.Registrations)
                       .HasForeignKey(ar => ar.ActivityId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                      .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(ar => ar.Student)
                       .WithMany(u => u.Registrations)

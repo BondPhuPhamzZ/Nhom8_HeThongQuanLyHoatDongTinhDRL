@@ -9,6 +9,9 @@ namespace StudentActivityManagement.API.DTOs.Activity
 
         public string Description { get; set; } = string.Empty;
 
+        [StringLength(2000, ErrorMessage = "Yêu cầu chuẩn bị tối đa 2000 ký tự")]
+        public string Requirements { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "Đơn vị tổ chức không được để trống")]
         [StringLength(150)]
         public string OrganizerName { get; set; } = string.Empty;

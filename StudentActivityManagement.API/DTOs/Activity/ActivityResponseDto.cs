@@ -5,6 +5,7 @@ namespace StudentActivityManagement.API.DTOs.Activity
         public int Id { get; set; }
         public string ActivityName { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public string Requirements { get; set; } = string.Empty;
         public string OrganizerName { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
         public string Campus { get; set; } = string.Empty;
@@ -17,6 +18,8 @@ namespace StudentActivityManagement.API.DTOs.Activity
         public int TrainingPoints { get; set; }
         public string TargetAudience { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+        /// <summary>Statuses the activity may move to next (staff endpoints only; null for students).</summary>
+        public List<string>? AllowedNextStatuses { get; set; }
         public DateTime CreatedAt { get; set; }
         public List<ActivitySessionResponseDto> Sessions { get; set; } = [];
         public List<ActivityAudienceRuleResponseDto> AudienceRules { get; set; } = [];

@@ -76,6 +76,7 @@ namespace StudentActivityManagement.API.Controllers
         [ProducesResponseType(typeof(ApiResponseDto<ActivityResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> UpdateActivity(int id, [FromBody] ActivityUpdateDto request)
         {
             var result = await _activityService.UpdateActivityAsync(id, request);
@@ -88,12 +89,15 @@ namespace StudentActivityManagement.API.Controllers
         }
 
         /// <summary>
-        /// Đổi trạng thái Hoạt động rèn luyện (Draft, Published, Ongoing, Completed, Cancelled)
+        /// Đổi trạng thái Hoạt động rèn luyện theo vòng đời: Draft → Published/Cancelled;
+        /// Published → Ongoing/Cancelled/Draft (khi chưa có đăng ký); Ongoing → Completed/Cancelled.
+        /// Completed và Cancelled là trạng thái cuối.
         /// </summary>
         [HttpPatch("{id}/status")]
         [ProducesResponseType(typeof(ApiResponseDto<ActivityResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> UpdateActivityStatus(int id, [FromBody] UpdateActivityStatusDto request)
         {
             var result = await _activityService.UpdateActivityStatusAsync(id, request.Status);
@@ -106,11 +110,12 @@ namespace StudentActivityManagement.API.Controllers
         }
 
         /// <summary>
-        /// Xóa Hoạt động rèn luyện (Dành cho Admin)
+        /// Xóa Hoạt động rèn luyện — chỉ hoạt động Nháp chưa từng có đăng ký; trường hợp khác dùng trạng thái Cancelled.
         /// </summary>
         [HttpDelete("{id}")]
         [ProducesResponseType(typeof(ApiResponseDto<bool>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> DeleteActivity(int id)
         {
             var result = await _activityService.DeleteActivityAsync(id);
