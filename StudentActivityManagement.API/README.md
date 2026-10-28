@@ -108,6 +108,34 @@ Dịch vụ dùng chung (`Services/Storage`, `Services/Settings`):
 
 Giới hạn khác cấu hình ở section `EvidenceStorage` của `appsettings.json`: 5 minh chứng cho mỗi đăng ký, hạn nộp 7 ngày sau buổi cuối.
 
+### Check-in bằng mã (US-07)
+
+| Endpoint | Quyền | Mô tả |
+|---|---|---|
+| `GET /api/v1/admin/activities/{id}/check-in-codes` | HSSV, SystemAdmin | Mã, cửa sổ check-in và số lượt đã check-in của từng buổi |
+| `POST /api/v1/admin/activities/{id}/sessions/{sessionId}/check-in-code` | HSSV, SystemAdmin | Phát hoặc đổi mã 6 ký tự (không có 0/O/1/I/L). Mã cũ hết hiệu lực ngay |
+| `GET /api/v1/student-activities/{id}/check-in-status` | Student, Monitor | Phương thức, cửa sổ và thời điểm đã check-in của từng buổi; `canCheckIn` cho biết có thể check-in ngay lúc này |
+| `POST /api/v1/student-activities/{id}/sessions/{sessionId}/check-in` | Student, Monitor | Body `{ "code": "..." }`, không phân biệt hoa thường |
+
+Quy tắc check-in:
+
+- Sinh viên phải có đăng ký chưa hủy.
+- Hoạt động ở trạng thái `Published` hoặc `Ongoing`, dùng phương thức `Code`.
+- Thời điểm check-in nằm trong cửa sổ của buổi (mặc định từ 15 phút trước giờ bắt đầu đến 30 phút sau giờ kết thúc).
+- Mỗi buổi chỉ check-in một lần; unique index chặn cả request gửi đồng thời.
+- Lần check-in đầu tiên chuyển đăng ký sang `Attended`. Từ đó không hủy đăng ký được nữa.
+
+Mã lỗi:
+
+| Status | Trường hợp |
+|---|---|
+| `400 validation_failed` | Sai mã |
+| `409 business_rule_violation` | Ngoài cửa sổ; chưa phát mã; hoạt động điểm danh thủ công; đăng ký đã hủy; trạng thái hoạt động không cho phép |
+| `409 resource_conflict` | Đã check-in buổi này |
+| `404` | Không có hoạt động hoặc buổi, hoặc sinh viên chưa đăng ký |
+
+Điểm danh thủ công (`Manual`) do Phòng QL HSSV thực hiện trên màn hình kiểm tra người tham gia (US-21).
+
 Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động có `organizerName`, danh sách `sessions` và `audienceRules`. Sinh viên chỉ thấy và đăng ký hoạt động phù hợp cơ sở, khóa hoặc lớp của mình.
 
 ## Cấu trúc project
