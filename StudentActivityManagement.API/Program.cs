@@ -40,6 +40,7 @@ builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IAccountAccessValidator, AccountAccessValidator>();
 builder.Services.AddScoped<ICheckInConfigProvider, CheckInConfigProvider>();
+builder.Services.AddScoped<ICheckInService, CheckInService>();
 
 // Evidence files (US-08): stored outside wwwroot, validated by extension, size and signature.
 builder.Services.Configure<EvidenceStorageOptions>(builder.Configuration.GetSection(EvidenceStorageOptions.SectionName));
