@@ -21,13 +21,13 @@ pwsh -NoProfile -File .\scripts\update-database.ps1
 dotnet run --launch-profile http
 ```
 
-Máy mới hoặc chưa có database chỉ dùng lệnh ở trên. Nếu máy đang giữ database Sprint 1 cũ chưa có migration history, thay riêng lệnh cập nhật database bằng lệnh dưới đây đúng một lần:
+Máy mới hoặc chưa có database chỉ dùng lệnh ở trên. Nếu API dừng ở `Database.Migrate()` với lỗi `table "Activities" already exists`, database Sprint 1 cũ có bảng nhưng chưa có `__EFMigrationsHistory`. **Dừng API/Visual Studio**, rồi thay riêng lệnh cập nhật database bằng lệnh dưới đây đúng một lần:
 
 ```powershell
 pwsh -NoProfile -File .\scripts\update-database.ps1 -ResetLegacyDatabase
 ```
 
-Script đổi tên database cũ thành bản `.bak` trước khi tạo database theo migration. Những lần chạy sau không dùng lại `-ResetLegacyDatabase`.
+Script giữ nguyên database cũ cùng các file SQLite phụ (`-wal`, `-shm`, `-journal`) dưới tên `.legacy-*.bak*`, rồi tạo database mới theo migration. Dữ liệu cũ nằm trong bản sao lưu, **không tự chuyển sang DB mới**. Những lần chạy sau không dùng lại `-ResetLegacyDatabase`.
 
 Mở [http://localhost:5210](http://localhost:5210). Swagger được đặt tại trang gốc khi chạy ở môi trường Development.
 
