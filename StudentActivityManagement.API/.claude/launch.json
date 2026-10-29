@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "StudentActivityManagement.API.csproj", "--launch-profile", "http", "--", "--ConnectionStrings:DefaultConnection=Data Source=C:/Users/bondp/AppData/Local/Temp/claude/D--nhom8-hethongquanlyhoatdong-tinhdrl-Nhom8-ActivitiesManagement-Nhom8-ActivitiesManagement-StudentActivityManagement-API/e3f1cc2c-49ae-4db7-ab48-1e53995602d3/scratchpad/demo_preview.db"],
+      "port": 5210
+    },
+    {
+      "name": "api-fresh",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "StudentActivityManagement.API.csproj", "--launch-profile", "http", "--", "--ConnectionStrings:DefaultConnection=Data Source=C:/Users/bondp/AppData/Local/Temp/claude/D--nhom8-hethongquanlyhoatdong-tinhdrl-Nhom8-ActivitiesManagement-Nhom8-ActivitiesManagement-StudentActivityManagement-API/e3f1cc2c-49ae-4db7-ab48-1e53995602d3/scratchpad/demo_fresh_2910.db"],
+      "port": 5210
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "../StudentActivityManagement.Web/StudentActivityManagement.Web.csproj", "--launch-profile", "http"],
+      "port": 5220
+    }
+  ]
+}
