@@ -4,12 +4,21 @@
 
 ## Chạy
 
-Cần chạy API trước (xem `../StudentActivityManagement.API/README.md`), rồi tại thư mục gốc repository:
+Cần chạy API trước (xem `../StudentActivityManagement.API/README.md`). Từ thư mục gốc repository, mở **hai terminal**:
+
+Terminal 1 — API và Swagger:
 
 ```powershell
-dotnet run --project .\StudentActivityManagement.API --launch-profile http   # http://localhost:5210
-dotnet run --project .\StudentActivityManagement.Web --launch-profile http   # http://localhost:5220
+dotnet run --project .\StudentActivityManagement.API --launch-profile http
 ```
+
+Terminal 2 — giao diện Web:
+
+```powershell
+dotnet run --project .\StudentActivityManagement.Web --launch-profile http
+```
+
+Mở `http://localhost:5220` để dùng Web; `http://localhost:5210` là Swagger của API. Trong Visual Studio, mở solution ở gốc repository, chọn **Configure Startup Projects → Multiple startup projects**, đặt cả API và Web thành **Start**, rồi chạy F5.
 
 Địa chỉ API cấu hình ở `appsettings.json` → `Api:BaseUrl`.
 
