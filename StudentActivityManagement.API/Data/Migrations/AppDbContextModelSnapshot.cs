@@ -405,6 +405,134 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.ToTable("Classes");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.EvaluationPeriod", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TargetPoints")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("EvaluationPeriods");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.PointRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ActivityId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("DecidedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DecidedById")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("PeriodId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Points")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RegistrationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActivityId");
+
+                    b.HasIndex("DecidedById");
+
+                    b.HasIndex("PeriodId");
+
+                    b.HasIndex("RegistrationId")
+                        .IsUnique();
+
+                    b.HasIndex("StudentId", "PeriodId");
+
+                    b.ToTable("PointRecords");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.PointRecordHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ChangedById")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FromStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PointRecordId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Points")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedById");
+
+                    b.HasIndex("PointRecordId");
+
+                    b.ToTable("PointRecordHistories");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -619,6 +747,66 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Navigation("MonitorStudent");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.PointRecord", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.Activity", "Activity")
+                        .WithMany()
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("StudentActivityManagement.API.Models.User", "DecidedBy")
+                        .WithMany()
+                        .HasForeignKey("DecidedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("StudentActivityManagement.API.Models.EvaluationPeriod", "Period")
+                        .WithMany()
+                        .HasForeignKey("PeriodId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("StudentActivityManagement.API.Models.ActivityRegistration", "Registration")
+                        .WithMany()
+                        .HasForeignKey("RegistrationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudentActivityManagement.API.Models.User", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Activity");
+
+                    b.Navigation("DecidedBy");
+
+                    b.Navigation("Period");
+
+                    b.Navigation("Registration");
+
+                    b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.PointRecordHistory", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.User", "ChangedBy")
+                        .WithMany()
+                        .HasForeignKey("ChangedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("StudentActivityManagement.API.Models.PointRecord", "PointRecord")
+                        .WithMany("History")
+                        .HasForeignKey("PointRecordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChangedBy");
+
+                    b.Navigation("PointRecord");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.User", b =>
                 {
                     b.HasOne("StudentActivityManagement.API.Models.Class", "Class")
@@ -641,6 +829,11 @@ namespace StudentActivityManagement.API.Data.Migrations
             modelBuilder.Entity("StudentActivityManagement.API.Models.Class", b =>
                 {
                     b.Navigation("Students");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.PointRecord", b =>
+                {
+                    b.Navigation("History");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.User", b =>
