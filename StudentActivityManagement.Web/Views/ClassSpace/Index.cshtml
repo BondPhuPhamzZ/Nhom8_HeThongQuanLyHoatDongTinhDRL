@@ -29,6 +29,10 @@
                 <option value="Announcement" selected="@(Model.Kind == "Announcement")">Thông báo</option>
             </select>
             <button class="btn btn-primary" type="submit">Lọc</button>
+            @if (space.IsMonitor)
+            {
+                <a asp-action="Escalations" class="btn btn-outline-warning">Câu hỏi đã chuyển P.QL HSSV</a>
+            }
         </form>
     }
 </div>
@@ -55,6 +59,7 @@
                             @if (thread.IsPinned) { <span class="badge rounded-pill text-bg-warning">Ghim</span> }
                             <status-badge value="@thread.Kind" />
                             @if (thread.Status != "Open") { <status-badge value="@thread.Status" /> }
+                            <partial name="_EscalationBadge" model="thread.EscalationStatus" />
                             <span class="fw-semibold">@thread.Title</span>
                         </div>
                         <div class="small text-muted text-truncate">@thread.Preview</div>

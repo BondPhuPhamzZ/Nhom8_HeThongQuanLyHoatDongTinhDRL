@@ -505,6 +505,7 @@ public sealed class ClassSpace
     public string ClassCode { get; set; } = string.Empty;
     public string ClassName { get; set; } = string.Empty;
     public string? MonitorName { get; set; }
+    public bool IsMonitor { get; set; }
     public PagedResult<ClassThreadSummary> Threads { get; set; } = new();
 }
 
@@ -520,12 +521,14 @@ public class ClassThreadSummary
     public int ReplyCount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime LastActivityAt { get; set; }
+    public string? EscalationStatus { get; set; }
 }
 
 public sealed class ClassThreadDetail : ClassThreadSummary
 {
     public string Body { get; set; } = string.Empty;
     public bool CanDelete { get; set; }
+    public bool CanEscalate { get; set; }
     public List<ClassThreadReply> Replies { get; set; } = [];
 }
 
@@ -546,4 +549,20 @@ public sealed class PostAuthor
     public string FullName { get; set; } = string.Empty;
     public bool IsMonitor { get; set; }
     public bool IsMe { get; set; }
+}
+
+/// <summary>Question the class monitor raised to Phòng QL HSSV (US-15); Answer is filled by staff (US-20).</summary>
+public sealed class ThreadEscalation
+{
+    public int Id { get; set; }
+    public int ThreadId { get; set; }
+    public string ThreadTitle { get; set; } = string.Empty;
+    public string Question { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string? RaisedByName { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string? Answer { get; set; }
+    public string? AnsweredByName { get; set; }
+    public DateTime? AnsweredAt { get; set; }
+    public DateTime? WithdrawnAt { get; set; }
 }
