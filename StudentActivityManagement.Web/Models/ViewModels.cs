@@ -124,12 +124,20 @@ public sealed class ActivityFormViewModel
         CurrentParticipantsCount = activity.CurrentParticipantsCount,
         Sessions = activity.Sessions.OrderBy(s => s.SortOrder).Select(s => new SessionFormItem
         {
-            Id = s.Id, SessionName = s.SessionName, Campus = s.Campus, Location = s.Location,
-            StartTime = VnTime.FromUtc(s.StartTime), EndTime = VnTime.FromUtc(s.EndTime), SortOrder = s.SortOrder
+            Id = s.Id,
+            SessionName = s.SessionName,
+            Campus = s.Campus,
+            Location = s.Location,
+            StartTime = VnTime.FromUtc(s.StartTime),
+            EndTime = VnTime.FromUtc(s.EndTime),
+            SortOrder = s.SortOrder
         }).ToList(),
         AudienceRules = activity.AudienceRules.Select(r => new AudienceRuleFormItem
         {
-            Campus = r.Campus, AcademicYear = r.AcademicYear, ClassId = r.ClassId, ParticipationType = r.ParticipationType
+            Campus = r.Campus,
+            AcademicYear = r.AcademicYear,
+            ClassId = r.ClassId,
+            ParticipationType = r.ParticipationType
         }).ToList(),
     };
 
@@ -148,8 +156,13 @@ public sealed class ActivityFormViewModel
         Status = Status,
         Sessions = Sessions.Select((s, index) => new SessionWriteRequest
         {
-            Id = s.Id, SessionName = s.SessionName.Trim(), Campus = s.Campus.Trim(), Location = s.Location.Trim(),
-            StartTime = VnTime.ToOffset(s.StartTime), EndTime = VnTime.ToOffset(s.EndTime), SortOrder = index + 1
+            Id = s.Id,
+            SessionName = s.SessionName.Trim(),
+            Campus = s.Campus.Trim(),
+            Location = s.Location.Trim(),
+            StartTime = VnTime.ToOffset(s.StartTime),
+            EndTime = VnTime.ToOffset(s.EndTime),
+            SortOrder = index + 1
         }).ToList(),
         AudienceRules = AudienceRules
             .Where(r => !string.IsNullOrWhiteSpace(r.Campus) || !string.IsNullOrWhiteSpace(r.AcademicYear) || r.ClassId.HasValue)
@@ -187,4 +200,12 @@ public sealed class AudienceRuleFormItem
     public string? AcademicYear { get; set; }
     public int? ClassId { get; set; }
     public string ParticipationType { get; set; } = "Required";
+}
+
+// ---- Student Evidences (US-08)
+public sealed class StudentEvidenceViewModel
+{
+    public ActivityDto Activity { get; set; } = new();
+    public List<StudentEvidence> Evidences { get; set; } = [];
+    public bool CanUpload { get; set; }
 }

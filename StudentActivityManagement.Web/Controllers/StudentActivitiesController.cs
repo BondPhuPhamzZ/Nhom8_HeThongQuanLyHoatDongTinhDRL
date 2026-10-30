@@ -34,6 +34,21 @@ public sealed class StudentActivitiesController : WebControllerBase
             return RedirectToAction(nameof(Index));
         }
 
+        var evidences = new List<StudentEvidence>();
+        var registered = result.Data.MyRegistrationStatus is "Registered" or "Attended";
+        var canUpload = registered && result.Data.Status is "Ongoing" or "Completed";
+        if (registered)
+        {
+            var evidenceResult = await _api.GetStudentEvidencesAsync(id);
+            if (evidenceResult.Success && evidenceResult.Data != null)
+            {
+                evidences = evidenceResult.Data;
+            }
+        }
+
+        ViewBag.Evidences = evidences;
+        ViewBag.CanUploadEvidence = canUpload;
+
         return View(result.Data);
     }
 
@@ -63,6 +78,35 @@ public sealed class StudentActivitiesController : WebControllerBase
     public async Task<IActionResult> Cancel(int id)
     {
         var result = await _api.CancelRegistrationAsync(id);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> UploadEvidence(int id, string evidenceType, IFormFile? file, string? confirmationCode, int? sessionId, string? note)
+    {
+        var result = await _api.UploadEvidenceAsync(id, evidenceType, file, confirmationCode, sessionId, note);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> EvidenceFile(int id, int evidenceId)
+    {
+        var result = await _api.DownloadStudentEvidenceFileAsync(id, evidenceId);
+        if (!result.Success || result.Data == null)
+        {
+            FlashError(result.Message);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        return File(result.Data.Content, result.Data.ContentType, result.Data.FileName);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteEvidence(int id, int evidenceId)
+    {
+        var result = await _api.DeleteStudentEvidenceAsync(id, evidenceId);
         if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
         return RedirectToAction(nameof(Details), new { id });
     }

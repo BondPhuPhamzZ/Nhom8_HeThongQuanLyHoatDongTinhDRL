@@ -47,6 +47,11 @@
             </table>
         </div>
         @await Component.InvokeAsync("StudentCheckIn", new { activityId = Model.Id, registrationStatus = Model.MyRegistrationStatus })
+
+        @if (Model.MyRegistrationStatus is "Registered" or "Attended")
+        {
+            <partial name="_Evidence" model="new StudentEvidenceViewModel { Activity = Model, Evidences = (List<StudentEvidence>)(ViewBag.Evidences ?? new List<StudentEvidence>()), CanUpload = ViewBag.CanUploadEvidence == true }" />
+        }
     </div>
     <div class="col-lg-4">
         <div class="card shadow-sm border-0">
@@ -88,3 +93,43 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function() {
+            var typeSelect = document.getElementById('evidenceTypeSelect');
+            var fileGroup = document.getElementById('evidenceFileGroup');
+            var codeGroup = document.getElementById('evidenceCodeGroup');
+            var fileInput = document.getElementById('evidenceFileInput');
+            var codeInput = document.getElementById('evidenceCodeInput');
+
+            function syncEvidenceType() {
+                if (!typeSelect || !fileGroup || !codeGroup) return;
+                var val = typeSelect.value;
+                if (val === 'ConfirmationCode') {
+                    fileGroup.style.display = 'none';
+                    codeGroup.style.display = 'block';
+                    if (fileInput) fileInput.value = '';
+                    if (codeInput) codeInput.setAttribute('required', 'required');
+                    if (fileInput) fileInput.removeAttribute('required');
+                } else {
+                    fileGroup.style.display = 'block';
+                    codeGroup.style.display = 'none';
+                    if (codeInput) {
+                        codeInput.value = '';
+                        codeInput.removeAttribute('required');
+                    }
+                    if (fileInput) {
+                        fileInput.setAttribute('required', 'required');
+                        fileInput.accept = val === 'Document' ? '.pdf' : '.jpg,.jpeg,.png';
+                    }
+                }
+            }
+
+            if (typeSelect) {
+                typeSelect.addEventListener('change', syncEvidenceType);
+                syncEvidenceType();
+            }
+        })();
+    </script>
+}
