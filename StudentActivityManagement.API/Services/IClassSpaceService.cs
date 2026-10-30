@@ -20,4 +20,13 @@ public interface IClassSpaceService
     Task<ApiResponseDto<bool>> DeleteThreadAsync(int userId, int threadId);
 
     Task<ApiResponseDto<bool>> DeleteReplyAsync(int userId, int threadId, int replyId);
+
+    /// <summary>US-15: the class monitor raises a thread to Phòng QL HSSV (one Pending escalation per thread).</summary>
+    Task<ApiResponseDto<ThreadEscalationDto>> EscalateAsync(int userId, int threadId, ThreadEscalationCreateDto request);
+
+    /// <summary>US-15: the monitor's view of the class's escalations, newest first.</summary>
+    Task<ApiResponseDto<PagedResultDto<ThreadEscalationDto>>> GetEscalationsAsync(int userId, string? status, int pageIndex, int pageSize);
+
+    /// <summary>US-15: the monitor withdraws an escalation that is still Pending.</summary>
+    Task<ApiResponseDto<ThreadEscalationDto>> WithdrawEscalationAsync(int userId, int escalationId);
 }

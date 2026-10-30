@@ -49,7 +49,12 @@ public sealed class ClassSpaceService : IClassSpaceService
             .ThenByDescending(thread => thread.LastActivityAt)
             .Skip((pageIndex - 1) * pageSize)
             .Take(pageSize)
-            .Select(thread => new { Thread = thread, ReplyCount = thread.Replies.Count })
+            .Select(thread => new
+            {
+                Thread = thread,
+                ReplyCount = thread.Replies.Count,
+                EscalationStatus = thread.Escalations.OrderByDescending(escalation => escalation.Id).Select(escalation => escalation.Status).FirstOrDefault()
+            })
             .ToListAsync();
 
         return ApiResponseDto<ClassSpaceDto>.Ok(new ClassSpaceDto
@@ -58,9 +63,10 @@ public sealed class ClassSpaceService : IClassSpaceService
             ClassCode = member.ClassCode,
             ClassName = member.ClassName,
             MonitorName = member.MonitorName,
+            IsMonitor = member.MonitorId == userId,
             Threads = new PagedResultDto<ClassThreadSummaryDto>
             {
-                Items = threads.Select(item => FillSummary(new ClassThreadSummaryDto(), item.Thread, item.ReplyCount, userId)).ToList(),
+                Items = threads.Select(item => FillSummary(new ClassThreadSummaryDto(), item.Thread, item.ReplyCount, item.EscalationStatus, userId)).ToList(),
                 TotalCount = totalCount,
                 PageIndex = pageIndex,
                 PageSize = pageSize
@@ -76,7 +82,7 @@ public sealed class ClassSpaceService : IClassSpaceService
             return error;
         }
 
-        var detail = await LoadDetailAsync(member!.ClassId, threadId, userId);
+        var detail = await LoadDetailAsync(member!, threadId, userId);
         return detail == null ? ThreadNotFound<ClassThreadDetailDto>() : ApiResponseDto<ClassThreadDetailDto>.Ok(detail);
     }
 
@@ -118,7 +124,7 @@ public sealed class ClassSpaceService : IClassSpaceService
         _context.ClassThreads.Add(thread);
         await _context.SaveChangesAsync();
 
-        var detail = await LoadDetailAsync(member.ClassId, thread.Id, userId);
+        var detail = await LoadDetailAsync(member, thread.Id, userId);
         return ApiResponseDto<ClassThreadDetailDto>.Ok(detail!, kind == ClassThreadKind.Question ? "Đã gửi câu hỏi cho lớp." : "Đã mở chủ đề thảo luận.");
     }
 
@@ -178,6 +184,11 @@ public sealed class ClassSpaceService : IClassSpaceService
         {
             return Fail<bool>("Chủ đề đã có người khác trả lời nên không thể xóa.", StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation);
         }
+        // Raised threads stay so Phòng QL HSSV never loses the question it has to answer.
+        if (await _context.ThreadEscalations.AnyAsync(escalation => escalation.ThreadId == threadId))
+        {
+            return Fail<bool>("Chủ đề đã được lớp trưởng chuyển lên Phòng QL HSSV nên không thể xóa.", StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation);
+        }
 
         _context.ClassThreads.Remove(thread);
         await _context.SaveChangesAsync();
@@ -212,7 +223,163 @@ public sealed class ClassSpaceService : IClassSpaceService
         return ApiResponseDto<bool>.Ok(true, "Đã xóa trả lời.");
     }
 
-    private sealed record ClassMember(int ClassId, string ClassCode, string ClassName, string? MonitorName);
+    public async Task<ApiResponseDto<ThreadEscalationDto>> EscalateAsync(int userId, int threadId, ThreadEscalationCreateDto request)
+    {
+        var (error, member) = await ResolveMonitorAsync<ThreadEscalationDto>(userId);
+        if (error != null)
+        {
+            return error;
+        }
+
+        var thread = await _context.ClassThreads.AsNoTracking().FirstOrDefaultAsync(item => item.Id == threadId && item.ClassId == member!.ClassId);
+        if (thread == null)
+        {
+            return ThreadNotFound<ThreadEscalationDto>();
+        }
+        if (!ClassThreadKind.MemberKinds.Contains(thread.Kind))
+        {
+            return Fail<ThreadEscalationDto>("Chỉ chuyển lên được câu hỏi hoặc chủ đề thảo luận.", StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation);
+        }
+
+        var question = request.Question.Trim();
+        if (question.Length < 5)
+        {
+            return Fail<ThreadEscalationDto>("Nội dung cần xác nhận tối thiểu 5 ký tự.", StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationFailed);
+        }
+        if (await _context.ThreadEscalations.AnyAsync(item => item.ThreadId == threadId && item.Status == EscalationStatus.Pending))
+        {
+            return PendingExists();
+        }
+
+        var escalation = new ThreadEscalation
+        {
+            ThreadId = threadId,
+            RaisedById = userId,
+            Question = question,
+            Status = EscalationStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.ThreadEscalations.Add(escalation);
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Another request raised the same thread first; the filtered unique index rejected this one.
+            return PendingExists();
+        }
+
+        return ApiResponseDto<ThreadEscalationDto>.Ok((await LoadEscalationAsync(escalation.Id))!, "Đã chuyển câu hỏi lên Phòng QL HSSV.");
+
+        static ApiResponseDto<ThreadEscalationDto> PendingExists() => Fail<ThreadEscalationDto>(
+            "Chủ đề đang chờ Phòng QL HSSV trả lời, không chuyển lên lần nữa.", StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation);
+    }
+
+    public async Task<ApiResponseDto<PagedResultDto<ThreadEscalationDto>>> GetEscalationsAsync(int userId, string? status, int pageIndex, int pageSize)
+    {
+        var (error, member) = await ResolveMonitorAsync<PagedResultDto<ThreadEscalationDto>>(userId);
+        if (error != null)
+        {
+            return error;
+        }
+
+        var query = EscalationQuery().Where(escalation => escalation.Thread!.ClassId == member!.ClassId);
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var normalized = EscalationStatus.All.FirstOrDefault(item => item.Equals(status.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (normalized == null)
+            {
+                return Fail<PagedResultDto<ThreadEscalationDto>>("Trạng thái chỉ nhận Pending, Answered hoặc Withdrawn.",
+                    StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationFailed);
+            }
+            query = query.Where(escalation => escalation.Status == normalized);
+        }
+
+        pageIndex = Math.Max(pageIndex, 1);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(escalation => escalation.CreatedAt)
+            .ThenByDescending(escalation => escalation.Id)
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return ApiResponseDto<PagedResultDto<ThreadEscalationDto>>.Ok(new PagedResultDto<ThreadEscalationDto>
+        {
+            Items = items.Select(MapEscalation).ToList(),
+            TotalCount = totalCount,
+            PageIndex = pageIndex,
+            PageSize = pageSize
+        });
+    }
+
+    public async Task<ApiResponseDto<ThreadEscalationDto>> WithdrawEscalationAsync(int userId, int escalationId)
+    {
+        var (error, member) = await ResolveMonitorAsync<ThreadEscalationDto>(userId);
+        if (error != null)
+        {
+            return error;
+        }
+
+        var escalation = await _context.ThreadEscalations
+            .FirstOrDefaultAsync(item => item.Id == escalationId && item.Thread!.ClassId == member!.ClassId);
+        if (escalation == null)
+        {
+            return Fail<ThreadEscalationDto>("Không tìm thấy câu hỏi đã chuyển của lớp bạn.", StatusCodes.Status404NotFound, ApiErrorCodes.ResourceNotFound);
+        }
+        if (!EscalationStatus.NextOf(escalation.Status).Contains(EscalationStatus.Withdrawn))
+        {
+            return Fail<ThreadEscalationDto>("Chỉ rút lại được câu hỏi đang chờ Phòng QL HSSV trả lời.", StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation);
+        }
+
+        escalation.Status = EscalationStatus.Withdrawn;
+        escalation.WithdrawnAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return ApiResponseDto<ThreadEscalationDto>.Ok((await LoadEscalationAsync(escalationId))!, "Đã rút lại câu hỏi.");
+    }
+
+    private sealed record ClassMember(int ClassId, string ClassCode, string ClassName, string? MonitorName, int? MonitorId);
+
+    /// <summary>Escalations are the class monitor's tool: the class's MonitorStudentId decides, not the role alone.</summary>
+    private async Task<(ApiResponseDto<T>? Error, ClassMember? Member)> ResolveMonitorAsync<T>(int userId)
+    {
+        var (error, member) = await ResolveMemberAsync<T>(userId);
+        if (error != null)
+        {
+            return (error, null);
+        }
+        return member!.MonitorId == userId
+            ? (null, member)
+            : (Fail<T>("Chỉ lớp trưởng mới chuyển câu hỏi lên Phòng QL HSSV.", StatusCodes.Status403Forbidden, ApiErrorCodes.AccessDenied), null);
+    }
+
+    private IQueryable<ThreadEscalation> EscalationQuery() => _context.ThreadEscalations.AsNoTracking()
+        .Include(escalation => escalation.Thread)
+        .Include(escalation => escalation.RaisedBy)
+        .Include(escalation => escalation.AnsweredBy);
+
+    private async Task<ThreadEscalationDto?> LoadEscalationAsync(int escalationId)
+    {
+        var escalation = await EscalationQuery().FirstOrDefaultAsync(item => item.Id == escalationId);
+        return escalation == null ? null : MapEscalation(escalation);
+    }
+
+    private static ThreadEscalationDto MapEscalation(ThreadEscalation escalation) => new()
+    {
+        Id = escalation.Id,
+        ThreadId = escalation.ThreadId,
+        ThreadTitle = escalation.Thread?.Title ?? string.Empty,
+        Question = escalation.Question,
+        Status = escalation.Status,
+        RaisedByName = escalation.RaisedBy?.FullName,
+        CreatedAt = escalation.CreatedAt,
+        Answer = escalation.Answer,
+        AnsweredByName = escalation.AnsweredBy?.FullName,
+        AnsweredAt = escalation.AnsweredAt,
+        WithdrawnAt = escalation.WithdrawnAt
+    };
 
     /// <summary>The signed-in student's class; students who are not in a class have no space yet.</summary>
     private async Task<(ApiResponseDto<T>? Error, ClassMember? Member)> ResolveMemberAsync<T>(int userId)
@@ -223,34 +390,41 @@ public sealed class ClassSpaceService : IClassSpaceService
                 user.ClassId!.Value,
                 user.Class!.ClassCode,
                 user.Class.ClassName,
-                user.Class.MonitorStudent != null ? user.Class.MonitorStudent.FullName : null))
+                user.Class.MonitorStudent != null ? user.Class.MonitorStudent.FullName : null,
+                user.Class.MonitorStudentId))
             .FirstOrDefaultAsync();
         return member == null
             ? (Fail<T>("Bạn chưa được xếp lớp nên chưa có không gian trao đổi.", StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation), null)
             : (null, member);
     }
 
-    private async Task<ClassThreadDetailDto?> LoadDetailAsync(int classId, int threadId, int userId)
+    private async Task<ClassThreadDetailDto?> LoadDetailAsync(ClassMember member, int threadId, int userId)
     {
         var thread = await _context.ClassThreads.AsNoTracking()
             .Include(item => item.Author)
             .Include(item => item.Replies).ThenInclude(reply => reply.Author)
-            .FirstOrDefaultAsync(item => item.Id == threadId && item.ClassId == classId);
+            .Include(item => item.Escalations)
+            .FirstOrDefaultAsync(item => item.Id == threadId && item.ClassId == member.ClassId);
         if (thread == null)
         {
             return null;
         }
 
-        var detail = FillSummary(new ClassThreadDetailDto(), thread, thread.Replies.Count, userId);
+        var escalationStatus = thread.Escalations.OrderByDescending(escalation => escalation.Id).Select(escalation => escalation.Status).FirstOrDefault();
+        var detail = FillSummary(new ClassThreadDetailDto(), thread, thread.Replies.Count, escalationStatus, userId);
         detail.Body = thread.Body;
         detail.Replies = thread.Replies.OrderBy(reply => reply.CreatedAt).ThenBy(reply => reply.Id)
             .Select(reply => MapReply(reply, reply.Author!, userId)).ToList();
-        detail.CanDelete = thread.AuthorId == userId && thread.Replies.All(reply => reply.AuthorId == userId);
+        detail.CanDelete = thread.AuthorId == userId && thread.Replies.All(reply => reply.AuthorId == userId) && thread.Escalations.Count == 0;
+        detail.CanEscalate = member.MonitorId == userId
+            && ClassThreadKind.MemberKinds.Contains(thread.Kind)
+            && escalationStatus != EscalationStatus.Pending;
         return detail;
     }
 
-    private static T FillSummary<T>(T target, ClassThread thread, int replyCount, int userId) where T : ClassThreadSummaryDto
+    private static T FillSummary<T>(T target, ClassThread thread, int replyCount, string? escalationStatus, int userId) where T : ClassThreadSummaryDto
     {
+        target.EscalationStatus = escalationStatus;
         target.Id = thread.Id;
         target.Kind = thread.Kind;
         target.Title = thread.Title;

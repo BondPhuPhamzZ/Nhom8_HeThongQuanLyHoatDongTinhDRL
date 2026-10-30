@@ -94,6 +94,40 @@ public sealed class ClassSpaceController : ApiControllerBase
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
 
+    /// <summary>Lớp trưởng chuyển câu hỏi cần xác nhận của chủ đề lên Phòng QL HSSV (US-15).</summary>
+    [HttpPost("threads/{threadId:int}/escalations")]
+    [ProducesResponseType(typeof(ApiResponseDto<ThreadEscalationDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Escalate(int threadId, [FromBody] ThreadEscalationCreateDto request)
+    {
+        if (!TryGetUserId(out var userId)) return InvalidSession();
+        var result = await _classSpaceService.EscalateAsync(userId, threadId, request);
+        return result.Success ? Created($"/api/v1/class-space/escalations/{result.Data!.Id}", result) : ProblemFrom(result);
+    }
+
+    /// <summary>Các câu hỏi lớp trưởng đã chuyển lên, mới nhất trước; lọc theo trạng thái (US-15).</summary>
+    [HttpGet("escalations")]
+    [ProducesResponseType(typeof(ApiResponseDto<PagedResultDto<ThreadEscalationDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetEscalations([FromQuery] string? status, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 20)
+    {
+        if (!TryGetUserId(out var userId)) return InvalidSession();
+        var result = await _classSpaceService.GetEscalationsAsync(userId, status, pageIndex, pageSize);
+        return result.Success ? Ok(result) : ProblemFrom(result);
+    }
+
+    /// <summary>Lớp trưởng rút lại câu hỏi khi Phòng QL HSSV chưa trả lời (US-15).</summary>
+    [HttpPost("escalations/{escalationId:int}/withdraw")]
+    [ProducesResponseType(typeof(ApiResponseDto<ThreadEscalationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> WithdrawEscalation(int escalationId)
+    {
+        if (!TryGetUserId(out var userId)) return InvalidSession();
+        var result = await _classSpaceService.WithdrawEscalationAsync(userId, escalationId);
+        return result.Success ? Ok(result) : ProblemFrom(result);
+    }
+
     private bool TryGetUserId(out int userId) =>
         int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out userId);
 
