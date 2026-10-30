@@ -10,7 +10,8 @@
             {
                 <li class="page-item @(pageNumber == Model.Page.PageIndex ? "active" : "")">
                     <a class="page-link" asp-action="Index" asp-route-page="@pageNumber" asp-route-search="@Model.Search"
-                       asp-route-campus="@Model.Campus" asp-route-status="@Model.Status">@pageNumber</a>
+                       asp-route-campus="@Model.Campus" asp-route-status="@Model.Status"
+                       asp-route-mine="@(Model.Mine ? "true" : null)">@pageNumber</a>
                 </li>
             }
         </ul>

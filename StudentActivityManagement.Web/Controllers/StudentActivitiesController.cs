@@ -14,15 +14,16 @@ public sealed class StudentActivitiesController : WebControllerBase
 
     public StudentActivitiesController(ApiClient api) => _api = api;
 
-    public async Task<IActionResult> Index(string? search, string? campus, int page = 1)
+    /// <param name="mine">True shows the student's registered activities, ended ones included (to submit evidence).</param>
+    public async Task<IActionResult> Index(string? search, string? campus, int page = 1, bool mine = false)
     {
-        var result = await _api.GetStudentActivitiesAsync(search, campus, Math.Max(page, 1));
+        var result = await _api.GetStudentActivitiesAsync(search, campus, Math.Max(page, 1), registered: mine);
         if (!result.Success)
         {
             FlashError(result.Message);
         }
 
-        return View(new ActivityListViewModel { Page = result.Data ?? new(), Search = search, Campus = campus });
+        return View(new ActivityListViewModel { Page = result.Data ?? new(), Search = search, Campus = campus, Mine = mine });
     }
 
     public async Task<IActionResult> Details(int id)
