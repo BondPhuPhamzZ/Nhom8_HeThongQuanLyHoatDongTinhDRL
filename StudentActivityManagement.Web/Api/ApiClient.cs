@@ -268,6 +268,21 @@ public sealed class ApiClient
     public Task<ApiResult<List<PointRecordHistoryEntry>>> GetPointHistoryAsync(int pointRecordId) =>
         SendAsync<List<PointRecordHistoryEntry>>(HttpMethod.Get, $"api/v1/admin/point-records/{pointRecordId}/history");
 
+    // ---- Reports (US-24)
+    public Task<ApiResult<ReportOverview>> GetReportOverviewAsync(ReportFilter filter) =>
+        SendAsync<ReportOverview>(HttpMethod.Get, $"api/v1/admin/reports/overview?{ReportQuery(filter, ("groupBy", filter.GroupBy))}");
+
+    public Task<ApiResult<List<ActivityReportRow>>> GetActivityReportAsync(ReportFilter filter) =>
+        SendAsync<List<ActivityReportRow>>(HttpMethod.Get, $"api/v1/admin/reports/activities?{ReportQuery(filter)}");
+
+    public Task<ApiResult<PagedResult<AtRiskStudent>>> GetAtRiskStudentsAsync(ReportFilter filter, int page, int pageSize = 20) =>
+        SendAsync<PagedResult<AtRiskStudent>>(HttpMethod.Get,
+            $"api/v1/admin/reports/at-risk-students?{ReportQuery(filter, ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
+
+    private static string ReportQuery(ReportFilter filter, params (string Key, string? Value)[] extra) => Query(
+        [("periodId", filter.PeriodId?.ToString()), ("campus", filter.Campus), ("academicYear", filter.AcademicYear),
+         ("classId", filter.ClassId?.ToString()), .. extra]);
+
     // ---- Classes and class monitors (US-18)
     public Task<ApiResult<ClassDto>> CreateClassAsync(string classCode, string className, string department) =>
         SendAsync<ClassDto>(HttpMethod.Post, "api/v1/admin/classes", new { classCode, className, department });

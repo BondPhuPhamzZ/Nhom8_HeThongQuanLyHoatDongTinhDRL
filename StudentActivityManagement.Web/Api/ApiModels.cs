@@ -425,3 +425,75 @@ public sealed class SkippedRegistration
     public int RegistrationId { get; set; }
     public string Reason { get; set; } = string.Empty;
 }
+
+// ---- Reports (US-24)
+
+public sealed class ReportOverview
+{
+    public EvaluationPeriod Period { get; set; } = new();
+    public int ActivityCount { get; set; }
+    public int CancelledActivityCount { get; set; }
+    public int StudentCount { get; set; }
+    public int RegistrationCount { get; set; }
+    public int AttendedCount { get; set; }
+    public double? ParticipationRate { get; set; }
+    public int ApprovedPoints { get; set; }
+    public double AveragePoints { get; set; }
+    public int StudentsMeetingTarget { get; set; }
+    public int AtRiskCount { get; set; }
+    public string GroupBy { get; set; } = string.Empty;
+    public List<ReportGroupRow> Groups { get; set; } = [];
+}
+
+public sealed class ReportGroupRow
+{
+    public string Key { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public int StudentCount { get; set; }
+    public int RegistrationCount { get; set; }
+    public int AttendedCount { get; set; }
+    public double? ParticipationRate { get; set; }
+    public int ApprovedPoints { get; set; }
+    public double AveragePoints { get; set; }
+    public int AtRiskCount { get; set; }
+}
+
+public sealed class ActivityReportRow
+{
+    public int ActivityId { get; set; }
+    public string ActivityName { get; set; } = string.Empty;
+    public string OrganizerName { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime EndTime { get; set; }
+    public int TrainingPoints { get; set; }
+    public int RegistrationCount { get; set; }
+    public int AttendedCount { get; set; }
+    public double? ParticipationRate { get; set; }
+    public int ApprovedCount { get; set; }
+    public int ApprovedPoints { get; set; }
+}
+
+public sealed class AtRiskStudent
+{
+    public int StudentId { get; set; }
+    public string StudentCode { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string? ClassCode { get; set; }
+    public string AcademicYear { get; set; } = string.Empty;
+    public string Campus { get; set; } = string.Empty;
+    public int Points { get; set; }
+    public int TargetPoints { get; set; }
+    public int MissingPoints { get; set; }
+    public int RegistrationCount { get; set; }
+    public int AttendedCount { get; set; }
+}
+
+/// <summary>Report filters, bound from the query string and passed to the API unchanged.</summary>
+public sealed class ReportFilter
+{
+    public int? PeriodId { get; set; }
+    public string? Campus { get; set; }
+    public string? AcademicYear { get; set; }
+    public int? ClassId { get; set; }
+    public string? GroupBy { get; set; }
+}
