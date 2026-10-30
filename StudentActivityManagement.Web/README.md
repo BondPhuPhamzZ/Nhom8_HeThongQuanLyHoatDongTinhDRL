@@ -34,6 +34,7 @@ Tài khoản demo (seed Development): `SV210002` sinh viên, `SV210001` lớp tr
 | Phòng QL HSSV, SystemAdmin | "Lớp": danh sách lớp kèm sĩ số và lớp trưởng; thêm lớp; danh sách sinh viên của lớp; chỉ định lớp trưởng (US-18) | `/admin/classes`, `PUT /admin/classes/{id}/monitor/{studentId}` |
 | SystemAdmin | "Tài khoản": danh sách mọi tài khoản lọc theo vai trò/trạng thái; tạo tài khoản cán bộ; đổi HSSV ↔ SystemAdmin; khóa/mở khóa (US-25) | `/admin/accounts` |
 | Phòng QL HSSV, SystemAdmin | "Kỳ đánh giá": tạo kỳ theo ngày Việt Nam, khóa/mở lại kỳ. Nút "Ghi điểm" trên hoạt động đã kết thúc: xem điều kiện từng sinh viên, ghi điểm người đã chọn hoặc tất cả, xem lịch sử phê duyệt (US-22) | `/admin/evaluation-periods`, `/admin/activities/{id}/scoring`, `/admin/point-records/{id}/history` |
+| Phòng QL HSSV, SystemAdmin | "Báo cáo": lọc theo kỳ/cơ sở/khóa/lớp; chỉ số tổng hợp; chia theo lớp, khóa hoặc cơ sở; hoạt động trong kỳ; danh sách sinh viên nguy cơ thiếu điểm (US-24) | `/admin/reports/overview`, `/admin/reports/activities`, `/admin/reports/at-risk-students` |
 
 ## Cách tổ chức
 
