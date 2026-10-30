@@ -227,3 +227,46 @@ Authorization: Bearer {{studentToken}}
 ### US-08 — Sinh viên xóa minh chứng khi còn Pending và trong hạn nộp
 DELETE {{host}}/api/v1/student-activities/1/evidences/1
 Authorization: Bearer {{studentToken}}
+
+### US-22 — Danh sách kỳ đánh giá
+GET {{host}}/api/v1/admin/evaluation-periods
+Authorization: Bearer {{hssvToken}}
+
+### US-22 — Tạo kỳ đánh giá (không trùng tên, không chồng thời gian)
+POST {{host}}/api/v1/admin/evaluation-periods
+Authorization: Bearer {{hssvToken}}
+Content-Type: application/json
+
+{
+  "name": "HK1 2026-2027",
+  "startDate": "2026-09-01T00:00:00+07:00",
+  "endDate": "2027-01-31T23:59:59+07:00",
+  "targetPoints": 50
+}
+
+### US-22 — Khóa kỳ đánh giá
+PATCH {{host}}/api/v1/admin/evaluation-periods/1/status
+Authorization: Bearer {{hssvToken}}
+Content-Type: application/json
+
+{
+  "status": "Closed"
+}
+
+### US-22 — Bảng ghi điểm của hoạt động đã kết thúc
+GET {{host}}/api/v1/admin/activities/1/scoring
+Authorization: Bearer {{hssvToken}}
+
+### US-22 — Ghi điểm mọi đăng ký đủ điều kiện (gửi registrationIds để chọn từng người)
+POST {{host}}/api/v1/admin/activities/1/scoring/approve
+Authorization: Bearer {{hssvToken}}
+Content-Type: application/json
+
+{
+  "registrationIds": null,
+  "note": "Đã đối chiếu điểm danh"
+}
+
+### US-22 — Lịch sử phê duyệt của bản ghi điểm
+GET {{host}}/api/v1/admin/point-records/1/history
+Authorization: Bearer {{hssvToken}}
