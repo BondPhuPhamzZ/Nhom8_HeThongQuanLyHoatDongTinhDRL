@@ -268,6 +268,25 @@ public sealed class ApiClient
     public Task<ApiResult<List<PointRecordHistoryEntry>>> GetPointHistoryAsync(int pointRecordId) =>
         SendAsync<List<PointRecordHistoryEntry>>(HttpMethod.Get, $"api/v1/admin/point-records/{pointRecordId}/history");
 
+    // ---- Class discussion space (US-09)
+    public Task<ApiResult<ClassSpace>> GetClassSpaceAsync(string? kind, string? search, int page, int pageSize = 15) =>
+        SendAsync<ClassSpace>(HttpMethod.Get, $"api/v1/class-space/threads?{Query(("kind", kind), ("search", search), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
+
+    public Task<ApiResult<ClassThreadDetail>> GetClassThreadAsync(int threadId) =>
+        SendAsync<ClassThreadDetail>(HttpMethod.Get, $"api/v1/class-space/threads/{threadId}");
+
+    public Task<ApiResult<ClassThreadDetail>> CreateClassThreadAsync(string kind, string title, string body) =>
+        SendAsync<ClassThreadDetail>(HttpMethod.Post, "api/v1/class-space/threads", new { kind, title, body });
+
+    public Task<ApiResult<ClassThreadReply>> ReplyClassThreadAsync(int threadId, string body) =>
+        SendAsync<ClassThreadReply>(HttpMethod.Post, $"api/v1/class-space/threads/{threadId}/replies", new { body });
+
+    public Task<ApiResult<bool>> DeleteClassThreadAsync(int threadId) =>
+        SendAsync<bool>(HttpMethod.Delete, $"api/v1/class-space/threads/{threadId}");
+
+    public Task<ApiResult<bool>> DeleteClassThreadReplyAsync(int threadId, int replyId) =>
+        SendAsync<bool>(HttpMethod.Delete, $"api/v1/class-space/threads/{threadId}/replies/{replyId}");
+
     // ---- Reports (US-24)
     public Task<ApiResult<ReportOverview>> GetReportOverviewAsync(ReportFilter filter) =>
         SendAsync<ReportOverview>(HttpMethod.Get, $"api/v1/admin/reports/overview?{ReportQuery(filter, ("groupBy", filter.GroupBy))}");

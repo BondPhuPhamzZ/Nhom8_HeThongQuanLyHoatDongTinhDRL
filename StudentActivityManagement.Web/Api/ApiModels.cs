@@ -497,3 +497,53 @@ public sealed class ReportFilter
     public int? ClassId { get; set; }
     public string? GroupBy { get; set; }
 }
+
+// ---- Class discussion space (US-09)
+public sealed class ClassSpace
+{
+    public int ClassId { get; set; }
+    public string ClassCode { get; set; } = string.Empty;
+    public string ClassName { get; set; } = string.Empty;
+    public string? MonitorName { get; set; }
+    public PagedResult<ClassThreadSummary> Threads { get; set; } = new();
+}
+
+public class ClassThreadSummary
+{
+    public int Id { get; set; }
+    public string Kind { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Preview { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public bool IsPinned { get; set; }
+    public PostAuthor Author { get; set; } = new();
+    public int ReplyCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime LastActivityAt { get; set; }
+}
+
+public sealed class ClassThreadDetail : ClassThreadSummary
+{
+    public string Body { get; set; } = string.Empty;
+    public bool CanDelete { get; set; }
+    public List<ClassThreadReply> Replies { get; set; } = [];
+}
+
+public sealed class ClassThreadReply
+{
+    public int Id { get; set; }
+    public string Body { get; set; } = string.Empty;
+    public PostAuthor Author { get; set; } = new();
+    public bool IsAnswer { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public bool CanDelete { get; set; }
+}
+
+public sealed class PostAuthor
+{
+    public int Id { get; set; }
+    public string StudentCode { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public bool IsMonitor { get; set; }
+    public bool IsMe { get; set; }
+}

@@ -1,0 +1,111 @@
+@model ClassSpaceViewModel
+@{
+    ViewData["Title"] = "Trao đổi lớp";
+    var space = Model.Space;
+    var paged = space?.Threads;
+}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+    <div>
+        <h1 class="h3 mb-1">Trao đổi lớp @space?.ClassCode</h1>
+        <p class="text-muted mb-0">
+            @if (space != null)
+            {
+                @space.ClassName<text> · Lớp trưởng: </text>@(space.MonitorName ?? "chưa chỉ định")<text>. Chỉ thành viên trong lớp mới xem được.</text>
+            }
+            else
+            {
+                <text>Không gian riêng để hỏi đáp và thảo luận cùng lớp.</text>
+            }
+        </p>
+    </div>
+    @if (space != null)
+    {
+        <form asp-action="Index" method="get" class="d-flex flex-wrap gap-2">
+            <input name="search" value="@Model.Search" class="form-control" placeholder="Tìm theo tiêu đề, nội dung" />
+            <select name="kind" class="form-select w-auto">
+                <option value="">Mọi loại bài</option>
+                <option value="Question" selected="@(Model.Kind == "Question")">Câu hỏi</option>
+                <option value="Discussion" selected="@(Model.Kind == "Discussion")">Thảo luận</option>
+                <option value="Announcement" selected="@(Model.Kind == "Announcement")">Thông báo</option>
+            </select>
+            <button class="btn btn-primary" type="submit">Lọc</button>
+        </form>
+    }
+</div>
+
+@if (space == null)
+{
+    <div class="empty-state">@(ViewBag.Notice ?? "Không tải được không gian trao đổi của lớp.")</div>
+    return;
+}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        @if (paged!.Items.Count == 0)
+        {
+            <div class="empty-state">@(string.IsNullOrWhiteSpace(Model.Search) && Model.Kind == null ? "Lớp chưa có chủ đề nào. Hãy mở đầu bằng một câu hỏi!" : "Không có chủ đề phù hợp.")</div>
+        }
+        else
+        {
+            <div class="list-group shadow-sm mb-3">
+                @foreach (var thread in paged.Items)
+                {
+                    <a class="list-group-item list-group-item-action py-3" asp-action="Thread" asp-route-id="@thread.Id">
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
+                            @if (thread.IsPinned) { <span class="badge rounded-pill text-bg-warning">Ghim</span> }
+                            <status-badge value="@thread.Kind" />
+                            @if (thread.Status != "Open") { <status-badge value="@thread.Status" /> }
+                            <span class="fw-semibold">@thread.Title</span>
+                        </div>
+                        <div class="small text-muted text-truncate">@thread.Preview</div>
+                        <div class="small text-muted mt-1">
+                            @thread.Author.FullName@(thread.Author.IsMonitor ? " (lớp trưởng)" : "") ·
+                            @thread.ReplyCount trả lời · hoạt động <vn-time value="@thread.LastActivityAt" />
+                        </div>
+                    </a>
+                }
+            </div>
+            @if (paged.TotalPages > 1)
+            {
+                <nav aria-label="Phân trang">
+                    <ul class="pagination justify-content-center">
+                        @for (var pageNumber = 1; pageNumber <= paged.TotalPages; pageNumber++)
+                        {
+                            <li class="page-item @(pageNumber == paged.PageIndex ? "active" : "")">
+                                <a class="page-link" asp-action="Index" asp-route-page="@pageNumber" asp-route-search="@Model.Search" asp-route-kind="@Model.Kind">@pageNumber</a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+            <p class="text-center text-muted small">Tổng cộng @paged.TotalCount chủ đề</p>
+        }
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h2 class="h6">Đặt câu hỏi / mở thảo luận</h2>
+                <form asp-action="Create" method="post" novalidate>
+                    <div asp-validation-summary="All" class="alert alert-danger py-2 small empty-hidden"></div>
+                    <div class="mb-2">
+                        <label asp-for="NewThread.Kind" class="form-label small"></label>
+                        <select asp-for="NewThread.Kind" class="form-select">
+                            <option value="Question">Câu hỏi</option>
+                            <option value="Discussion">Thảo luận</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="NewThread.Title" class="form-label small"></label>
+                        <input asp-for="NewThread.Title" class="form-control" maxlength="200" placeholder="Ví dụ: Lịch sinh hoạt lớp tuần này?" />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewThread.Body" class="form-label small"></label>
+                        <textarea asp-for="NewThread.Body" class="form-control" rows="5" maxlength="4000"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Đăng</button>
+                </form>
+                <p class="small text-muted mt-2 mb-0">Thông báo chính thức của lớp do lớp trưởng đăng (sẽ có ở chức năng thông báo lớp).</p>
+            </div>
+        </div>
+    </div>
+</div>
