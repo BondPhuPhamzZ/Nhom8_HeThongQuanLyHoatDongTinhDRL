@@ -172,6 +172,30 @@ Ràng buộc:
 - Chỉ điểm danh hoặc hủy điểm danh khi hoạt động `Published`, `Ongoing` hoặc `Completed`; trường hợp khác trả `409`.
 - Đăng ký đã hủy không điểm danh và không duyệt minh chứng được (`409`).
 - Mã đăng ký, buổi hoặc minh chứng không thuộc hoạt động trả `404`.
+- Khi đăng ký đã có quyết định điểm (US-22), điểm danh và duyệt minh chứng của đăng ký đó trả `409`. Muốn sửa phải đi qua chuyển trạng thái bản ghi điểm (US-23).
+
+### Kỳ đánh giá và sổ điểm (US-22)
+
+Migration `Sprint4ScoreLedger` thêm 3 bảng:
+- `EvaluationPeriods`: kỳ đánh giá; tên không trùng, thời gian không chồng lấn; có điểm mục tiêu và trạng thái `Open`/`Closed`.
+- `PointRecords`: sổ điểm; mỗi đăng ký tối đa một quyết định.
+- `PointRecordHistories`: lịch sử phê duyệt, chỉ thêm, không sửa.
+
+Điểm của sinh viên trong kỳ = tổng `Points` của các bản ghi `Approved`. Không dùng `User.AccumulatedPoints` cho tính năng mới.
+
+| Endpoint | Mô tả |
+|---|---|
+| `GET/POST /api/v1/admin/evaluation-periods`, `PUT .../{id}`, `PATCH .../{id}/status` | Quản lý kỳ. Kỳ đã có điểm chỉ sửa được tên và điểm mục tiêu |
+| `GET /api/v1/admin/activities/{id}/scoring` | Bảng ghi điểm: kỳ chứa thời điểm kết thúc của hoạt động, `canApprove` kèm lý do bị chặn, và từng đăng ký với check-in, minh chứng, điều kiện, quyết định đã có |
+| `POST /api/v1/admin/activities/{id}/scoring/approve` body `{ "registrationIds": [..] \| null, "note" }` | Ghi điểm `Approved` (bằng `TrainingPoints` của hoạt động) cho các đăng ký đã chọn, hoặc mọi đăng ký đủ điều kiện khi không gửi danh sách |
+| `GET /api/v1/admin/point-records/{id}/history` | Lịch sử phê duyệt của một bản ghi điểm |
+
+Quy tắc:
+- **Đủ điều kiện:** đăng ký `Attended` (có check-in bằng mã hoặc điểm danh thủ công), hoặc có ít nhất một minh chứng `Accepted`; và chưa có quyết định điểm.
+- **Điều kiện để ghi điểm:** hoạt động `Completed`, kỳ tìm được và đang `Open`; trường hợp khác trả `409`.
+- **Mỗi đăng ký chỉ ghi một lần:** unique index kết hợp transaction serializable.
+
+`PointRecordStatus` đã khai báo sẵn các chuyển trạng thái cho US-23 (Kiệt): `Approved → Revoked/Pending`, `Pending → Approved/Rejected`, `Rejected → Pending`, `Revoked` là trạng thái cuối. Mỗi lần chuyển phải kèm lý do và ghi một dòng `PointRecordHistories`.
 
 Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động có `organizerName`, danh sách `sessions` và `audienceRules`. Sinh viên chỉ thấy và đăng ký hoạt động phù hợp cơ sở, khóa hoặc lớp của mình.
 
