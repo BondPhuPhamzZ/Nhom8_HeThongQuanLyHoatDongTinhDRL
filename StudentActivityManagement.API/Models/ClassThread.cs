@@ -49,6 +49,54 @@ public class ClassThread
     public DateTime LastActivityAt { get; set; }
 
     public List<ClassThreadReply> Replies { get; set; } = [];
+
+    public List<ThreadEscalation> Escalations { get; set; } = [];
+}
+
+/// <summary>
+/// A question the class monitor raises from a class thread to Phòng QL HSSV for an official answer (US-15).
+/// Staff answer it in US-20; the monitor relays the answer back to the class in US-16.
+/// </summary>
+public class ThreadEscalation
+{
+    [Key]
+    public int Id { get; set; }
+
+    public int ThreadId { get; set; }
+
+    [ForeignKey(nameof(ThreadId))]
+    public ClassThread? Thread { get; set; }
+
+    /// <summary>The monitor who raised it; kept null if that account is deleted later.</summary>
+    public int? RaisedById { get; set; }
+
+    [ForeignKey(nameof(RaisedById))]
+    public User? RaisedBy { get; set; }
+
+    /// <summary>What the monitor needs Phòng QL HSSV to confirm.</summary>
+    [Required]
+    [StringLength(2000)]
+    public string Question { get; set; } = string.Empty;
+
+    /// <summary>One of <see cref="EscalationStatus"/>.</summary>
+    [Required]
+    [StringLength(20)]
+    public string Status { get; set; } = EscalationStatus.Pending;
+
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>Official answer from Phòng QL HSSV (US-20).</summary>
+    [StringLength(4000)]
+    public string? Answer { get; set; }
+
+    public int? AnsweredById { get; set; }
+
+    [ForeignKey(nameof(AnsweredById))]
+    public User? AnsweredBy { get; set; }
+
+    public DateTime? AnsweredAt { get; set; }
+
+    public DateTime? WithdrawnAt { get; set; }
 }
 
 public class ClassThreadReply
@@ -97,4 +145,24 @@ public static class ClassThreadStatus
     public const string Closed = "Closed";
 
     public static readonly string[] All = [Open, Answered, Closed];
+}
+
+/// <summary>Pending waits for Phòng QL HSSV; it ends as Answered (US-20) or Withdrawn by the monitor.</summary>
+public static class EscalationStatus
+{
+    public const string Pending = "Pending";
+    public const string Answered = "Answered";
+    public const string Withdrawn = "Withdrawn";
+
+    public static readonly string[] All = [Pending, Answered, Withdrawn];
+
+    private static readonly Dictionary<string, string[]> Transitions = new()
+    {
+        [Pending] = [Answered, Withdrawn],
+        [Answered] = [],
+        [Withdrawn] = []
+    };
+
+    public static IReadOnlyList<string> NextOf(string current) =>
+        Transitions.TryGetValue(current, out var next) ? next : [];
 }
