@@ -405,6 +405,88 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.ToTable("Classes");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ClassThread", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ClassId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("LastActivityAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("ClassId", "IsPinned", "LastActivityAt");
+
+                    b.ToTable("ClassThreads");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ClassThreadReply", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsAnswer")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ThreadId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("ThreadId", "CreatedAt");
+
+                    b.ToTable("ClassThreadReplies");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.EvaluationPeriod", b =>
                 {
                     b.Property<int>("Id")
@@ -747,6 +829,44 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Navigation("MonitorStudent");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ClassThread", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudentActivityManagement.API.Models.Class", "Class")
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Class");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ClassThreadReply", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudentActivityManagement.API.Models.ClassThread", "Thread")
+                        .WithMany("Replies")
+                        .HasForeignKey("ThreadId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Thread");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.PointRecord", b =>
                 {
                     b.HasOne("StudentActivityManagement.API.Models.Activity", "Activity")
@@ -829,6 +949,11 @@ namespace StudentActivityManagement.API.Data.Migrations
             modelBuilder.Entity("StudentActivityManagement.API.Models.Class", b =>
                 {
                     b.Navigation("Students");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ClassThread", b =>
+                {
+                    b.Navigation("Replies");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.PointRecord", b =>

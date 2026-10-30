@@ -22,6 +22,8 @@ namespace StudentActivityManagement.API.Data
         public DbSet<EvaluationPeriod> EvaluationPeriods { get; set; } = null!;
         public DbSet<PointRecord> PointRecords { get; set; } = null!;
         public DbSet<PointRecordHistory> PointRecordHistories { get; set; } = null!;
+        public DbSet<ClassThread> ClassThreads { get; set; } = null!;
+        public DbSet<ClassThreadReply> ClassThreadReplies { get; set; } = null!;
 
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
@@ -203,6 +205,38 @@ namespace StudentActivityManagement.API.Data
                       .WithMany()
                       .HasForeignKey(record => record.DecidedById)
                       .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Class discussion space (US-09): posts go away with their class, their thread or their author,
+            // matching how deleting a student already removes the student's registrations.
+            modelBuilder.Entity<ClassThread>(entity =>
+            {
+                entity.HasIndex(thread => new { thread.ClassId, thread.IsPinned, thread.LastActivityAt });
+
+                entity.HasOne(thread => thread.Class)
+                      .WithMany()
+                      .HasForeignKey(thread => thread.ClassId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(thread => thread.Author)
+                      .WithMany()
+                      .HasForeignKey(thread => thread.AuthorId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ClassThreadReply>(entity =>
+            {
+                entity.HasIndex(reply => new { reply.ThreadId, reply.CreatedAt });
+
+                entity.HasOne(reply => reply.Thread)
+                      .WithMany(thread => thread.Replies)
+                      .HasForeignKey(reply => reply.ThreadId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(reply => reply.Author)
+                      .WithMany()
+                      .HasForeignKey(reply => reply.AuthorId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<PointRecordHistory>(entity =>
