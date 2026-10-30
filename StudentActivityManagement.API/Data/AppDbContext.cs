@@ -24,6 +24,7 @@ namespace StudentActivityManagement.API.Data
         public DbSet<PointRecordHistory> PointRecordHistories { get; set; } = null!;
         public DbSet<ClassThread> ClassThreads { get; set; } = null!;
         public DbSet<ClassThreadReply> ClassThreadReplies { get; set; } = null!;
+        public DbSet<ThreadEscalation> ThreadEscalations { get; set; } = null!;
 
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
@@ -237,6 +238,31 @@ namespace StudentActivityManagement.API.Data
                       .WithMany()
                       .HasForeignKey(reply => reply.AuthorId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Escalations (US-15/US-20): at most one Pending per thread; deleting the monitor or the staff
+            // member who answered keeps the escalation for the record.
+            modelBuilder.Entity<ThreadEscalation>(entity =>
+            {
+                entity.HasIndex(escalation => escalation.ThreadId)
+                      .IsUnique()
+                      .HasFilter($"\"Status\" = '{EscalationStatus.Pending}'");
+                entity.HasIndex(escalation => new { escalation.Status, escalation.CreatedAt });
+
+                entity.HasOne(escalation => escalation.Thread)
+                      .WithMany(thread => thread.Escalations)
+                      .HasForeignKey(escalation => escalation.ThreadId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(escalation => escalation.RaisedBy)
+                      .WithMany()
+                      .HasForeignKey(escalation => escalation.RaisedById)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(escalation => escalation.AnsweredBy)
+                      .WithMany()
+                      .HasForeignKey(escalation => escalation.AnsweredById)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<PointRecordHistory>(entity =>

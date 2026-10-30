@@ -615,6 +615,59 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.ToTable("PointRecordHistories");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ThreadEscalation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Answer")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("AnsweredAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("AnsweredById")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("RaisedById")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ThreadId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("WithdrawnAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnsweredById");
+
+                    b.HasIndex("RaisedById");
+
+                    b.HasIndex("ThreadId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'Pending'");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("ThreadEscalations");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -927,6 +980,31 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Navigation("PointRecord");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.ThreadEscalation", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.User", "AnsweredBy")
+                        .WithMany()
+                        .HasForeignKey("AnsweredById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("StudentActivityManagement.API.Models.User", "RaisedBy")
+                        .WithMany()
+                        .HasForeignKey("RaisedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("StudentActivityManagement.API.Models.ClassThread", "Thread")
+                        .WithMany("Escalations")
+                        .HasForeignKey("ThreadId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AnsweredBy");
+
+                    b.Navigation("RaisedBy");
+
+                    b.Navigation("Thread");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.User", b =>
                 {
                     b.HasOne("StudentActivityManagement.API.Models.Class", "Class")
@@ -953,6 +1031,8 @@ namespace StudentActivityManagement.API.Data.Migrations
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.ClassThread", b =>
                 {
+                    b.Navigation("Escalations");
+
                     b.Navigation("Replies");
                 });
 
