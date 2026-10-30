@@ -196,3 +196,34 @@ Content-Type: application/json
 ### US-21 — Tải file minh chứng
 GET {{host}}/api/v1/admin/activities/1/evidences/1/file
 Authorization: Bearer {{hssvToken}}
+
+### US-08 — Sinh viên xem danh sách minh chứng đã nộp
+GET {{host}}/api/v1/student-activities/1/evidences
+Authorization: Bearer {{studentToken}}
+
+### US-08 — Sinh viên nộp minh chứng mã xác nhận (không có file)
+POST {{host}}/api/v1/student-activities/1/evidences
+Authorization: Bearer {{studentToken}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="evidenceType"
+
+ConfirmationCode
+--boundary
+Content-Disposition: form-data; name="confirmationCode"
+
+CONF-2026-XYZ
+--boundary
+Content-Disposition: form-data; name="note"
+
+Mã xác nhận do ban tổ chức cung cấp cuối buổi
+--boundary--
+
+### US-08 — Sinh viên tải file minh chứng của mình
+GET {{host}}/api/v1/student-activities/1/evidences/1/file
+Authorization: Bearer {{studentToken}}
+
+### US-08 — Sinh viên xóa minh chứng khi còn Pending và trong hạn nộp
+DELETE {{host}}/api/v1/student-activities/1/evidences/1
+Authorization: Bearer {{studentToken}}
