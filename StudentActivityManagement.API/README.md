@@ -256,6 +256,18 @@ Trạng thái (`EscalationStatus`): `Pending → Answered` (Phòng QL HSSV trả
 - **Thông tin cho cả lớp:** danh sách và chi tiết chủ đề trả `escalationStatus` (trạng thái lần chuyển gần nhất). Chi tiết trả thêm `canEscalate` cho lớp trưởng. Nội dung phản hồi chỉ hiện trong `GET escalations` của lớp trưởng; việc chuyển lại cho lớp thuộc US-16.
 - **Mã lỗi:** không phải lớp trưởng của lớp `403 access_denied`; chủ đề hoặc câu hỏi của lớp khác `404`; rút lại câu hỏi không còn `Pending` `409`.
 
+### US-20 — Phòng QL HSSV tiếp nhận và trả lời
+
+Prefix `/api/v1/admin/class-escalations`, quyền `BusinessAdmin` (HSSV hoặc SystemAdmin):
+
+| Endpoint | Mô tả |
+|---|---|
+| `GET ?status=&pageIndex=&pageSize=` | Hộp thư câu hỏi, mới nhất trước; lọc `Pending`, `Answered`, `Withdrawn` |
+| `GET {id}` | Xem một câu hỏi cùng trạng thái và phản hồi |
+| `POST {id}/answer` | `{ "answer": "..." }` (5–4000 ký tự sau khi trim), chỉ khi `Pending` |
+
+Phản hồi ghi người trả lời và thời gian UTC, hiện lại trong danh sách của lớp trưởng. Trả lời lần hai hoặc trả lời câu hỏi đã rút lại trả `409`; câu hỏi không tồn tại trả `404`. Cập nhật có điều kiện bảo đảm thao tác trả lời và rút lại đồng thời chỉ một bên thành công. Chuyển phản hồi tới cả lớp thuộc US-16.
+
 Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động có `organizerName`, danh sách `sessions` và `audienceRules`. Sinh viên chỉ thấy và đăng ký hoạt động phù hợp cơ sở, khóa hoặc lớp của mình.
 
 ## Cấu trúc project
