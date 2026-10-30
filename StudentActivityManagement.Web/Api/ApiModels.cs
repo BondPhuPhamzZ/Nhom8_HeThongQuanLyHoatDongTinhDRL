@@ -330,3 +330,24 @@ public sealed class AccountCreateRequest
     public string Role { get; set; } = "HSSV";
     public string Campus { get; set; } = "Cơ sở 1";
 }
+
+// ---- Student Evidences (US-08)
+
+public sealed class StudentEvidence
+{
+    public int Id { get; set; }
+    public int ActivityId { get; set; }
+    public int? SessionId { get; set; }
+    public string? SessionName { get; set; }
+    public string EvidenceType { get; set; } = string.Empty;
+    public string? ConfirmationCode { get; set; }
+    public string? Note { get; set; }
+    public string? OriginalFileName { get; set; }
+    public string? ContentType { get; set; }
+    public long? SizeBytes { get; set; }
+    public string? FileUrl { get; set; }
+    public string ReviewStatus { get; set; } = string.Empty;
+    public string? ReviewNote { get; set; }
+    public DateTime UploadedAt { get; set; }
+    public bool CanDelete { get; set; }
+}

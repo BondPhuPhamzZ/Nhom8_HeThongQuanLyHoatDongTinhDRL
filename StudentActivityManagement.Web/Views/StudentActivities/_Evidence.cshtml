@@ -1,0 +1,140 @@
+@model StudentEvidenceViewModel
+
+<div class="card shadow-sm border-0 mt-4">
+    <div class="card-body">
+        <h2 class="h5 mb-3">Minh chứng tham gia</h2>
+
+        @if (Model.CanUpload)
+        {
+            <div class="card bg-light border-0 mb-4">
+                <div class="card-body">
+                    <h3 class="h6 mb-3">Nộp minh chứng mới</h3>
+                    <form asp-action="UploadEvidence" asp-route-id="@Model.Activity.Id" method="post" enctype="multipart/form-data">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Loại minh chứng <span class="text-danger">*</span></label>
+                                <select name="evidenceType" id="evidenceTypeSelect" class="form-select form-select-sm" required>
+                                    <option value="Image">Hình ảnh (.jpg, .jpeg, .png)</option>
+                                    <option value="Document">Tài liệu (.pdf)</option>
+                                    <option value="ConfirmationCode">Mã xác nhận</option>
+                                </select>
+                            </div>
+
+                            @if (Model.Activity.Sessions.Any())
+                            {
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Buổi tham gia</label>
+                                    <select name="sessionId" class="form-select form-select-sm">
+                                        <option value="">-- Áp dụng cho toàn hoạt động --</option>
+                                        @foreach (var session in Model.Activity.Sessions.OrderBy(s => s.SortOrder))
+                                        {
+                                            <option value="@session.Id">@session.SessionName</option>
+                                        }
+                                    </select>
+                                </div>
+                            }
+
+                            <div class="col-12" id="evidenceFileGroup">
+                                <label class="form-label small fw-semibold">Chọn file minh chứng <span class="text-danger">*</span></label>
+                                <input type="file" name="file" id="evidenceFileInput" class="form-control form-control-sm" accept=".jpg,.jpeg,.png" />
+                                <div class="form-text small">Tối đa 5 MB. Chấp nhận .jpg, .jpeg, .png hoặc .pdf.</div>
+                            </div>
+
+                            <div class="col-12" id="evidenceCodeGroup" style="display: none;">
+                                <label class="form-label small fw-semibold">Mã xác nhận <span class="text-danger">*</span></label>
+                                <input type="text" name="confirmationCode" id="evidenceCodeInput" class="form-control form-control-sm" placeholder="Nhập mã xác nhận do BTC cấp (4 - 100 ký tự)" minlength="4" maxlength="100" />
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Ghi chú</label>
+                                <textarea name="note" class="form-control form-control-sm" rows="2" maxlength="500" placeholder="Ghi chú thêm về minh chứng (tối đa 500 ký tự)..."></textarea>
+                            </div>
+
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary btn-sm">Tải lên minh chứng</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+
+        <h3 class="h6 mb-3">Danh sách minh chứng đã nộp</h3>
+        @if (Model.Evidences.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Loại</th>
+                            <th>Buổi</th>
+                            <th>Nội dung / File</th>
+                            <th>Ghi chú</th>
+                            <th>Thời gian nộp</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Evidences)
+                        {
+                            <tr>
+                                <td>
+                                    @(item.EvidenceType switch
+                                    {
+                                        "Image" => "Hình ảnh",
+                                        "Document" => "Tài liệu",
+                                        "ConfirmationCode" => "Mã xác nhận",
+                                        _ => item.EvidenceType
+                                    })
+                                </td>
+                                <td>@(item.SessionName ?? "Chung")</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.FileUrl))
+                                    {
+                                        <a asp-action="EvidenceFile" asp-route-id="@Model.Activity.Id" asp-route-evidenceId="@item.Id" class="text-decoration-none" title="Tải file minh chứng">
+                                            📄 @(item.OriginalFileName ?? "Tải file")
+                                        </a>
+                                        @if (item.SizeBytes.HasValue)
+                                        {
+                                            <span class="text-muted small">(@((item.SizeBytes.Value / 1024.0).ToString("F1")) KB)</span>
+                                        }
+                                    }
+                                    else if (!string.IsNullOrEmpty(item.ConfirmationCode))
+                                    {
+                                        <code class="px-2 py-1 bg-light rounded text-dark">@item.ConfirmationCode</code>
+                                    }
+                                </td>
+                                <td class="small text-muted">@(item.Note ?? "—")</td>
+                                <td><vn-time value="@item.UploadedAt" /></td>
+                                <td>
+                                    <status-badge value="@item.ReviewStatus" />
+                                    @if (!string.IsNullOrEmpty(item.ReviewNote))
+                                    {
+                                        <div class="small text-danger mt-1">@item.ReviewNote</div>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @if (item.CanDelete)
+                                    {
+                                        <form asp-action="DeleteEvidence" asp-route-id="@Model.Activity.Id" asp-route-evidenceId="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa minh chứng này?');">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" title="Xóa minh chứng">Xóa</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted small mb-0">Chưa có minh chứng nào được nộp cho hoạt động này.</p>
+        }
+    </div>
+</div>
