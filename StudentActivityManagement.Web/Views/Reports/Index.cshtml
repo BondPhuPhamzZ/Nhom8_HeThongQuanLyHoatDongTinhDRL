@@ -1,0 +1,172 @@
+@model ReportViewModel
+@{
+    ViewData["Title"] = "Báo cáo";
+    var filter = Model.Filter;
+    var overview = Model.Overview;
+    var groupOptions = new[] { ("class", "Theo lớp"), ("academicYear", "Theo khóa"), ("campus", "Theo cơ sở") };
+    string RateText(double? rate) => rate.HasValue ? $"{rate.Value:0.#}%" : "–";
+}
+<h1 class="h3 mb-1">Báo cáo hoạt động và điểm rèn luyện</h1>
+<p class="text-muted">
+    Số liệu theo kỳ đánh giá: hoạt động kết thúc trong kỳ (không tính Nháp và Đã hủy). Tỷ lệ tham gia = đã tham gia / đăng ký còn hiệu lực.
+    Điểm chỉ tính các quyết định đã ghi. Nguy cơ thiếu điểm = điểm trong kỳ thấp hơn điểm mục tiêu.
+</p>
+
+<form asp-action="Index" method="get" class="d-flex flex-wrap gap-2 mb-3">
+    <select name="periodId" class="form-select w-auto" aria-label="Kỳ đánh giá">
+        <option value="">Kỳ hiện tại</option>
+        @foreach (var period in Model.Periods)
+        {
+            <option value="@period.Id" selected="@(overview?.Period.Id == period.Id && filter.PeriodId.HasValue)">@period.Name</option>
+        }
+    </select>
+    <select name="campus" class="form-select w-auto" aria-label="Cơ sở">
+        <option value="">Mọi cơ sở</option>
+        @foreach (var campus in new[] { "Cơ sở 1", "Cơ sở 2" })
+        {
+            <option value="@campus" selected="@(filter.Campus == campus)">@campus</option>
+        }
+    </select>
+    <input name="academicYear" value="@filter.AcademicYear" class="form-control w-auto" style="max-width:8rem" placeholder="Khóa (K21)" aria-label="Khóa" />
+    <select name="classId" class="form-select w-auto" aria-label="Lớp">
+        <option value="">Mọi lớp</option>
+        @foreach (var item in Model.Classes)
+        {
+            <option value="@item.Id" selected="@(filter.ClassId == item.Id)">@item.ClassCode</option>
+        }
+    </select>
+    <select name="groupBy" class="form-select w-auto" aria-label="Chia theo">
+        @foreach (var (value, label) in groupOptions)
+        {
+            <option value="@value" selected="@((filter.GroupBy ?? "class") == value)">@label</option>
+        }
+    </select>
+    <button class="btn btn-primary" type="submit">Xem báo cáo</button>
+</form>
+
+@if (overview == null)
+{
+    <div class="empty-state">
+        Chưa có kỳ đánh giá để lập báo cáo.
+        <a asp-controller="EvaluationPeriods" asp-action="Index">Tạo kỳ đánh giá</a> trước.
+    </div>
+}
+else
+{
+    <p class="mb-3">
+        <strong>@overview.Period.Name</strong> <status-badge value="@overview.Period.Status" />
+        <span class="text-muted small">· <vn-time value="@overview.Period.StartDate" format="date" /> – <vn-time value="@overview.Period.EndDate" format="date" /> · mục tiêu @overview.Period.TargetPoints điểm</span>
+    </p>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-2"><div class="stat-tile"><div class="stat-value">@overview.ActivityCount</div><div class="stat-label">Hoạt động (@overview.CancelledActivityCount đã hủy)</div></div></div>
+        <div class="col-6 col-lg-2"><div class="stat-tile"><div class="stat-value">@overview.RegistrationCount</div><div class="stat-label">Lượt đăng ký</div></div></div>
+        <div class="col-6 col-lg-2"><div class="stat-tile"><div class="stat-value">@overview.AttendedCount</div><div class="stat-label">Lượt tham gia</div></div></div>
+        <div class="col-6 col-lg-2"><div class="stat-tile"><div class="stat-value">@RateText(overview.ParticipationRate)</div><div class="stat-label">Tỷ lệ tham gia</div></div></div>
+        <div class="col-6 col-lg-2"><div class="stat-tile"><div class="stat-value">@overview.ApprovedPoints</div><div class="stat-label">Tổng điểm đã ghi (TB @overview.AveragePoints)</div></div></div>
+        <div class="col-6 col-lg-2"><div class="stat-tile"><div class="stat-value text-danger">@overview.AtRiskCount<span class="text-muted fs-6">/@overview.StudentCount</span></div><div class="stat-label">Sinh viên nguy cơ thiếu điểm</div></div></div>
+    </div>
+
+    <h2 class="h5">@groupOptions.First(option => option.Item1 == overview.GroupBy).Item2</h2>
+    <div class="table-responsive card shadow-sm border-0 mb-4">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light"><tr><th>Nhóm</th><th class="text-center">Sinh viên</th><th class="text-center">Đăng ký</th><th class="text-center">Tham gia</th><th style="min-width:10rem">Tỷ lệ tham gia</th><th class="text-center">Điểm TB</th><th class="text-center">Nguy cơ thiếu điểm</th></tr></thead>
+            <tbody>
+                @foreach (var row in overview.Groups)
+                {
+                    <tr>
+                        <td class="fw-semibold">@row.Label</td>
+                        <td class="text-center">@row.StudentCount</td>
+                        <td class="text-center">@row.RegistrationCount</td>
+                        <td class="text-center">@row.AttendedCount</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height:.5rem" role="progressbar" aria-label="Tỷ lệ tham gia @row.Label"
+                                     aria-valuenow="@(row.ParticipationRate ?? 0)" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar" style="width:@((row.ParticipationRate ?? 0).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+                                </div>
+                                <span class="small">@RateText(row.ParticipationRate)</span>
+                            </div>
+                        </td>
+                        <td class="text-center">@row.AveragePoints</td>
+                        <td class="text-center @(row.AtRiskCount > 0 ? "text-danger fw-semibold" : "")">@row.AtRiskCount</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="h5">Hoạt động trong kỳ</h2>
+    @if (Model.Activities.Count == 0)
+    {
+        <div class="empty-state mb-4">Không có hoạt động kết thúc trong kỳ.</div>
+    }
+    else
+    {
+        <div class="table-responsive card shadow-sm border-0 mb-4">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light"><tr><th>Hoạt động</th><th>Kết thúc</th><th>Trạng thái</th><th class="text-center">Đăng ký</th><th class="text-center">Tham gia</th><th class="text-center">Tỷ lệ</th><th class="text-center">Đã ghi điểm</th></tr></thead>
+                <tbody>
+                    @foreach (var activity in Model.Activities)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-controller="ManageActivities" asp-action="Details" asp-route-id="@activity.ActivityId" class="fw-semibold">@activity.ActivityName</a>
+                                <div class="small text-muted">@activity.OrganizerName · +@activity.TrainingPoints điểm</div>
+                            </td>
+                            <td class="small"><vn-time value="@activity.EndTime" /></td>
+                            <td><status-badge value="@activity.Status" /></td>
+                            <td class="text-center">@activity.RegistrationCount</td>
+                            <td class="text-center">@activity.AttendedCount</td>
+                            <td class="text-center">@RateText(activity.ParticipationRate)</td>
+                            <td class="text-center">@activity.ApprovedCount <span class="text-muted small">(@activity.ApprovedPoints điểm)</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <h2 class="h5">Sinh viên nguy cơ thiếu điểm (@Model.AtRisk.TotalCount)</h2>
+    @if (Model.AtRisk.Items.Count == 0)
+    {
+        <div class="empty-state">Không có sinh viên nào dưới mức mục tiêu.</div>
+    }
+    else
+    {
+        <div class="table-responsive card shadow-sm border-0 mb-3">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light"><tr><th>Sinh viên</th><th>Lớp</th><th>Khóa</th><th>Cơ sở</th><th class="text-center">Đăng ký / tham gia</th><th class="text-center">Điểm</th><th class="text-center">Còn thiếu</th></tr></thead>
+                <tbody>
+                    @foreach (var student in Model.AtRisk.Items)
+                    {
+                        <tr>
+                            <td><div class="fw-semibold">@student.FullName</div><div class="small text-muted">@student.StudentCode</div></td>
+                            <td>@student.ClassCode</td>
+                            <td>@student.AcademicYear</td>
+                            <td>@student.Campus</td>
+                            <td class="text-center">@student.RegistrationCount / @student.AttendedCount</td>
+                            <td class="text-center">@student.Points/@student.TargetPoints</td>
+                            <td class="text-center text-danger fw-semibold">@student.MissingPoints</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.AtRisk.TotalPages > 1)
+        {
+            <nav aria-label="Phân trang sinh viên nguy cơ">
+                <ul class="pagination justify-content-center">
+                    @for (var pageNumber = 1; pageNumber <= Model.AtRisk.TotalPages; pageNumber++)
+                    {
+                        <li class="page-item @(pageNumber == Model.AtRisk.PageIndex ? "active" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@pageNumber" asp-route-periodId="@filter.PeriodId"
+                               asp-route-campus="@filter.Campus" asp-route-academicYear="@filter.AcademicYear"
+                               asp-route-classId="@filter.ClassId" asp-route-groupBy="@filter.GroupBy">@pageNumber</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    }
+}
