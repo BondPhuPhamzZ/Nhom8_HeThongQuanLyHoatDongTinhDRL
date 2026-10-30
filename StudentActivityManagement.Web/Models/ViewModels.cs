@@ -24,6 +24,8 @@ public sealed class ActivityListViewModel
     public string? Search { get; set; }
     public string? Campus { get; set; }
     public string? Status { get; set; }
+    /// <summary>Student list only: the student's own registered activities instead of upcoming ones.</summary>
+    public bool Mine { get; set; }
 }
 
 public sealed class ParticipantListViewModel

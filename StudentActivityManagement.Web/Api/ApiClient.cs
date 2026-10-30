@@ -37,8 +37,9 @@ public sealed class ApiClient
         SendAsync<AuthResponse>(HttpMethod.Post, "api/v1/auth/login", new { usernameOrEmail, password }, throwOn401: false);
 
     // ---- Student
-    public Task<ApiResult<PagedResult<ActivityDto>>> GetStudentActivitiesAsync(string? search, string? campus, int page, int pageSize = 9) =>
-        SendAsync<PagedResult<ActivityDto>>(HttpMethod.Get, $"api/v1/student-activities?{Query(("search", search), ("campus", campus), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
+    /// <param name="registered">True lists the student's own registered activities, ended ones included.</param>
+    public Task<ApiResult<PagedResult<ActivityDto>>> GetStudentActivitiesAsync(string? search, string? campus, int page, int pageSize = 9, bool registered = false) =>
+        SendAsync<PagedResult<ActivityDto>>(HttpMethod.Get, $"api/v1/student-activities?{Query(("search", search), ("campus", campus), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()), ("registered", registered ? "true" : null))}");
 
     public Task<ApiResult<ActivityDto>> GetStudentActivityAsync(int id) =>
         SendAsync<ActivityDto>(HttpMethod.Get, $"api/v1/student-activities/{id}");
