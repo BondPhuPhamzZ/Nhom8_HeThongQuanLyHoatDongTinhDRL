@@ -1,0 +1,13 @@
+@model string?
+@switch (Model)
+{
+    case "Pending":
+        <span class="badge rounded-pill text-bg-warning">Đã chuyển P.QL HSSV</span>
+        break;
+    case "Answered":
+        <span class="badge rounded-pill text-bg-success">P.QL HSSV đã trả lời</span>
+        break;
+    case "Withdrawn":
+        <span class="badge rounded-pill text-bg-secondary">Đã rút lại</span>
+        break;
+}

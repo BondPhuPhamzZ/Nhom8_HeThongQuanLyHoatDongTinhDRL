@@ -82,6 +82,43 @@ public sealed class ClassSpaceController : WebControllerBase
         return RedirectToAction(nameof(Thread), new { id });
     }
 
+    /// <summary>US-15: the class monitor raises the thread to Phòng QL HSSV.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Escalate(int id, string? question)
+    {
+        if (string.IsNullOrWhiteSpace(question))
+        {
+            FlashError("Nhập nội dung cần Phòng QL HSSV xác nhận.");
+            return RedirectToAction(nameof(Thread), new { id });
+        }
+
+        var result = await _api.EscalateClassThreadAsync(id, question);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Thread), new { id });
+    }
+
+    /// <summary>US-15: questions the monitor has raised for the class, with their status and any official answer.</summary>
+    public async Task<IActionResult> Escalations(string? status, int page = 1)
+    {
+        var result = await _api.GetClassEscalationsAsync(status, Math.Max(page, 1));
+        if (!result.Success)
+        {
+            FlashError(result.Message);
+            return RedirectToAction(nameof(Index));
+        }
+
+        ViewBag.Status = status;
+        return View(result.Data ?? new PagedResult<ThreadEscalation>());
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Withdraw(int escalationId, string? status)
+    {
+        var result = await _api.WithdrawClassEscalationAsync(escalationId);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Escalations), new { status });
+    }
+
     private async Task<ClassSpaceViewModel> LoadIndexAsync(string? kind, string? search, int page, ClassThreadForm form)
     {
         var result = await _api.GetClassSpaceAsync(kind, search, Math.Max(page, 1));

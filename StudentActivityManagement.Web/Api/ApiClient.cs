@@ -287,6 +287,16 @@ public sealed class ApiClient
     public Task<ApiResult<bool>> DeleteClassThreadReplyAsync(int threadId, int replyId) =>
         SendAsync<bool>(HttpMethod.Delete, $"api/v1/class-space/threads/{threadId}/replies/{replyId}");
 
+    // ---- Escalations to Phòng QL HSSV (US-15)
+    public Task<ApiResult<ThreadEscalation>> EscalateClassThreadAsync(int threadId, string question) =>
+        SendAsync<ThreadEscalation>(HttpMethod.Post, $"api/v1/class-space/threads/{threadId}/escalations", new { question });
+
+    public Task<ApiResult<PagedResult<ThreadEscalation>>> GetClassEscalationsAsync(string? status, int page, int pageSize = 20) =>
+        SendAsync<PagedResult<ThreadEscalation>>(HttpMethod.Get, $"api/v1/class-space/escalations?{Query(("status", status), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
+
+    public Task<ApiResult<ThreadEscalation>> WithdrawClassEscalationAsync(int escalationId) =>
+        SendAsync<ThreadEscalation>(HttpMethod.Post, $"api/v1/class-space/escalations/{escalationId}/withdraw");
+
     // ---- Reports (US-24)
     public Task<ApiResult<ReportOverview>> GetReportOverviewAsync(ReportFilter filter) =>
         SendAsync<ReportOverview>(HttpMethod.Get, $"api/v1/admin/reports/overview?{ReportQuery(filter, ("groupBy", filter.GroupBy))}");

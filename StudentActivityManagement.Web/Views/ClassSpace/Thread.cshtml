@@ -9,6 +9,7 @@
             @if (Model.IsPinned) { <span class="badge rounded-pill text-bg-warning">Ghim</span> }
             <status-badge value="@Model.Kind" />
             @if (Model.Status != "Open") { <status-badge value="@Model.Status" /> }
+            <partial name="_EscalationBadge" model="Model.EscalationStatus" />
         </div>
         <h1 class="h4">@Model.Title</h1>
         <p class="small text-muted">
@@ -23,6 +24,19 @@
         }
     </div>
 </div>
+
+@if (Model.CanEscalate)
+{
+    <details class="card shadow-sm border-0 mb-4">
+        <summary class="card-body py-2 fw-semibold">Chuyển lên Phòng QL HSSV</summary>
+        <form asp-action="Escalate" asp-route-id="@Model.Id" method="post" class="card-body pt-0">
+            <label for="question" class="form-label small">Nội dung cần phòng xác nhận (chỉ lớp trưởng thấy và theo dõi phản hồi)</label>
+            <textarea id="question" name="question" class="form-control mb-2" rows="3" minlength="5" maxlength="2000" required>@Model.Title</textarea>
+            <button type="submit" class="btn btn-warning">Chuyển lên</button>
+            <a asp-action="Escalations" class="btn btn-link">Các câu hỏi đã chuyển</a>
+        </form>
+    </details>
+}
 
 <h2 class="h5">@Model.ReplyCount trả lời</h2>
 @if (Model.Replies.Count == 0)

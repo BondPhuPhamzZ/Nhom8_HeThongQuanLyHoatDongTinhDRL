@@ -1,0 +1,70 @@
+@model PagedResult<ThreadEscalation>
+@{
+    ViewData["Title"] = "Câu hỏi đã chuyển lên Phòng QL HSSV";
+    var status = ViewBag.Status as string;
+}
+<a asp-action="Index" class="small">&larr; Trao đổi lớp</a>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mt-1 mb-3">
+    <div>
+        <h1 class="h3 mb-1">@ViewData["Title"]</h1>
+        <p class="text-muted mb-0">Câu hỏi lớp trưởng cần Phòng QL HSSV xác nhận. Rút lại được khi phòng chưa trả lời.</p>
+    </div>
+    <form asp-action="Escalations" method="get" class="d-flex gap-2">
+        <select name="status" class="form-select w-auto">
+            <option value="">Mọi trạng thái</option>
+            <option value="Pending" selected="@(status == "Pending")">Chờ trả lời</option>
+            <option value="Answered" selected="@(status == "Answered")">Đã trả lời</option>
+            <option value="Withdrawn" selected="@(status == "Withdrawn")">Đã rút lại</option>
+        </select>
+        <button class="btn btn-primary" type="submit">Lọc</button>
+    </form>
+</div>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="empty-state">Chưa có câu hỏi nào được chuyển lên. Mở một chủ đề của lớp và chọn "Chuyển lên Phòng QL HSSV".</div>
+}
+else
+{
+    <div class="list-group shadow-sm mb-3">
+        @foreach (var item in Model.Items)
+        {
+            <div class="list-group-item py-3">
+                <div class="d-flex flex-wrap justify-content-between gap-2 mb-1">
+                    <span>
+                        <partial name="_EscalationBadge" model="item.Status" />
+                        <a asp-action="Thread" asp-route-id="@item.ThreadId" class="fw-semibold ms-1">@item.ThreadTitle</a>
+                    </span>
+                    <span class="small text-muted">@item.RaisedByName · <vn-time value="@item.CreatedAt" /></span>
+                </div>
+                <p class="pre-line mb-2">@item.Question</p>
+                @if (item.Answer != null)
+                {
+                    <div class="alert alert-success py-2 mb-0">
+                        <div class="small fw-semibold">Phản hồi của @(item.AnsweredByName ?? "Phòng QL HSSV")@if (item.AnsweredAt is DateTime answeredAt) {<text> · </text><vn-time value="@answeredAt" />}</div>
+                        <div class="pre-line">@item.Answer</div>
+                    </div>
+                }
+                else if (item.Status == "Pending")
+                {
+                    <form asp-action="Withdraw" asp-route-escalationId="@item.Id" asp-route-status="@status" method="post" onsubmit="return confirm('Rút lại câu hỏi này?');">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Rút lại</button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Phân trang">
+            <ul class="pagination justify-content-center">
+                @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
+                {
+                    <li class="page-item @(pageNumber == Model.PageIndex ? "active" : "")">
+                        <a class="page-link" asp-action="Escalations" asp-route-page="@pageNumber" asp-route-status="@status">@pageNumber</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+}
