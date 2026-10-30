@@ -29,6 +29,7 @@ public sealed class StaffEscalationService : IStaffEscalationService
 
         pageIndex = Math.Max(1, pageIndex);
         pageSize = Math.Clamp(pageSize, 1, 50);
+        pageIndex = Math.Min(pageIndex, int.MaxValue / pageSize);
         var totalCount = await query.CountAsync();
         var items = await query.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id)
             .Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();

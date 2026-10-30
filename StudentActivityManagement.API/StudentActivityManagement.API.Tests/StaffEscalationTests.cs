@@ -21,6 +21,9 @@ public sealed class StaffEscalationTests : IClassFixture<CustomWebApplicationFac
         var inbox = await DataAsync(await _api.GetAsync("/api/v1/admin/class-escalations?status=pending", staff));
         Assert.Contains(inbox.GetProperty("items").EnumerateArray(), item => item.GetProperty("id").GetInt32() == escalationId);
         Assert.Equal("Pending", (await DataAsync(await _api.GetAsync($"/api/v1/admin/class-escalations/{escalationId}", staff))).GetProperty("status").GetString());
+        var beyondLastPage = await _api.GetAsync("/api/v1/admin/class-escalations?pageIndex=2147483647&pageSize=50", staff);
+        Assert.Equal(HttpStatusCode.OK, beyondLastPage.StatusCode);
+        Assert.Empty((await DataAsync(beyondLastPage)).GetProperty("items").EnumerateArray());
 
         var answer = await _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/class-escalations/{escalationId}/answer", staff,
             new { answer = "  Phòng xác nhận hoạt động này được tính điểm.  " });
@@ -65,6 +68,28 @@ public sealed class StaffEscalationTests : IClassFixture<CustomWebApplicationFac
             (await _api.SendAsync(HttpMethod.Post, $"/api/v1/class-space/escalations/{escalationId}/withdraw", monitor, null)).StatusCode);
         await AccountTestClient.AssertProblemAsync(await _api.SendAsync(HttpMethod.Post, url, admin, new { answer = "Trả lời sau rút lại." }),
             HttpStatusCode.Conflict, "business_rule_violation");
+    }
+
+    [Fact]
+    public async Task AnswerAndWithdrawAtTheSameTime_OnlyOneTransitionWins()
+    {
+        var student = await _api.LoginAsync("SV210002", "123456");
+        var monitor = await _api.LoginAsync("SV210001", "123456");
+        var staff = await _api.LoginAsync(AccountTestClient.HssvCode, AccountTestClient.HssvPassword);
+        var threadId = await CreateThreadAsync(student);
+        var escalationId = await RaiseAsync(monitor, threadId);
+
+        var answer = _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/class-escalations/{escalationId}/answer", staff,
+            new { answer = "Phòng xác nhận cho lớp theo quy định hiện hành." });
+        var withdraw = _api.SendAsync(HttpMethod.Post, $"/api/v1/class-space/escalations/{escalationId}/withdraw", monitor, null);
+        var results = await Task.WhenAll(answer, withdraw);
+
+        Assert.Single(results, response => response.StatusCode == HttpStatusCode.OK);
+        Assert.Single(results, response => response.StatusCode == HttpStatusCode.Conflict);
+        var final = await DataAsync(await _api.GetAsync($"/api/v1/admin/class-escalations/{escalationId}", staff));
+        Assert.Contains(final.GetProperty("status").GetString(), new[] { "Answered", "Withdrawn" });
+        Assert.Equal(final.GetProperty("status").GetString() == "Answered",
+            final.GetProperty("answer").ValueKind == JsonValueKind.String);
     }
 
     private async Task<int> CreateThreadAsync(string student)

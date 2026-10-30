@@ -18,6 +18,7 @@ public sealed class NotificationService : INotificationService
     {
         pageIndex = Math.Max(1, pageIndex);
         pageSize = Math.Clamp(pageSize, 1, 50);
+        pageIndex = Math.Min(pageIndex, int.MaxValue / pageSize);
         var query = _context.UserNotifications.AsNoTracking().Where(item => item.RecipientUserId == userId);
         if (unreadOnly) query = query.Where(item => item.ReadAt == null);
         var totalCount = await query.CountAsync();
@@ -88,6 +89,12 @@ public sealed class NotificationService : INotificationService
                 if (offset is < SettingDefaults.MinReminderOffsetMinutes or > SettingDefaults.MaxReminderOffsetMinutes
                     || session.StartTime.AddMinutes(-offset) > nowUtc) continue;
 
+                var keyPrefix = $"ActivityReminder:{session.Id}:{offset}:";
+                var existingKeys = (await _context.UserNotifications.AsNoTracking()
+                    .Where(item => item.SourceKey.StartsWith(keyPrefix))
+                    .Select(item => item.SourceKey)
+                    .ToListAsync(cancellationToken)).ToHashSet();
+
                 foreach (var student in students)
                 {
                     var isRequired = activity.AudienceRules.Any(rule => rule.ParticipationType == AudienceParticipationType.Required
@@ -96,8 +103,8 @@ public sealed class NotificationService : INotificationService
                         && (rule.ClassId == null || rule.ClassId == student.ClassId));
                     if (!registered.Contains((activity.Id, student.Id)) && !isRequired) continue;
 
-                    var sourceKey = $"ActivityReminder:{session.Id}:{offset}:{student.Id}";
-                    if (await _context.UserNotifications.AnyAsync(item => item.SourceKey == sourceKey, cancellationToken)) continue;
+                    var sourceKey = $"{keyPrefix}{student.Id}";
+                    if (existingKeys.Contains(sourceKey)) continue;
                     var notification = new UserNotification
                     {
                         RecipientUserId = student.Id,
@@ -112,6 +119,7 @@ public sealed class NotificationService : INotificationService
                     try
                     {
                         await _context.SaveChangesAsync(cancellationToken);
+                        existingKeys.Add(sourceKey);
                         created++;
                     }
                     catch (DbUpdateException exception) when (exception.InnerException is SqliteException sqlite
@@ -119,6 +127,7 @@ public sealed class NotificationService : INotificationService
                     {
                         // Another dispatcher inserted this exact reminder first.
                         _context.Entry(notification).State = EntityState.Detached;
+                        existingKeys.Add(sourceKey);
                     }
                 }
             }
