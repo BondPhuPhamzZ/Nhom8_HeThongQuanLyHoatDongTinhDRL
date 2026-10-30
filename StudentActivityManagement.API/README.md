@@ -1,4 +1,4 @@
-﻿# Student Activity Management API
+# Student Activity Management API
 
 Backend RESTful API cho hệ thống quản lý hoạt động và tính điểm rèn luyện. API được thiết kế để Web và Mobile dùng chung dữ liệu, phân quyền và nghiệp vụ.
 
@@ -135,6 +135,24 @@ Mã lỗi:
 | `404` | Không có hoạt động hoặc buổi, hoặc sinh viên chưa đăng ký |
 
 Điểm danh thủ công (`Manual`) do Phòng QL HSSV thực hiện trên màn hình kiểm tra người tham gia (US-21).
+
+### Nộp và quản lý minh chứng (US-08)
+
+Endpoint sinh viên nằm dưới `/api/v1/student-activities/{activityId}/evidences`, policy `StudentOrMonitor`.
+
+| Endpoint | Method | Mô tả |
+|---|---|---|
+| `/api/v1/student-activities/{id}/evidences` | GET | Danh sách minh chứng đã nộp của sinh viên cho hoạt động, mới nhất trước |
+| `/api/v1/student-activities/{id}/evidences` | POST | Nộp minh chứng multipart/form-data (`evidenceType`, `file`, `confirmationCode`, `sessionId`, `note`) |
+| `/api/v1/student-activities/{id}/evidences/{evidenceId}/file` | GET | Tải file minh chứng của chính sinh viên (stream đúng Content-Type và tên file gốc) |
+| `/api/v1/student-activities/{id}/evidences/{evidenceId}` | DELETE | Xóa minh chứng khi còn `Pending` và còn trong hạn nộp |
+
+Quy tắc nghiệp vụ (S3-D6..S3-D9):
+- **3 loại minh chứng:** `Image` (.jpg, .jpeg, .png), `Document` (.pdf), `ConfirmationCode` (chuỗi 4–100 ký tự).
+- **Giới hạn dung lượng và số lượng:** File tối đa 5 MB, kiểm tra magic bytes qua `IEvidenceFileValidator`. Mỗi đăng ký tối đa 5 minh chứng.
+- **Điều kiện nộp:** Sinh viên có đăng ký `Registered` hoặc `Attended`; hoạt động đang ở trạng thái `Ongoing` hoặc `Completed`; trong hạn nộp (hạn nộp = `max(session.EndTime)` + `SubmissionWindowDays` (mặc định 7 ngày)). Hoạt động `Published` (chưa diễn ra) hoặc `Cancelled` nhận `409 business_rule_violation`.
+- **Xóa minh chứng:** Chỉ xóa được khi `ReviewStatus == Pending` và còn trong hạn nộp. Minh chứng đã duyệt (`Accepted`/`Rejected`) nhận `409`. Xóa là xóa cả bản ghi lẫn file trên ổ cứng.
+- **Bảo mật:** File được lưu ngoài `wwwroot` qua `IEvidenceFileStorage` dưới tên GUID; response API tuyệt đối không để lộ `storedFileName` hoặc đường dẫn vật lý. Sinh viên chỉ xem, tải và xóa minh chứng của chính sinh viên; truy cập minh chứng người khác trả `404 resource_not_found`. Cán bộ gọi endpoint sinh viên nhận `403 access_denied`.
 
 ### Kiểm tra người tham gia và duyệt minh chứng (US-21)
 
