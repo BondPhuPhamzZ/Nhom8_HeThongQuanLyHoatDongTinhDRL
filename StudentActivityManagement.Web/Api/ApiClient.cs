@@ -304,6 +304,13 @@ public sealed class ApiClient
     public Task<ApiResult<ThreadEscalation>> AnswerStaffEscalationAsync(int escalationId, string answer) =>
         SendAsync<ThreadEscalation>(HttpMethod.Post, $"api/v1/admin/class-escalations/{escalationId}/answer", new { answer });
 
+    // ---- In-app reminders (US-06)
+    public Task<ApiResult<PagedResult<UserNotification>>> GetNotificationsAsync(bool unreadOnly, int page, int pageSize = 20) =>
+        SendAsync<PagedResult<UserNotification>>(HttpMethod.Get, $"api/v1/notifications?{Query(("unreadOnly", unreadOnly.ToString().ToLowerInvariant()), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
+
+    public Task<ApiResult<UserNotification>> MarkNotificationReadAsync(int id) =>
+        SendAsync<UserNotification>(HttpMethod.Post, $"api/v1/notifications/{id}/read");
+
     // ---- Reports (US-24)
     public Task<ApiResult<ReportOverview>> GetReportOverviewAsync(ReportFilter filter) =>
         SendAsync<ReportOverview>(HttpMethod.Get, $"api/v1/admin/reports/overview?{ReportQuery(filter, ("groupBy", filter.GroupBy))}");
