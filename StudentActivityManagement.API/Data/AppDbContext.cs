@@ -19,6 +19,9 @@ namespace StudentActivityManagement.API.Data
         public DbSet<ActivityCheckInConfig> ActivityCheckInConfigs { get; set; } = null!;
         public DbSet<ActivityReminderOffset> ActivityReminderOffsets { get; set; } = null!;
         public DbSet<ActivityEvidence> ActivityEvidences { get; set; } = null!;
+        public DbSet<EvaluationPeriod> EvaluationPeriods { get; set; } = null!;
+        public DbSet<PointRecord> PointRecords { get; set; } = null!;
+        public DbSet<PointRecordHistory> PointRecordHistories { get; set; } = null!;
 
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
@@ -160,6 +163,60 @@ namespace StudentActivityManagement.API.Data
                 entity.HasOne(evidence => evidence.ReviewedBy)
                       .WithMany()
                       .HasForeignKey(evidence => evidence.ReviewedById)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Score ledger (US-22): one decision per registration; records keep their history and are
+            // never cascaded away by deleting an activity or period.
+            modelBuilder.Entity<EvaluationPeriod>(entity =>
+            {
+                entity.HasIndex(period => period.Name).IsUnique();
+            });
+
+            modelBuilder.Entity<PointRecord>(entity =>
+            {
+                entity.HasIndex(record => record.RegistrationId).IsUnique();
+                entity.HasIndex(record => new { record.StudentId, record.PeriodId });
+                entity.HasIndex(record => record.ActivityId);
+
+                entity.HasOne(record => record.Registration)
+                      .WithMany()
+                      .HasForeignKey(record => record.RegistrationId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(record => record.Student)
+                      .WithMany()
+                      .HasForeignKey(record => record.StudentId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(record => record.Activity)
+                      .WithMany()
+                      .HasForeignKey(record => record.ActivityId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(record => record.Period)
+                      .WithMany()
+                      .HasForeignKey(record => record.PeriodId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(record => record.DecidedBy)
+                      .WithMany()
+                      .HasForeignKey(record => record.DecidedById)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<PointRecordHistory>(entity =>
+            {
+                entity.HasIndex(history => history.PointRecordId);
+
+                entity.HasOne(history => history.PointRecord)
+                      .WithMany(record => record.History)
+                      .HasForeignKey(history => history.PointRecordId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(history => history.ChangedBy)
+                      .WithMany()
+                      .HasForeignKey(history => history.ChangedById)
                       .OnDelete(DeleteBehavior.SetNull);
             });
         }
