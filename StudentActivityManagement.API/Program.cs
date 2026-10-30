@@ -46,6 +46,8 @@ builder.Services.AddScoped<IEvaluationPeriodService, EvaluationPeriodService>();
 builder.Services.AddScoped<IScoringService, ScoringService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IClassSpaceService, ClassSpaceService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddHostedService<ReminderDispatchWorker>();
 builder.Services.AddScoped<IEvidenceService, EvidenceService>();
 
 // Evidence files (US-08): stored outside wwwroot, validated by extension, size and signature.

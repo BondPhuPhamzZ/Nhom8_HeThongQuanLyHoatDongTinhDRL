@@ -258,6 +258,12 @@ Trạng thái (`EscalationStatus`): `Pending → Answered` (Phòng QL HSSV trả
 
 Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động có `organizerName`, danh sách `sessions` và `audienceRules`. Sinh viên chỉ thấy và đăng ký hoạt động phù hợp cơ sở, khóa hoặc lớp của mình.
 
+### US-06 — thông báo nhắc lịch trong ứng dụng
+
+Worker kiểm tra mỗi phút và khi API khởi động. Mỗi buổi dùng các mốc trong `ActivityReminderOffsets`; nếu chưa cấu hình thì nhắc trước 1 ngày. Khi đến mốc và buổi chưa bắt đầu, hệ thống tạo thông báo cho sinh viên đang đăng ký (`Registered`/`Attended`) hoặc khớp quy tắc đối tượng `Required`; tài khoản khóa và đăng ký đã hủy không được nhận trừ khi thuộc diện bắt buộc. Nội dung gồm giờ Việt Nam, địa điểm, cơ sở và yêu cầu cần chuẩn bị. Khóa `SourceKey` duy nhất bảo đảm không gửi lặp khi worker chạy lại hoặc nhiều instance cùng chạy.
+
+Sinh viên và lớp trưởng dùng `GET /api/v1/notifications?unreadOnly=&pageIndex=&pageSize=` và `POST /api/v1/notifications/{id}/read`; chỉ xem hoặc đánh dấu thông báo của chính mình. Đây là thông báo trong ứng dụng, không gửi email/SMS/push. Mốc nhắc tùy chỉnh do US-26 quản lý; thông báo hoạt động mới và chuyển tiếp của lớp trưởng thuộc US-12/US-13.
+
 ## Cấu trúc project
 
 - `Controllers`, `Services`, `DTOs`, `Models`, `Data`: các lớp chính của RESTful API.

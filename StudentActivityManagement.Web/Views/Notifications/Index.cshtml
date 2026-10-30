@@ -1,0 +1,57 @@
+@model PagedResult<UserNotification>
+@{
+    ViewData["Title"] = "Thông báo của tôi";
+    var unreadOnly = ViewBag.UnreadOnly is true;
+}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+    <div>
+        <h1 class="h3 mb-1">@ViewData["Title"]</h1>
+        <p class="text-muted mb-0">Nhắc lịch cho các buổi bạn đã đăng ký hoặc thuộc diện tham gia bắt buộc.</p>
+    </div>
+    <div class="btn-group" role="group" aria-label="Lọc thông báo">
+        <a class="btn @(unreadOnly ? "btn-outline-primary" : "btn-primary")" asp-action="Index">Tất cả</a>
+        <a class="btn @(unreadOnly ? "btn-primary" : "btn-outline-primary")" asp-action="Index" asp-route-unreadOnly="true">Chưa đọc</a>
+    </div>
+</div>
+@if (Model.Items.Count == 0)
+{
+    <div class="empty-state">Chưa có thông báo trong mục này.</div>
+}
+else
+{
+    <div class="list-group shadow-sm mb-3">
+        @foreach (var item in Model.Items)
+        {
+            <div class="list-group-item py-3">
+                <div class="d-flex flex-wrap justify-content-between gap-2">
+                    <a asp-controller="StudentActivities" asp-action="Details" asp-route-id="@item.ActivityId" class="fw-semibold">@item.Title</a>
+                    <span class="small text-muted"><vn-time value="@item.CreatedAt" /></span>
+                </div>
+                <p class="pre-line mb-2">@item.Body</p>
+                @if (item.ReadAt == null)
+                {
+                    <form asp-action="Read" asp-route-id="@item.Id" method="post">
+                        <input type="hidden" name="unreadOnly" value="@unreadOnly.ToString().ToLowerInvariant()" />
+                        <input type="hidden" name="page" value="@Model.PageIndex" />
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Đánh dấu đã đọc</button>
+                    </form>
+                }
+                else
+                {
+                    <span class="small text-muted">Đã đọc</span>
+                }
+            </div>
+        }
+    </div>
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Phân trang"><ul class="pagination justify-content-center">
+            @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
+            {
+                <li class="page-item @(pageNumber == Model.PageIndex ? "active" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@pageNumber" asp-route-unreadOnly="@unreadOnly">@pageNumber</a>
+                </li>
+            }
+        </ul></nav>
+    }
+}
