@@ -12,6 +12,11 @@ public sealed class ActivityService : IActivityService
     // registration itself still requires Published.
     private static readonly string[] StudentVisibleStatuses = [ActivityStatus.Published, ActivityStatus.Ongoing];
 
+    // A student who holds a registration keeps access after the activity ends, so they can check
+    // results and submit evidence (US-08) within the submission window.
+    private static readonly string[] RegisteredVisibleStatuses =
+        [ActivityStatus.Published, ActivityStatus.Ongoing, ActivityStatus.Completed];
+
     private readonly AppDbContext _context;
     private readonly IActivityEligibilityService _eligibilityService;
 
@@ -38,7 +43,7 @@ public sealed class ActivityService : IActivityService
     }
 
     public async Task<ApiResponseDto<PagedResultDto<ActivityResponseDto>>> GetStudentActivitiesAsync(
-        int studentId, string? campus, string? search, int pageIndex = 1, int pageSize = 10)
+        int studentId, string? campus, string? search, int pageIndex = 1, int pageSize = 10, bool registeredOnly = false)
     {
         var student = await FindStudentAsync(studentId);
         if (student == null)
@@ -49,9 +54,22 @@ public sealed class ActivityService : IActivityService
                 ApiErrorCodes.AccessDenied);
         }
 
-        var query = BuildActivityQuery(campus, null, search, upcomingOnly: true)
-            .Where(activity => StudentVisibleStatuses.Contains(activity.Status));
-        query = _eligibilityService.ApplyEligibleFor(query, student);
+        IQueryable<Activity> query;
+        if (registeredOnly)
+        {
+            query = BuildActivityQuery(campus, null, search, upcomingOnly: false)
+                .Where(activity => RegisteredVisibleStatuses.Contains(activity.Status) &&
+                                   activity.Registrations.Any(registration =>
+                                       registration.StudentId == student.Id &&
+                                       registration.Status != RegistrationStatus.Cancelled));
+        }
+        else
+        {
+            query = BuildActivityQuery(campus, null, search, upcomingOnly: true)
+                .Where(activity => StudentVisibleStatuses.Contains(activity.Status));
+            query = _eligibilityService.ApplyEligibleFor(query, student);
+        }
+
         return await ToPagedResultAsync(query, pageIndex, pageSize, student);
     }
 
@@ -70,6 +88,12 @@ public sealed class ActivityService : IActivityService
         var query = WithStructure(_context.Activities.AsNoTracking())
             .Where(activity => activity.Id == id && StudentVisibleStatuses.Contains(activity.Status) && activity.EndTime >= now);
         var activity = await _eligibilityService.ApplyEligibleFor(query, student).FirstOrDefaultAsync();
+        activity ??= await WithStructure(_context.Activities.AsNoTracking())
+            .FirstOrDefaultAsync(item => item.Id == id &&
+                                         RegisteredVisibleStatuses.Contains(item.Status) &&
+                                         item.Registrations.Any(registration =>
+                                             registration.StudentId == student.Id &&
+                                             registration.Status != RegistrationStatus.Cancelled));
         if (activity == null)
         {
             return ApiResponseDto<ActivityResponseDto>.Fail(
