@@ -1,5 +1,6 @@
 ﻿@host = http://localhost:5210
 @studentToken = paste-student-jwt-here
+@monitorToken = paste-monitor-jwt-here
 @adminToken = paste-system-admin-jwt-here
 @hssvToken = paste-hssv-jwt-here
 
@@ -314,3 +315,20 @@ Content-Type: application/json
 ### US-09 — Xóa chủ đề của mình (khi chưa có người khác trả lời)
 DELETE {{host}}/api/v1/class-space/threads/1
 Authorization: Bearer {{studentToken}}
+
+### US-15 — Lớp trưởng chuyển câu hỏi của chủ đề lên Phòng QL HSSV (token của SV210001)
+POST {{host}}/api/v1/class-space/threads/1/escalations
+Authorization: Bearer {{monitorToken}}
+Content-Type: application/json
+
+{
+  "question": "Nhờ Phòng QL HSSV xác nhận buổi sinh hoạt lớp có được tính điểm rèn luyện không?"
+}
+
+### US-15 — Câu hỏi lớp đã chuyển lên (lọc Pending, Answered, Withdrawn)
+GET {{host}}/api/v1/class-space/escalations?status=Pending&pageIndex=1&pageSize=20
+Authorization: Bearer {{monitorToken}}
+
+### US-15 — Rút lại câu hỏi đang chờ trả lời
+POST {{host}}/api/v1/class-space/escalations/1/withdraw
+Authorization: Bearer {{monitorToken}}
