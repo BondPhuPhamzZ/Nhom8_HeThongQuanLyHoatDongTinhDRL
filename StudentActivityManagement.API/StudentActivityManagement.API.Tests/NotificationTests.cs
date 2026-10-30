@@ -62,6 +62,9 @@ public sealed class NotificationTests : IClassFixture<CustomWebApplicationFactor
         Assert.Contains("Mang thẻ sinh viên", notification.GetProperty("body").GetString());
         var notificationId = notification.GetProperty("id").GetInt32();
         Assert.Equal(HttpStatusCode.Forbidden, (await _api.GetAsync("/api/v1/notifications", admin)).StatusCode);
+        var beyondLastPage = await _api.GetAsync("/api/v1/notifications?pageIndex=2147483647&pageSize=50", requiredToken);
+        Assert.Equal(HttpStatusCode.OK, beyondLastPage.StatusCode);
+        Assert.Empty((await DataAsync(beyondLastPage)).GetProperty("items").EnumerateArray());
         Assert.Equal(HttpStatusCode.NotFound,
             (await _api.SendAsync(HttpMethod.Post, $"/api/v1/notifications/{notificationId}/read", registeredToken, null)).StatusCode);
         Assert.Equal(HttpStatusCode.OK,
