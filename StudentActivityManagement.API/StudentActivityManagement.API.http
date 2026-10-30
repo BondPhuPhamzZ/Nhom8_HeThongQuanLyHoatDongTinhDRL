@@ -282,3 +282,35 @@ Authorization: Bearer {{hssvToken}}
 ### US-24 — Sinh viên nguy cơ thiếu điểm của một lớp
 GET {{host}}/api/v1/admin/reports/at-risk-students?periodId=1&classId=1&pageIndex=1&pageSize=20
 Authorization: Bearer {{hssvToken}}
+
+### US-09 — Không gian trao đổi của lớp mình (lọc loại bài, tìm theo từ khóa)
+GET {{host}}/api/v1/class-space/threads?kind=Question&search=lịch&pageIndex=1&pageSize=20
+Authorization: Bearer {{studentToken}}
+
+### US-09 — Đặt câu hỏi cho lớp (kind: Question hoặc Discussion)
+POST {{host}}/api/v1/class-space/threads
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "kind": "Question",
+  "title": "Lịch sinh hoạt lớp tuần này?",
+  "body": "Tuần này lớp sinh hoạt ở phòng nào vậy mọi người?"
+}
+
+### US-09 — Chi tiết chủ đề kèm trả lời
+GET {{host}}/api/v1/class-space/threads/1
+Authorization: Bearer {{studentToken}}
+
+### US-09 — Trả lời chủ đề
+POST {{host}}/api/v1/class-space/threads/1/replies
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "body": "Phòng B2.01, 9h sáng thứ 7 nhé."
+}
+
+### US-09 — Xóa chủ đề của mình (khi chưa có người khác trả lời)
+DELETE {{host}}/api/v1/class-space/threads/1
+Authorization: Bearer {{studentToken}}
