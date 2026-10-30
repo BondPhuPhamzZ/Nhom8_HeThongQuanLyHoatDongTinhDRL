@@ -323,7 +323,7 @@ public sealed class ClassSpaceService : IClassSpaceService
             return error;
         }
 
-        var escalation = await _context.ThreadEscalations
+        var escalation = await _context.ThreadEscalations.AsNoTracking()
             .FirstOrDefaultAsync(item => item.Id == escalationId && item.Thread!.ClassId == member!.ClassId);
         if (escalation == null)
         {
@@ -334,9 +334,16 @@ public sealed class ClassSpaceService : IClassSpaceService
             return Fail<ThreadEscalationDto>("Chỉ rút lại được câu hỏi đang chờ Phòng QL HSSV trả lời.", StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation);
         }
 
-        escalation.Status = EscalationStatus.Withdrawn;
-        escalation.WithdrawnAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        // Answer and withdrawal race for the same Pending row; only one may win.
+        var updated = await _context.ThreadEscalations
+            .Where(item => item.Id == escalationId && item.Status == EscalationStatus.Pending)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(item => item.Status, EscalationStatus.Withdrawn)
+                .SetProperty(item => item.WithdrawnAt, DateTime.UtcNow));
+        if (updated == 0)
+        {
+            return Fail<ThreadEscalationDto>("Chỉ rút lại được câu hỏi đang chờ Phòng QL HSSV trả lời.", StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation);
+        }
         return ApiResponseDto<ThreadEscalationDto>.Ok((await LoadEscalationAsync(escalationId))!, "Đã rút lại câu hỏi.");
     }
 
