@@ -224,6 +224,21 @@ Tham số lọc:
 
 Không tìm thấy kỳ (hoặc chưa có kỳ nào) trả `404`. `groupBy` không hợp lệ trả `400`.
 
+### Không gian trao đổi của lớp (US-09)
+
+`/api/v1/class-space`, chỉ `Student`/`Monitor`. Lớp lấy theo tài khoản đang đăng nhập (route không có mã lớp), nên không ai đọc được không gian của lớp khác.
+
+| Endpoint | Mô tả |
+|---|---|
+| `GET threads?kind=&search=&pageIndex=&pageSize=` | Thông tin lớp, lớp trưởng và danh sách chủ đề: ghim trước, sau đó theo hoạt động gần nhất. `pageSize` tối đa 50 |
+| `GET threads/{id}` | Chủ đề và các trả lời theo thứ tự thời gian, kèm `canDelete` cho người đang xem |
+| `POST threads` | `{ kind, title, body }`; `kind` chỉ nhận `Question` hoặc `Discussion` (`Announcement` dành cho thông báo của lớp trưởng ở US-13). Trả `201` |
+| `POST threads/{id}/replies` | `{ body }`; cập nhật thời điểm hoạt động của chủ đề. Trả `201` |
+| `DELETE threads/{id}` | Chỉ người tạo, khi chưa có người khác trả lời |
+| `DELETE threads/{id}/replies/{replyId}` | Chỉ người viết, trừ trả lời đã được chọn làm câu trả lời (`isAnswer`) |
+
+Mã lỗi: sinh viên chưa được xếp lớp `409 business_rule_violation`; chủ đề của lớp khác hoặc không tồn tại `404`; không phải tác giả `403 access_denied`; chủ đề `Closed` không nhận trả lời `409`. Trạng thái `Answered`/`Closed`, ghim chủ đề và chọn câu trả lời đã có sẵn trong schema cho các chức năng của lớp trưởng (US-13/US-14).
+
 Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động có `organizerName`, danh sách `sessions` và `audienceRules`. Sinh viên chỉ thấy và đăng ký hoạt động phù hợp cơ sở, khóa hoặc lớp của mình.
 
 ## Cấu trúc project
