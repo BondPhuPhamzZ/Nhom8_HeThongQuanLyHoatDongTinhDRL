@@ -249,6 +249,25 @@ public sealed class ApiClient
     public Task<ApiResult<List<ClassDto>>> GetClassesAsync() =>
         SendAsync<List<ClassDto>>(HttpMethod.Get, "api/v1/admin/classes");
 
+    // ---- Evaluation periods and scoring (US-22)
+    public Task<ApiResult<List<EvaluationPeriod>>> GetPeriodsAsync() =>
+        SendAsync<List<EvaluationPeriod>>(HttpMethod.Get, "api/v1/admin/evaluation-periods");
+
+    public Task<ApiResult<EvaluationPeriod>> CreatePeriodAsync(string name, DateTimeOffset startDate, DateTimeOffset endDate, int targetPoints) =>
+        SendAsync<EvaluationPeriod>(HttpMethod.Post, "api/v1/admin/evaluation-periods", new { name, startDate, endDate, targetPoints });
+
+    public Task<ApiResult<EvaluationPeriod>> SetPeriodStatusAsync(int id, string status) =>
+        SendAsync<EvaluationPeriod>(HttpMethod.Patch, $"api/v1/admin/evaluation-periods/{id}/status", new { status });
+
+    public Task<ApiResult<ActivityScoring>> GetScoringAsync(int activityId) =>
+        SendAsync<ActivityScoring>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/scoring");
+
+    public Task<ApiResult<ApprovePointsResult>> ApprovePointsAsync(int activityId, List<int>? registrationIds, string? note) =>
+        SendAsync<ApprovePointsResult>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/scoring/approve", new { registrationIds, note });
+
+    public Task<ApiResult<List<PointRecordHistoryEntry>>> GetPointHistoryAsync(int pointRecordId) =>
+        SendAsync<List<PointRecordHistoryEntry>>(HttpMethod.Get, $"api/v1/admin/point-records/{pointRecordId}/history");
+
     // ---- Classes and class monitors (US-18)
     public Task<ApiResult<ClassDto>> CreateClassAsync(string classCode, string className, string department) =>
         SendAsync<ClassDto>(HttpMethod.Post, "api/v1/admin/classes", new { classCode, className, department });

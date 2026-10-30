@@ -37,6 +37,10 @@
         {
             <a class="btn btn-outline-secondary" asp-controller="Participants" asp-action="Index" asp-route-id="@Model.Id">Người tham gia</a>
         }
+        @if (Model.Status == "Completed")
+        {
+            <a class="btn btn-primary" asp-controller="Scoring" asp-action="Index" asp-route-id="@Model.Id">Ghi điểm</a>
+        }
         @if (!isFinal)
         {
             <a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@Model.Id">Sửa</a>

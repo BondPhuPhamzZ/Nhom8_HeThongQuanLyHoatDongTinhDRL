@@ -1,0 +1,74 @@
+@model PeriodListViewModel
+@{
+    ViewData["Title"] = "Kỳ đánh giá";
+}
+<h1 class="h3 mb-1">Kỳ đánh giá điểm rèn luyện</h1>
+<p class="text-muted">Điểm của một hoạt động thuộc kỳ chứa thời điểm kết thúc của hoạt động. Kỳ đã khóa không nhận ghi điểm mới.</p>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        @if (Model.Periods.Count == 0)
+        {
+            <div class="empty-state">Chưa có kỳ đánh giá. Tạo kỳ trước khi ghi điểm cho hoạt động đã kết thúc.</div>
+        }
+        else
+        {
+            <div class="table-responsive card shadow-sm border-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light"><tr><th>Kỳ</th><th>Thời gian</th><th class="text-center">Mục tiêu</th><th class="text-center">Lượt ghi điểm</th><th>Trạng thái</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var period in Model.Periods)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@period.Name</td>
+                                <td class="small"><vn-time value="@period.StartDate" format="date" /> – <vn-time value="@period.EndDate" format="date" /></td>
+                                <td class="text-center">@period.TargetPoints</td>
+                                <td class="text-center">@period.PointRecordCount</td>
+                                <td><status-badge value="@period.Status" /></td>
+                                <td class="text-end">
+                                    <form asp-action="SetStatus" asp-route-id="@period.Id" method="post" class="m-0"
+                                          onsubmit="@(period.Status == "Open" ? "return confirm('Khóa kỳ này? Sau khi khóa không ghi thêm điểm được.');" : "")">
+                                        <input type="hidden" name="status" value="@(period.Status == "Open" ? "Closed" : "Open")" />
+                                        <button type="submit" class="btn btn-sm @(period.Status == "Open" ? "btn-outline-danger" : "btn-outline-success")">
+                                            @(period.Status == "Open" ? "Khóa kỳ" : "Mở lại")
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h2 class="h6">Thêm kỳ đánh giá</h2>
+                <form asp-action="Create" method="post" novalidate>
+                    <div asp-validation-summary="All" class="alert alert-danger py-2 small empty-hidden"></div>
+                    <div class="mb-2">
+                        <label asp-for="NewPeriod.Name" class="form-label small"></label>
+                        <input asp-for="NewPeriod.Name" class="form-control" placeholder="HK1 2026-2027" />
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label asp-for="NewPeriod.StartDate" class="form-label small"></label>
+                            <input asp-for="NewPeriod.StartDate" type="date" class="form-control" />
+                        </div>
+                        <div class="col-6">
+                            <label asp-for="NewPeriod.EndDate" class="form-label small"></label>
+                            <input asp-for="NewPeriod.EndDate" type="date" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewPeriod.TargetPoints" class="form-label small"></label>
+                        <input asp-for="NewPeriod.TargetPoints" class="form-control" />
+                        <div class="form-text">Mức điểm cần đạt trong kỳ, dùng để cảnh báo nguy cơ thiếu điểm.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Thêm kỳ</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

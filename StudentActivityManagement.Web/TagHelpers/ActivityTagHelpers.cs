@@ -28,6 +28,10 @@ public sealed class StatusBadgeTagHelper : TagHelper
             "Pending" => ("Chờ duyệt", "text-bg-warning"),
             "Accepted" => ("Đã duyệt", "text-bg-success"),
             "Rejected" => ("Từ chối", "text-bg-danger"),
+            "Approved" => ("Đã ghi điểm", "text-bg-success"),
+            "Revoked" => ("Đã thu hồi", "text-bg-dark"),
+            "Open" => ("Đang mở", "text-bg-success"),
+            "Closed" => ("Đã khóa", "text-bg-secondary"),
             _ => (Value ?? string.Empty, "text-bg-light")
         };
         output.TagName = "span";

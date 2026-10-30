@@ -1,0 +1,80 @@
+@model ActivityScoring
+@{
+    ViewData["Title"] = $"Ghi điểm – {Model.ActivityName}";
+}
+<a asp-controller="ManageActivities" asp-action="Details" asp-route-id="@Model.ActivityId" class="small">&larr; @Model.ActivityName</a>
+<h1 class="h3 mt-2 mb-1">Xác nhận kết quả và ghi điểm</h1>
+<p class="text-muted">
+    +@Model.TrainingPoints điểm mỗi sinh viên ·
+    @if (Model.Period != null) { <span>Kỳ <strong>@Model.Period.Name</strong> <status-badge value="@Model.Period.Status" /></span> }
+    else { <span>Chưa có kỳ đánh giá phù hợp</span> }
+</p>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3"><div class="stat-tile"><div class="stat-value">@Model.Candidates.Count</div><div class="stat-label">Đăng ký còn hiệu lực</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-tile"><div class="stat-value">@Model.EligibleCount</div><div class="stat-label">Đủ điều kiện, chờ ghi điểm</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-tile"><div class="stat-value">@Model.ApprovedCount</div><div class="stat-label">Đã ghi điểm</div></div></div>
+</div>
+
+@if (!Model.CanApprove)
+{
+    <div class="alert alert-warning">@Model.BlockedReason</div>
+}
+
+@if (Model.Candidates.Count == 0)
+{
+    <div class="empty-state">Hoạt động chưa có đăng ký còn hiệu lực.</div>
+}
+else
+{
+    <form asp-action="Approve" asp-route-id="@Model.ActivityId" method="post">
+        <div class="table-responsive card shadow-sm border-0 mb-3">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr><th></th><th>Sinh viên</th><th>Lớp</th><th class="text-center">Check-in</th><th class="text-center">Minh chứng duyệt / chờ</th><th>Điều kiện</th><th>Quyết định điểm</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var candidate in Model.Candidates)
+                    {
+                        <tr>
+                            <td>
+                                @if (Model.CanApprove && candidate.Eligible)
+                                {
+                                    <input class="form-check-input" type="checkbox" name="registrationIds" value="@candidate.RegistrationId"
+                                           aria-label="Chọn @candidate.FullName" checked />
+                                }
+                            </td>
+                            <td><div class="fw-semibold">@candidate.FullName</div><div class="small text-muted">@candidate.StudentCode</div></td>
+                            <td>@candidate.ClassCode</td>
+                            <td class="text-center">@candidate.CheckInCount</td>
+                            <td class="text-center">@candidate.AcceptedEvidenceCount / @candidate.PendingEvidenceCount</td>
+                            <td class="small">
+                                @if (candidate.Eligible) { <span class="text-success">Đủ điều kiện</span> }
+                                else { <span class="text-muted">@candidate.IneligibleReason</span> }
+                            </td>
+                            <td>
+                                @if (candidate.PointRecord is PointRecordInfo record)
+                                {
+                                    <status-badge value="@record.Status" /> <span class="fw-semibold">+@record.Points</span>
+                                    <div class="small text-muted">@record.DecidedByName · <vn-time value="@record.DecidedAt" /></div>
+                                    <a class="small" asp-action="History" asp-route-id="@Model.ActivityId" asp-route-pointRecordId="@record.Id"
+                                       asp-route-student="@($"{candidate.StudentCode} – {candidate.FullName}")">Lịch sử</a>
+                                }
+                                else { <span class="text-muted small">Chưa ghi điểm</span> }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.CanApprove && Model.EligibleCount > 0)
+        {
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <input name="note" class="form-control w-auto flex-grow-1" maxlength="500" placeholder="Ghi chú phê duyệt (không bắt buộc)" aria-label="Ghi chú phê duyệt" />
+                <button type="submit" class="btn btn-primary">Ghi điểm cho sinh viên đã chọn</button>
+                <button type="submit" name="all" value="true" class="btn btn-outline-primary">Ghi điểm tất cả (@Model.EligibleCount)</button>
+            </div>
+            <p class="form-text">Mỗi đăng ký chỉ được ghi điểm một lần. Sau khi ghi điểm, điểm danh và minh chứng của sinh viên đó không sửa được nữa.</p>
+        }
+    </form>
+}
