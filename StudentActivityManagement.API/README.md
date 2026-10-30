@@ -197,6 +197,33 @@ Quy tắc:
 
 `PointRecordStatus` đã khai báo sẵn các chuyển trạng thái cho US-23 (Kiệt): `Approved → Revoked/Pending`, `Pending → Approved/Rejected`, `Rejected → Pending`, `Revoked` là trạng thái cuối. Mỗi lần chuyển phải kèm lý do và ghi một dòng `PointRecordHistories`.
 
+### Báo cáo theo kỳ (US-24)
+
+`GET /api/v1/admin/reports/overview | activities | at-risk-students`, chỉ HSSV và SystemAdmin.
+
+Tham số lọc:
+
+| Tham số | Ý nghĩa |
+|---|---|
+| `periodId` | Kỳ đánh giá. Bỏ trống thì lấy kỳ `Open` chứa ngày hôm nay; nếu không có thì lấy kỳ gần nhất |
+| `campus`, `academicYear`, `classId` | Lọc sinh viên theo cơ sở, khóa, lớp |
+| `groupBy` | Chỉ dùng cho `overview`: `class` (mặc định), `academicYear` hoặc `campus` |
+| `pageIndex`, `pageSize` | Chỉ dùng cho `at-risk-students` |
+
+Định nghĩa các chỉ số (mọi báo cáo dùng chung):
+
+| Chỉ số | Cách tính |
+|---|---|
+| Sinh viên trong phạm vi | Tài khoản `Student`/`Monitor` đang hoạt động, khớp bộ lọc |
+| Hoạt động của kỳ | Hoạt động có thời điểm kết thúc nằm trong kỳ, trạng thái `Published`/`Ongoing`/`Completed`. Hoạt động `Cancelled` đếm riêng; `Draft` không tính |
+| Đăng ký | Đăng ký chưa hủy của sinh viên trong phạm vi vào các hoạt động của kỳ |
+| Tham gia | Đăng ký ở trạng thái `Attended` (đã check-in hoặc được điểm danh thủ công) |
+| Tỷ lệ tham gia | Tham gia / đăng ký × 100, làm tròn 1 chữ số thập phân; trả `null` khi không có đăng ký |
+| Điểm | Tổng `Points` của các bản ghi `Approved` trong kỳ (US-22) |
+| Nguy cơ thiếu điểm | Điểm trong kỳ nhỏ hơn `TargetPoints` của kỳ; danh sách xếp theo số điểm còn thiếu giảm dần |
+
+Không tìm thấy kỳ (hoặc chưa có kỳ nào) trả `404`. `groupBy` không hợp lệ trả `400`.
+
 Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động có `organizerName`, danh sách `sessions` và `audienceRules`. Sinh viên chỉ thấy và đăng ký hoạt động phù hợp cơ sở, khóa hoặc lớp của mình.
 
 ## Cấu trúc project

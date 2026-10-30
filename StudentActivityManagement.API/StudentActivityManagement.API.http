@@ -270,3 +270,15 @@ Content-Type: application/json
 ### US-22 — Lịch sử phê duyệt của bản ghi điểm
 GET {{host}}/api/v1/admin/point-records/1/history
 Authorization: Bearer {{hssvToken}}
+
+### US-24 — Báo cáo tổng hợp kỳ hiện tại, chia theo lớp
+GET {{host}}/api/v1/admin/reports/overview?groupBy=class
+Authorization: Bearer {{hssvToken}}
+
+### US-24 — Báo cáo từng hoạt động của kỳ, lọc theo khóa
+GET {{host}}/api/v1/admin/reports/activities?periodId=1&academicYear=K21
+Authorization: Bearer {{hssvToken}}
+
+### US-24 — Sinh viên nguy cơ thiếu điểm của một lớp
+GET {{host}}/api/v1/admin/reports/at-risk-students?periodId=1&classId=1&pageIndex=1&pageSize=20
+Authorization: Bearer {{hssvToken}}
