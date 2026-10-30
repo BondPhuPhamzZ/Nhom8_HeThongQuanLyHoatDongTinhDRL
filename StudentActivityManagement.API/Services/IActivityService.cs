@@ -10,7 +10,7 @@ namespace StudentActivityManagement.API.Services
 
         Task<ApiResponseDto<ActivityResponseDto>> GetActivityByIdAsync(int id);
         Task<ApiResponseDto<PagedResultDto<ActivityResponseDto>>> GetStudentActivitiesAsync(
-            int studentId, string? campus, string? search, int pageIndex = 1, int pageSize = 10);
+            int studentId, string? campus, string? search, int pageIndex = 1, int pageSize = 10, bool registeredOnly = false);
         Task<ApiResponseDto<ActivityResponseDto>> GetStudentActivityByIdAsync(int id, int studentId);
         Task<ApiResponseDto<ActivityResponseDto>> CreateActivityAsync(ActivityCreateDto request);
         Task<ApiResponseDto<ActivityResponseDto>> UpdateActivityAsync(int id, ActivityUpdateDto request);

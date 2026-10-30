@@ -20,15 +20,19 @@ namespace StudentActivityManagement.API.Controllers
             _activityService = activityService;
         }
 
+        /// <summary>
+        /// Hoạt động phù hợp sắp diễn ra; với <c>registered=true</c> là các hoạt động sinh viên đang giữ đăng ký
+        /// (kể cả đã kết thúc) để xem kết quả và nộp minh chứng.
+        /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetActivities([FromQuery] string? campus, [FromQuery] string? search, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetActivities([FromQuery] string? campus, [FromQuery] string? search, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10, [FromQuery] bool registered = false)
         {
             if (!TryGetStudentId(out var studentId))
             {
                 return InvalidSession();
             }
 
-            var result = await _activityService.GetStudentActivitiesAsync(studentId, campus, search, pageIndex, pageSize);
+            var result = await _activityService.GetStudentActivitiesAsync(studentId, campus, search, pageIndex, pageSize, registered);
             if (!result.Success) return ProblemFrom(result);
             return Ok(result);
         }
