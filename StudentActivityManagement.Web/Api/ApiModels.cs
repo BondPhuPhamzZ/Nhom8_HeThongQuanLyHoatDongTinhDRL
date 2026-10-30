@@ -351,3 +351,77 @@ public sealed class StudentEvidence
     public DateTime UploadedAt { get; set; }
     public bool CanDelete { get; set; }
 }
+
+// ---- Evaluation periods and scoring (US-22)
+
+public sealed class EvaluationPeriod
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public int TargetPoints { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public int PointRecordCount { get; set; }
+}
+
+public sealed class ActivityScoring
+{
+    public int ActivityId { get; set; }
+    public string ActivityName { get; set; } = string.Empty;
+    public string ActivityStatus { get; set; } = string.Empty;
+    public int TrainingPoints { get; set; }
+    public EvaluationPeriod? Period { get; set; }
+    public bool CanApprove { get; set; }
+    public string? BlockedReason { get; set; }
+    public int EligibleCount { get; set; }
+    public int ApprovedCount { get; set; }
+    public List<ScoringCandidate> Candidates { get; set; } = [];
+}
+
+public sealed class ScoringCandidate
+{
+    public int RegistrationId { get; set; }
+    public string StudentCode { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string? ClassCode { get; set; }
+    public string RegistrationStatus { get; set; } = string.Empty;
+    public int CheckInCount { get; set; }
+    public int AcceptedEvidenceCount { get; set; }
+    public int PendingEvidenceCount { get; set; }
+    public bool Eligible { get; set; }
+    public string? IneligibleReason { get; set; }
+    public PointRecordInfo? PointRecord { get; set; }
+}
+
+public sealed class PointRecordInfo
+{
+    public int Id { get; set; }
+    public int Points { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? Reason { get; set; }
+    public string? DecidedByName { get; set; }
+    public DateTime DecidedAt { get; set; }
+}
+
+public sealed class PointRecordHistoryEntry
+{
+    public string? FromStatus { get; set; }
+    public string ToStatus { get; set; } = string.Empty;
+    public int Points { get; set; }
+    public string? Reason { get; set; }
+    public string? ChangedByName { get; set; }
+    public DateTime ChangedAt { get; set; }
+}
+
+public sealed class ApprovePointsResult
+{
+    public int ApprovedCount { get; set; }
+    public List<SkippedRegistration> Skipped { get; set; } = [];
+}
+
+public sealed class SkippedRegistration
+{
+    public int RegistrationId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+}

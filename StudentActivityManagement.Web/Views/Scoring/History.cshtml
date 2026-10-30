@@ -1,0 +1,28 @@
+@model PointHistoryViewModel
+@{
+    ViewData["Title"] = "Lịch sử phê duyệt điểm";
+}
+<a asp-action="Index" asp-route-id="@Model.ActivityId" class="small">&larr; Bảng ghi điểm</a>
+<h1 class="h3 mt-2 mb-1">Lịch sử phê duyệt điểm</h1>
+<p class="text-muted">@Model.StudentLabel</p>
+
+<div class="table-responsive card shadow-sm border-0">
+    <table class="table align-middle mb-0">
+        <thead class="table-light"><tr><th>Thời điểm</th><th>Thay đổi</th><th class="text-center">Điểm</th><th>Người thực hiện</th><th>Lý do / ghi chú</th></tr></thead>
+        <tbody>
+            @foreach (var entry in Model.Entries)
+            {
+                <tr>
+                    <td><vn-time value="@entry.ChangedAt" /></td>
+                    <td>
+                        @if (entry.FromStatus is string from) { <status-badge value="@from" /> <span>&rarr;</span> }
+                        <status-badge value="@entry.ToStatus" />
+                    </td>
+                    <td class="text-center">@entry.Points</td>
+                    <td>@entry.ChangedByName</td>
+                    <td class="small">@entry.Reason</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
