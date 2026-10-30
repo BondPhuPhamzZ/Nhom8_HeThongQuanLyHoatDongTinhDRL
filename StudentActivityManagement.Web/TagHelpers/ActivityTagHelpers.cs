@@ -32,6 +32,10 @@ public sealed class StatusBadgeTagHelper : TagHelper
             "Revoked" => ("Đã thu hồi", "text-bg-dark"),
             "Open" => ("Đang mở", "text-bg-success"),
             "Closed" => ("Đã khóa", "text-bg-secondary"),
+            "Answered" => ("Đã có lời giải", "text-bg-success"),
+            "Question" => ("Câu hỏi", "text-bg-info"),
+            "Discussion" => ("Thảo luận", "text-bg-primary"),
+            "Announcement" => ("Thông báo", "text-bg-danger"),
             _ => (Value ?? string.Empty, "text-bg-light")
         };
         output.TagName = "span";
