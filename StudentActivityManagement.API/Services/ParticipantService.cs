@@ -235,6 +235,10 @@ public sealed class ParticipantService : IParticipantService
         {
             return Conflict<StaffEvidenceDto>("Sinh viên đã hủy đăng ký nên không duyệt minh chứng này.");
         }
+        if (await HasScoreDecisionAsync(evidence.RegistrationId))
+        {
+            return Conflict<StaffEvidenceDto>(ScoredMessage);
+        }
 
         var reopened = reviewStatus == EvidenceReviewStatus.Pending;
         evidence.ReviewStatus = reviewStatus;
@@ -296,9 +300,21 @@ public sealed class ParticipantService : IParticipantService
         {
             return (Conflict<T>("Chỉ điểm danh cho hoạt động đang mở, đang diễn ra hoặc vừa kết thúc."), null);
         }
+        if (await HasScoreDecisionAsync(registrationId))
+        {
+            return (Conflict<T>(ScoredMessage), null);
+        }
 
         return (null, registration);
     }
+
+    // Attendance and evidence are the basis of the score; once points are decided (US-22) they are
+    // frozen and corrections go through the score-record transitions of US-23.
+    private const string ScoredMessage =
+        "Đăng ký đã có quyết định điểm rèn luyện nên không thể thay đổi điểm danh hoặc minh chứng.";
+
+    private Task<bool> HasScoreDecisionAsync(int registrationId) =>
+        _context.PointRecords.AnyAsync(record => record.RegistrationId == registrationId);
 
     private Task<ActivityRegistration?> FindRegistrationAsync(int activityId, int registrationId, bool tracking)
     {
