@@ -306,11 +306,11 @@ Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động c
 
 Worker kiểm tra mỗi phút và khi API khởi động. Mỗi buổi dùng các mốc trong `ActivityReminderOffsets`; nếu chưa cấu hình thì nhắc trước 1 ngày. Khi đến mốc và buổi chưa bắt đầu, hệ thống tạo thông báo cho sinh viên đang đăng ký (`Registered`/`Attended`) hoặc khớp quy tắc đối tượng `Required`; tài khoản khóa và đăng ký đã hủy không được nhận trừ khi thuộc diện bắt buộc. Nội dung gồm giờ Việt Nam, địa điểm, cơ sở và yêu cầu cần chuẩn bị. Khóa `SourceKey` duy nhất bảo đảm không gửi lặp khi worker chạy lại hoặc nhiều instance cùng chạy.
 
-Sinh viên và lớp trưởng dùng `GET /api/v1/notifications?unreadOnly=&pageIndex=&pageSize=` và `POST /api/v1/notifications/{id}/read`; chỉ xem hoặc đánh dấu thông báo của chính mình. Đây là thông báo trong ứng dụng, không gửi email/SMS/push. Mốc nhắc tùy chỉnh do US-26 quản lý; thông báo hoạt động mới và chuyển tiếp của lớp trưởng thuộc US-12/US-13.
+Sinh viên và lớp trưởng dùng `GET /api/v1/notifications?unreadOnly=&pageIndex=&pageSize=` và `POST /api/v1/notifications/{id}/read`; chỉ xem hoặc đánh dấu thông báo của chính mình. Khi hoạt động được công bố, sinh viên thuộc đối tượng nhận thêm thông báo `StudentActivity` trực tiếp; thông báo này khác với lời nhắc trước từng buổi. Đây là thông báo trong ứng dụng, không gửi email/SMS/push. Mốc nhắc tùy chỉnh do US-26 quản lý; thông báo cho lớp trưởng và thông tin chuyển vào lớp thuộc US-12/US-13.
 
 ### US-12 — thông báo hoạt động mới cho lớp trưởng
 
-Khi hoạt động được tạo ở trạng thái `Published` hoặc chuyển từ trạng thái khác sang `Published`, hệ thống tạo một thông báo `ClassActivity` cho lớp trưởng đang hoạt động có lớp khớp ít nhất một quy tắc đối tượng của hoạt động. Không khai báo quy tắc thì thông báo tới mọi lớp trưởng đang hoạt động. `SourceKey` theo hoạt động/người nhận ngăn gửi trùng. Lớp trưởng dùng chung API danh sách/lọc chưa đọc và đánh dấu đã đọc ở trên; các sinh viên khác không nhận thông báo này.
+Khi hoạt động được tạo ở trạng thái `Published` hoặc chuyển từ trạng thái khác sang `Published`, hệ thống tạo một thông báo `ClassActivity` cho lớp trưởng đang hoạt động có lớp khớp ít nhất một quy tắc đối tượng của hoạt động. Không khai báo quy tắc thì thông báo tới mọi lớp trưởng đang hoạt động. `SourceKey` theo hoạt động/người nhận ngăn gửi trùng. Nếu đối tượng được sửa khi hoạt động đã công bố, người mới phù hợp cũng nhận thông báo. Lớp trưởng dùng chung API danh sách/lọc chưa đọc và đánh dấu đã đọc ở trên; sinh viên khác nhận thông báo riêng `StudentActivity`, không nhận `ClassActivity`.
 
 ## Cấu trúc project
 

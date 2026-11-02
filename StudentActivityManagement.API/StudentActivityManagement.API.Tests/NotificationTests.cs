@@ -127,25 +127,28 @@ public sealed class NotificationTests : IClassFixture<CustomWebApplicationFactor
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var notice = await db.UserNotifications.SingleAsync(item => item.ActivityId == activityId);
+            var notice = await db.UserNotifications.SingleAsync(item => item.ActivityId == activityId && item.Kind == "ClassActivity");
             Assert.Equal("ClassActivity", notice.Kind);
             Assert.NotEqual(otherMonitorId, notice.RecipientUserId);
             var service = scope.ServiceProvider.GetRequiredService<INotificationService>();
             Assert.Equal(0, await service.NotifyMonitorsOfPublishedActivityAsync(activityId));
+            Assert.Equal(0, await service.NotifyStudentsOfPublishedActivityAsync(activityId));
         }
 
         var monitorInbox = await DataAsync(await _api.GetAsync("/api/v1/notifications?unreadOnly=true", monitor));
         var notification = monitorInbox.GetProperty("items").EnumerateArray()
-            .Single(item => item.GetProperty("activityId").GetInt32() == activityId);
+            .Single(item => item.GetProperty("activityId").GetInt32() == activityId &&
+                item.GetProperty("kind").GetString() == "ClassActivity");
         Assert.Equal("ClassActivity", notification.GetProperty("kind").GetString());
-        Assert.DoesNotContain((await DataAsync(await _api.GetAsync("/api/v1/notifications?unreadOnly=true", student)))
-            .GetProperty("items").EnumerateArray(), item => item.GetProperty("activityId").GetInt32() == activityId);
+        Assert.Contains((await DataAsync(await _api.GetAsync("/api/v1/notifications?unreadOnly=true", student)))
+            .GetProperty("items").EnumerateArray(), item => item.GetProperty("activityId").GetInt32() == activityId &&
+                item.GetProperty("kind").GetString() == "StudentActivity");
 
         var notificationId = notification.GetProperty("id").GetInt32();
         Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Post,
             $"/api/v1/notifications/{notificationId}/read", monitor, null)).StatusCode);
         Assert.DoesNotContain((await DataAsync(await _api.GetAsync("/api/v1/notifications?unreadOnly=true", monitor)))
-            .GetProperty("items").EnumerateArray(), item => item.GetProperty("activityId").GetInt32() == activityId);
+            .GetProperty("items").EnumerateArray(), item => item.GetProperty("id").GetInt32() == notificationId);
     }
 
     [Fact]
