@@ -65,4 +65,20 @@ public sealed class ScoringController : WebControllerBase
 
         return View(new PointHistoryViewModel { ActivityId = id, StudentLabel = student ?? string.Empty, Entries = result.Data ?? [] });
     }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Transition(int id, int pointRecordId, string status, string reason)
+    {
+        var result = await _api.TransitionPointRecordAsync(pointRecordId, status, reason);
+        if (!result.Success)
+        {
+            FlashError(result.Message);
+        }
+        else
+        {
+            FlashSuccess($"Đã chuyển quyết định điểm sang {result.Data?.Status} và lưu lý do vào lịch sử.");
+        }
+
+        return RedirectToAction(nameof(Index), new { id });
+    }
 }
