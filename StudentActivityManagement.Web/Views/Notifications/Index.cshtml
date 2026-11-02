@@ -6,7 +6,7 @@
 <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
     <div>
         <h1 class="h3 mb-1">@ViewData["Title"]</h1>
-        <p class="text-muted mb-0">Nhắc lịch cho các buổi bạn đã đăng ký hoặc thuộc diện tham gia bắt buộc.</p>
+        <p class="text-muted mb-0">Thông báo hoạt động mới liên quan đến lớp và nhắc lịch các buổi bạn đã đăng ký hoặc thuộc diện bắt buộc.</p>
     </div>
     <div class="btn-group" role="group" aria-label="Lọc thông báo">
         <a class="btn @(unreadOnly ? "btn-outline-primary" : "btn-primary")" asp-action="Index">Tất cả</a>
@@ -27,6 +27,7 @@ else
                     <a asp-controller="StudentActivities" asp-action="Details" asp-route-id="@item.ActivityId" class="fw-semibold">@item.Title</a>
                     <span class="small text-muted"><vn-time value="@item.CreatedAt" /></span>
                 </div>
+                <span class="badge text-bg-light border mb-2">@(item.Kind switch { "ClassActivity" => "Hoạt động mới của lớp", "ActivityReminder" => "Nhắc lịch", _ => "Thông báo" })</span>
                 <p class="pre-line mb-2">@item.Body</p>
                 @if (item.ReadAt == null)
                 {
