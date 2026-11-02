@@ -529,6 +529,7 @@ public sealed class ClassThreadDetail : ClassThreadSummary
     public string Body { get; set; } = string.Empty;
     public bool CanDelete { get; set; }
     public bool CanEscalate { get; set; }
+    public bool CanPin { get; set; }
     public List<ClassThreadReply> Replies { get; set; } = [];
 }
 

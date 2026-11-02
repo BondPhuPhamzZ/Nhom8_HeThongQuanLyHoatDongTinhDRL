@@ -47,6 +47,14 @@ public sealed class ClassSpaceController : WebControllerBase
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Pin(int id, bool isPinned)
+    {
+        var result = await _api.SetClassThreadPinnedAsync(id, isPinned);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Thread), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Reply(int id, string? body)
     {
         if (string.IsNullOrWhiteSpace(body))

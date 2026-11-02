@@ -89,7 +89,7 @@
     <div class="col-lg-4">
         <div class="card shadow-sm border-0">
             <div class="card-body">
-                <h2 class="h6">Đặt câu hỏi / mở thảo luận</h2>
+                <h2 class="h6">@(space.IsMonitor ? "Đăng thông báo lớp" : "Đặt câu hỏi / mở thảo luận")</h2>
                 <form asp-action="Create" method="post" novalidate>
                     <div asp-validation-summary="All" class="alert alert-danger py-2 small empty-hidden"></div>
                     <div class="mb-2">
@@ -97,6 +97,7 @@
                         <select asp-for="NewThread.Kind" class="form-select">
                             <option value="Question">Câu hỏi</option>
                             <option value="Discussion">Thảo luận</option>
+                            @if (space.IsMonitor) { <option value="Announcement">Thông báo / nhắc lớp</option> }
                         </select>
                     </div>
                     <div class="mb-2">
@@ -109,7 +110,7 @@
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Đăng</button>
                 </form>
-                <p class="small text-muted mt-2 mb-0">Thông báo chính thức của lớp do lớp trưởng đăng (sẽ có ở chức năng thông báo lớp).</p>
+                <p class="small text-muted mt-2 mb-0">@(space.IsMonitor ? "Thông báo sẽ được ghim lên đầu để cả lớp dễ thấy." : "Thông báo và nhắc nhở chính thức do lớp trưởng đăng.")</p>
             </div>
         </div>
     </div>
