@@ -40,14 +40,21 @@ public sealed class StudentPointsService : IStudentPointsService
         var recommendations = new List<ActivityResponseDto>();
         if (missingPoints > 0 && period.Status == EvaluationPeriodStatus.Open)
         {
-            var eligible = await _activities.GetStudentActivitiesAsync(studentId, null, null, 1, 100, registeredOnly: false);
-            if (!eligible.Success || eligible.Data == null)
+            var eligibleActivities = new List<ActivityResponseDto>();
+            for (var page = 1; ; page++)
             {
-                return ApiResponseDto<StudentPointsRecommendationDto>.Fail(
-                    eligible.Message, eligible.HttpStatusCode, eligible.ErrorCode);
+                var eligible = await _activities.GetStudentActivitiesAsync(studentId, null, null, page, 100, registeredOnly: false);
+                if (!eligible.Success || eligible.Data == null)
+                {
+                    return ApiResponseDto<StudentPointsRecommendationDto>.Fail(
+                        eligible.Message, eligible.HttpStatusCode, eligible.ErrorCode);
+                }
+
+                eligibleActivities.AddRange(eligible.Data.Items);
+                if (eligible.Data.Items.Count == 0 || eligibleActivities.Count >= eligible.Data.TotalCount) break;
             }
 
-            recommendations = eligible.Data.Items
+            recommendations = eligibleActivities
                 .Where(activity => activity.Status == ActivityStatus.Published && activity.IsRegistrationOpen &&
                     activity.RemainingSlots > 0 && activity.TrainingPoints > 0 &&
                     activity.StartTime <= period.EndDate && activity.EndTime >= period.StartDate &&
