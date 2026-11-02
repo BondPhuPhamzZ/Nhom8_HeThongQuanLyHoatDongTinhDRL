@@ -465,6 +465,7 @@ public sealed class PointRecordInfo
     public string? Reason { get; set; }
     public string? DecidedByName { get; set; }
     public DateTime DecidedAt { get; set; }
+    public List<string> AllowedNextStatuses { get; set; } = [];
 }
 
 public sealed class PointRecordHistoryEntry
