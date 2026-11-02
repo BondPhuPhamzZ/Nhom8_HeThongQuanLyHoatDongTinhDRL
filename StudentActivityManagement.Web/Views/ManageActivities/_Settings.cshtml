@@ -1,0 +1,52 @@
+@model ActivitySettingsViewModel
+<section class="mt-4" aria-labelledby="settings-title">
+    <h2 class="h5" id="settings-title">Check-in &amp; nhắc nhở</h2>
+    @if (!Model.CanEdit)
+    {
+        <p class="text-muted">Hoạt động đã kết thúc hoặc bị hủy; cấu hình được giữ nguyên để tra cứu.</p>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <div class="card h-100"><div class="card-body">
+                    <h3 class="h6">Phương thức và cửa sổ check-in</h3>
+                    <p class="small text-muted">Sinh viên check-in từ @Model.CheckIn.OpenBeforeMinutes phút trước đến @Model.CheckIn.CloseAfterMinutes phút sau mỗi buổi.</p>
+                    <form asp-action="SaveCheckInConfig" asp-route-id="@Model.CheckIn.ActivityId" method="post">
+                        <div class="mb-3">
+                            <label class="form-label" for="settings-method">Phương thức</label>
+                            <select class="form-select" id="settings-method" name="Method" disabled="@(Model.CheckIn.HasCheckIns ? "disabled" : null)">
+                                <option value="Code" selected="@(Model.CheckIn.Method == "Code" ? "selected" : null)">Sinh viên nhập mã theo buổi</option>
+                                <option value="Manual" selected="@(Model.CheckIn.Method == "Manual" ? "selected" : null)">HSSV điểm danh thủ công</option>
+                            </select>
+                            @if (Model.CheckIn.HasCheckIns)
+                            {
+                                <input type="hidden" name="Method" value="@Model.CheckIn.Method" />
+                                <div class="form-text">Không thể đổi phương thức vì đã có lượt điểm danh.</div>
+                            }
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-sm-6"><label class="form-label" for="open-before">Mở trước (phút)</label><input class="form-control" id="open-before" name="OpenBeforeMinutes" type="number" min="0" max="240" value="@Model.CheckIn.OpenBeforeMinutes" required /></div>
+                            <div class="col-sm-6"><label class="form-label" for="close-after">Đóng sau (phút)</label><input class="form-control" id="close-after" name="CloseAfterMinutes" type="number" min="0" max="240" value="@Model.CheckIn.CloseAfterMinutes" required /></div>
+                        </div>
+                        <button class="btn btn-primary mt-3" type="submit">Lưu cấu hình check-in</button>
+                    </form>
+                </div></div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100"><div class="card-body">
+                    <h3 class="h6">Lịch nhắc trước mỗi buổi</h3>
+                    <p class="small text-muted">Lịch này lưu các mốc để dịch vụ nhắc nhở sử dụng. Có thể chọn tối đa 3 mốc.</p>
+                    <form asp-action="SaveReminderSchedule" asp-route-id="@Model.Reminders.ActivityId" method="post">
+                        @{ var current = Model.Reminders.OffsetsMinutes; }
+                        <div class="mb-2"><label class="form-label" for="offset-1">Mốc 1 (phút)</label><input class="form-control" id="offset-1" name="Offset1" type="number" min="10" max="10080" value="@(current.Count > 0 ? current[0] : (int?)null)" /></div>
+                        <div class="mb-2"><label class="form-label" for="offset-2">Mốc 2 (phút, tùy chọn)</label><input class="form-control" id="offset-2" name="Offset2" type="number" min="10" max="10080" value="@(current.Count > 1 ? current[1] : null)" /></div>
+                        <div class="mb-2"><label class="form-label" for="offset-3">Mốc 3 (phút, tùy chọn)</label><input class="form-control" id="offset-3" name="Offset3" type="number" min="10" max="10080" value="@(current.Count > 2 ? current[2] : null)" /></div>
+                        <div class="form-text mb-3">Gợi ý nhanh: 1440 (1 ngày), 180 (3 giờ), 60 (1 giờ), 30 phút.</div>
+                        <button class="btn btn-outline-primary" type="submit">Lưu lịch nhắc</button>
+                    </form>
+                </div></div>
+            </div>
+        </div>
+    }
+</section>

@@ -205,6 +205,18 @@ public sealed class ApiClient
     public Task<ApiResult<SessionCheckInCode>> GenerateCheckInCodeAsync(int activityId, int sessionId) =>
         SendAsync<SessionCheckInCode>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-in-code");
 
+    public Task<ApiResult<CheckInConfigDto>> GetCheckInConfigAsync(int activityId) =>
+        SendAsync<CheckInConfigDto>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/check-in-config");
+
+    public Task<ApiResult<CheckInConfigDto>> UpdateCheckInConfigAsync(int activityId, string method, int openBeforeMinutes, int closeAfterMinutes) =>
+        SendAsync<CheckInConfigDto>(HttpMethod.Put, $"api/v1/admin/activities/{activityId}/check-in-config", new { method, openBeforeMinutes, closeAfterMinutes });
+
+    public Task<ApiResult<ReminderScheduleDto>> GetReminderScheduleAsync(int activityId) =>
+        SendAsync<ReminderScheduleDto>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/reminder-schedule");
+
+    public Task<ApiResult<ReminderScheduleDto>> UpdateReminderScheduleAsync(int activityId, IReadOnlyList<int> offsetsMinutes) =>
+        SendAsync<ReminderScheduleDto>(HttpMethod.Put, $"api/v1/admin/activities/{activityId}/reminder-schedule", new { offsetsMinutes });
+
     public Task<ApiResult<ActivityParticipants>> GetParticipantsAsync(int activityId, string? status, string? search, bool pendingOnly, int page, int pageSize = 20) =>
         SendAsync<ActivityParticipants>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/participants?{Query(
             ("status", status), ("search", search), ("hasPendingEvidence", pendingOnly ? "true" : null),
