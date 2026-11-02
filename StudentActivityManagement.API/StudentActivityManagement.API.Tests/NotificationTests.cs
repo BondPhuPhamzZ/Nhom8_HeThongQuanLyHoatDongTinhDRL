@@ -102,6 +102,89 @@ public sealed class NotificationTests : IClassFixture<CustomWebApplicationFactor
         Assert.False(await db.UserNotifications.AnyAsync(item => item.ActivityId == cancelled.Id));
     }
 
+    [Fact]
+    public async Task PublishedActivities_NotifyOnlyMatchingClassMonitor_AndSupportReadState()
+    {
+        var staff = await _api.LoginAsync(AccountTestClient.HssvCode, AccountTestClient.HssvPassword);
+        var monitor = await _api.LoginAsync("SV210001", "123456");
+        var student = await _api.LoginAsync("SV210002", "123456");
+        int otherMonitorId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var code = $"SV{Guid.NewGuid():N}"[..10].ToUpperInvariant();
+            var other = NewStudent("K22");
+            other.Role = Role.Monitor;
+            other.StudentCode = code;
+            other.IsClassMonitor = true;
+            other.ClassId = 2;
+            db.Users.Add(other);
+            await db.SaveChangesAsync();
+            otherMonitorId = other.Id;
+        }
+
+        var activityId = await CreateAnnouncementActivityAsync(staff, "Published", 1);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var notice = await db.UserNotifications.SingleAsync(item => item.ActivityId == activityId);
+            Assert.Equal("ClassActivity", notice.Kind);
+            Assert.NotEqual(otherMonitorId, notice.RecipientUserId);
+            var service = scope.ServiceProvider.GetRequiredService<INotificationService>();
+            Assert.Equal(0, await service.NotifyMonitorsOfPublishedActivityAsync(activityId));
+        }
+
+        var monitorInbox = await DataAsync(await _api.GetAsync("/api/v1/notifications?unreadOnly=true", monitor));
+        var notification = monitorInbox.GetProperty("items").EnumerateArray()
+            .Single(item => item.GetProperty("activityId").GetInt32() == activityId);
+        Assert.Equal("ClassActivity", notification.GetProperty("kind").GetString());
+        Assert.DoesNotContain((await DataAsync(await _api.GetAsync("/api/v1/notifications?unreadOnly=true", student)))
+            .GetProperty("items").EnumerateArray(), item => item.GetProperty("activityId").GetInt32() == activityId);
+
+        var notificationId = notification.GetProperty("id").GetInt32();
+        Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Post,
+            $"/api/v1/notifications/{notificationId}/read", monitor, null)).StatusCode);
+        Assert.DoesNotContain((await DataAsync(await _api.GetAsync("/api/v1/notifications?unreadOnly=true", monitor)))
+            .GetProperty("items").EnumerateArray(), item => item.GetProperty("activityId").GetInt32() == activityId);
+    }
+
+    [Fact]
+    public async Task DraftActivity_NotifiesClassMonitorOnlyAfterPublication()
+    {
+        var staff = await _api.LoginAsync(AccountTestClient.HssvCode, AccountTestClient.HssvPassword);
+        var monitor = await _api.LoginAsync("SV210001", "123456");
+        var activityId = await CreateAnnouncementActivityAsync(staff, "Draft", 1);
+        var publish = await _api.SendAsync(HttpMethod.Patch, $"/api/v1/admin/activities/{activityId}/status", staff,
+            new { status = "Published" });
+        Assert.Equal(HttpStatusCode.OK, publish.StatusCode);
+        var inbox = await DataAsync(await _api.GetAsync("/api/v1/notifications?unreadOnly=true", monitor));
+        Assert.Contains(inbox.GetProperty("items").EnumerateArray(), item => item.GetProperty("activityId").GetInt32() == activityId);
+    }
+
+    private async Task<int> CreateAnnouncementActivityAsync(string staff, string status, int classId)
+    {
+        var start = DateTime.UtcNow.AddDays(2);
+        var response = await _api.SendAsync(HttpMethod.Post, "/api/v1/admin/activities", staff, new
+        {
+            activityName = $"Thông báo lớp {Guid.NewGuid():N}",
+            description = "Hoạt động thông báo lớp trưởng",
+            organizerName = "Phòng QL HSSV",
+            registrationOpenTime = start.AddDays(-2),
+            registrationCloseTime = start.AddDays(-1),
+            maxParticipants = 20,
+            trainingPoints = 2,
+            targetAudience = "Sinh viên lớp được chọn",
+            status,
+            sessions = new[]
+            {
+                new { sessionName = "Buổi 1", campus = "Cơ sở 1", location = "Hội trường", startTime = start, endTime = start.AddHours(2), sortOrder = 1 }
+            },
+            audienceRules = new[] { new { campus = (string?)null, academicYear = (string?)null, classId = (int?)classId, participationType = "Recommended" } }
+        });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        return (await AccountTestClient.ReadJsonAsync(response)).GetProperty("data").GetProperty("id").GetInt32();
+    }
+
     private static Activity NewActivity(DateTime startUtc, string status) => new()
     {
         ActivityName = $"Nhắc lịch {Guid.NewGuid():N}",
