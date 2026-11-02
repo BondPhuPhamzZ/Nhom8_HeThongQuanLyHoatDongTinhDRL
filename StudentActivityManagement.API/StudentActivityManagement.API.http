@@ -360,3 +360,7 @@ Content-Type: application/json
 {
   "isPinned": false
 }
+
+### US-14 — lớp trưởng chọn trả lời chính thức cho một câu hỏi
+POST {{host}}/api/v1/class-space/threads/1/replies/1/answer
+Authorization: Bearer {{monitorToken}}

@@ -235,10 +235,11 @@ Không tìm thấy kỳ (hoặc chưa có kỳ nào) trả `404`. `groupBy` khô
 | `POST threads` | `{ kind, title, body }`; `Question`/`Discussion` dành cho thành viên, `Announcement` chỉ lớp trưởng hiện tại mới được đăng và tự ghim lên đầu. Trả `201` |
 | `PATCH threads/{id}/pin` | `{ isPinned }`; chỉ lớp trưởng hiện tại được ghim/bỏ ghim chủ đề của lớp mình |
 | `POST threads/{id}/replies` | `{ body }`; cập nhật thời điểm hoạt động của chủ đề. Trả `201` |
+| `POST threads/{id}/replies/{replyId}/answer` | Chỉ lớp trưởng của lớp chọn một trả lời làm đáp án; chủ đề chuyển `Answered`, khi đổi đáp án thì đáp án cũ được bỏ chọn |
 | `DELETE threads/{id}` | Chỉ người tạo, khi chưa có người khác trả lời |
 | `DELETE threads/{id}/replies/{replyId}` | Chỉ người viết, trừ trả lời đã được chọn làm câu trả lời (`isAnswer`) |
 
-Mã lỗi: sinh viên chưa được xếp lớp `409 business_rule_violation`; chủ đề của lớp khác hoặc không tồn tại `404`; không phải tác giả `403 access_denied`; chủ đề `Closed` không nhận trả lời `409`. Trạng thái `Answered`/`Closed`, ghim chủ đề và chọn câu trả lời đã có sẵn trong schema cho các chức năng của lớp trưởng (US-13/US-14).
+Mã lỗi: sinh viên chưa được xếp lớp `409 business_rule_violation`; chủ đề của lớp khác hoặc không tồn tại `404`; không phải tác giả/lớp trưởng hiện tại `403 access_denied`; chủ đề `Closed` không nhận trả lời `409`. Lớp trưởng có thể theo dõi câu hỏi theo `kind=Question`, trả lời, chọn một trả lời làm đáp án chính thức và cập nhật trạng thái câu hỏi `Answered` (US-14).
 
 ### Lớp trưởng chuyển câu hỏi lên Phòng QL HSSV (US-15)
 
