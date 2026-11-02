@@ -278,6 +278,9 @@ public sealed class ApiClient
     public Task<ApiResult<ClassThreadDetail>> CreateClassThreadAsync(string kind, string title, string body) =>
         SendAsync<ClassThreadDetail>(HttpMethod.Post, "api/v1/class-space/threads", new { kind, title, body });
 
+    public Task<ApiResult<ClassThreadDetail>> SetClassThreadPinnedAsync(int threadId, bool isPinned) =>
+        SendAsync<ClassThreadDetail>(HttpMethod.Patch, $"api/v1/class-space/threads/{threadId}/pin", new { isPinned });
+
     public Task<ApiResult<ClassThreadReply>> ReplyClassThreadAsync(int threadId, string body) =>
         SendAsync<ClassThreadReply>(HttpMethod.Post, $"api/v1/class-space/threads/{threadId}/replies", new { body });
 
