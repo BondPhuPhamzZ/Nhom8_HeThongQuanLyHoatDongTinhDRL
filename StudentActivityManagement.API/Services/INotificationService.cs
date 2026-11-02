@@ -10,4 +10,5 @@ public interface INotificationService
     Task<int> DispatchDueRemindersAsync(DateTime nowUtc, CancellationToken cancellationToken = default);
 
     Task<int> NotifyMonitorsOfPublishedActivityAsync(int activityId, CancellationToken cancellationToken = default);
+    Task<int> NotifyStudentsOfPublishedActivityAsync(int activityId, CancellationToken cancellationToken = default);
 }

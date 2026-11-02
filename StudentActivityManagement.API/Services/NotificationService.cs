@@ -191,6 +191,58 @@ public sealed class NotificationService : INotificationService
         }
     }
 
+    public async Task<int> NotifyStudentsOfPublishedActivityAsync(int activityId, CancellationToken cancellationToken = default)
+    {
+        var activity = await _context.Activities.AsNoTracking()
+            .Include(item => item.AudienceRules)
+            .Include(item => item.Sessions)
+            .FirstOrDefaultAsync(item => item.Id == activityId && item.Status == ActivityStatus.Published, cancellationToken);
+        if (activity == null) return 0;
+
+        var session = activity.Sessions.OrderBy(item => item.SortOrder).FirstOrDefault();
+        if (session == null) return 0;
+
+        var students = await _context.Users.AsNoTracking()
+            .Where(user => user.IsActive && (user.Role == Role.Student || user.Role == Role.Monitor))
+            .ToListAsync(cancellationToken);
+        var recipients = students.Where(student => activity.AudienceRules.Count == 0 || activity.AudienceRules.Any(rule =>
+            (rule.Campus == null || rule.Campus == student.Campus) &&
+            (rule.AcademicYear == null || rule.AcademicYear == student.AcademicYear) &&
+            (rule.ClassId == null || rule.ClassId == student.ClassId)));
+        var now = DateTime.UtcNow;
+        var created = 0;
+        foreach (var student in recipients)
+        {
+            var sourceKey = $"StudentActivity:{activityId}:{student.Id}";
+            if (await _context.UserNotifications.AsNoTracking().AnyAsync(item => item.SourceKey == sourceKey, cancellationToken))
+                continue;
+
+            var notification = new UserNotification
+            {
+                RecipientUserId = student.Id,
+                SourceKey = sourceKey,
+                Kind = "StudentActivity",
+                ActivityId = activityId,
+                SessionId = session.Id,
+                Title = $"Hoạt động mới: {activity.ActivityName}",
+                Body = BuildBody(session, activity),
+                CreatedAt = now
+            };
+            _context.UserNotifications.Add(notification);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                created++;
+            }
+            catch (DbUpdateException exception) when (exception.InnerException is SqliteException sqlite
+                && sqlite.SqliteErrorCode == 19 && sqlite.SqliteExtendedErrorCode == 2067)
+            {
+                _context.Entry(notification).State = EntityState.Detached;
+            }
+        }
+        return created;
+    }
+
     private static string BuildBody(ActivitySession session, Activity activity)
     {
         var local = session.StartTime.AddHours(7); // The project displays Vietnam time (UTC+7).

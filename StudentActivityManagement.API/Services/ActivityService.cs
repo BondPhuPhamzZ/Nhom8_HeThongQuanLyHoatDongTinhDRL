@@ -157,6 +157,7 @@ public sealed class ActivityService : IActivityService
         if (activity.Status == ActivityStatus.Published)
         {
             await _notifications.NotifyMonitorsOfPublishedActivityAsync(activity.Id);
+            await _notifications.NotifyStudentsOfPublishedActivityAsync(activity.Id);
         }
         await LoadStructureAsync(activity);
 
@@ -213,7 +214,6 @@ public sealed class ActivityService : IActivityService
             return ActivityConflict("Không thể xóa buổi đã có dữ liệu check-in hoặc minh chứng.");
         }
 
-        var previousStatus = activity.Status;
         var requestedStatus = NormalizeStatus(request.Status)!;
         var transitionError = await CheckTransitionAsync(activity, requestedStatus);
         if (transitionError != null)
@@ -246,9 +246,11 @@ public sealed class ActivityService : IActivityService
 
         await _context.SaveChangesAsync();
         await transaction.CommitAsync();
-        if (previousStatus != ActivityStatus.Published && activity.Status == ActivityStatus.Published)
+        // Audience rules may change while published; idempotent source keys only notify newly eligible users.
+        if (activity.Status == ActivityStatus.Published)
         {
             await _notifications.NotifyMonitorsOfPublishedActivityAsync(activity.Id);
+            await _notifications.NotifyStudentsOfPublishedActivityAsync(activity.Id);
         }
         await LoadStructureAsync(activity);
 
@@ -285,6 +287,7 @@ public sealed class ActivityService : IActivityService
         if (previousStatus != ActivityStatus.Published && activity.Status == ActivityStatus.Published)
         {
             await _notifications.NotifyMonitorsOfPublishedActivityAsync(activity.Id);
+            await _notifications.NotifyStudentsOfPublishedActivityAsync(activity.Id);
         }
 
         return ApiResponseDto<ActivityResponseDto>.Ok(
