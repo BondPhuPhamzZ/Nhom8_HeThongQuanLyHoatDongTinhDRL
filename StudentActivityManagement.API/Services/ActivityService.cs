@@ -19,11 +19,13 @@ public sealed class ActivityService : IActivityService
 
     private readonly AppDbContext _context;
     private readonly IActivityEligibilityService _eligibilityService;
+    private readonly INotificationService _notifications;
 
-    public ActivityService(AppDbContext context, IActivityEligibilityService eligibilityService)
+    public ActivityService(AppDbContext context, IActivityEligibilityService eligibilityService, INotificationService notifications)
     {
         _context = context;
         _eligibilityService = eligibilityService;
+        _notifications = notifications;
     }
 
     public async Task<ApiResponseDto<PagedResultDto<ActivityResponseDto>>> GetActivitiesAsync(
@@ -152,6 +154,10 @@ public sealed class ActivityService : IActivityService
 
         _context.Activities.Add(activity);
         await _context.SaveChangesAsync();
+        if (activity.Status == ActivityStatus.Published)
+        {
+            await _notifications.NotifyMonitorsOfPublishedActivityAsync(activity.Id);
+        }
         await LoadStructureAsync(activity);
 
         return ApiResponseDto<ActivityResponseDto>.Ok(
@@ -207,6 +213,7 @@ public sealed class ActivityService : IActivityService
             return ActivityConflict("Không thể xóa buổi đã có dữ liệu check-in hoặc minh chứng.");
         }
 
+        var previousStatus = activity.Status;
         var requestedStatus = NormalizeStatus(request.Status)!;
         var transitionError = await CheckTransitionAsync(activity, requestedStatus);
         if (transitionError != null)
@@ -239,6 +246,10 @@ public sealed class ActivityService : IActivityService
 
         await _context.SaveChangesAsync();
         await transaction.CommitAsync();
+        if (previousStatus != ActivityStatus.Published && activity.Status == ActivityStatus.Published)
+        {
+            await _notifications.NotifyMonitorsOfPublishedActivityAsync(activity.Id);
+        }
         await LoadStructureAsync(activity);
 
         return ApiResponseDto<ActivityResponseDto>.Ok(
@@ -267,9 +278,14 @@ public sealed class ActivityService : IActivityService
             return ActivityConflict(transitionError);
         }
 
+        var previousStatus = activity.Status;
         activity.Status = normalizedStatus;
         activity.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
+        if (previousStatus != ActivityStatus.Published && activity.Status == ActivityStatus.Published)
+        {
+            await _notifications.NotifyMonitorsOfPublishedActivityAsync(activity.Id);
+        }
 
         return ApiResponseDto<ActivityResponseDto>.Ok(
             MapToResponse(activity),
