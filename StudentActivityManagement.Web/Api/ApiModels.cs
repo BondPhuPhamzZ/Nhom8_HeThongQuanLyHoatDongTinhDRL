@@ -61,6 +61,24 @@ public sealed class ActivityDto
     public bool IsRegistrationOpen { get; set; }
 }
 
+public sealed class CheckInConfigDto
+{
+    public int ActivityId { get; set; }
+    public string Method { get; set; } = "Code";
+    public int OpenBeforeMinutes { get; set; }
+    public int CloseAfterMinutes { get; set; }
+    public bool IsDefault { get; set; }
+    public bool HasCheckIns { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+}
+
+public sealed class ReminderScheduleDto
+{
+    public int ActivityId { get; set; }
+    public List<int> OffsetsMinutes { get; set; } = [];
+    public bool IsDefault { get; set; }
+}
+
 public sealed class SessionDto
 {
     public int Id { get; set; }
