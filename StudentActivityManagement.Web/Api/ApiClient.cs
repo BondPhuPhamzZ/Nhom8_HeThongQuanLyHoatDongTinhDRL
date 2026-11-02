@@ -303,6 +303,9 @@ public sealed class ApiClient
     public Task<ApiResult<ThreadEscalation>> WithdrawClassEscalationAsync(int escalationId) =>
         SendAsync<ThreadEscalation>(HttpMethod.Post, $"api/v1/class-space/escalations/{escalationId}/withdraw");
 
+    public Task<ApiResult<ThreadEscalation>> RelayClassEscalationAsync(int escalationId) =>
+        SendAsync<ThreadEscalation>(HttpMethod.Post, $"api/v1/class-space/escalations/{escalationId}/relay");
+
     // ---- Phòng QL HSSV escalation inbox (US-20)
     public Task<ApiResult<PagedResult<ThreadEscalation>>> GetStaffEscalationsAsync(string? status, int page, int pageSize = 20) =>
         SendAsync<PagedResult<ThreadEscalation>>(HttpMethod.Get, $"api/v1/admin/class-escalations?{Query(("status", status), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");

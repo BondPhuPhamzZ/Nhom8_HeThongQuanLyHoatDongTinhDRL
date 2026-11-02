@@ -135,6 +135,14 @@ public sealed class ClassSpaceController : WebControllerBase
         return RedirectToAction(nameof(Escalations), new { status });
     }
 
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Relay(int escalationId, string? status)
+    {
+        var result = await _api.RelayClassEscalationAsync(escalationId);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Escalations), new { status });
+    }
+
     private async Task<ClassSpaceViewModel> LoadIndexAsync(string? kind, string? search, int page, ClassThreadForm form)
     {
         var result = await _api.GetClassSpaceAsync(kind, search, Math.Max(page, 1));
