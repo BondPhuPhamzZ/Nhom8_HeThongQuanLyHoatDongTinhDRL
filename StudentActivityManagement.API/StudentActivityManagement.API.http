@@ -364,3 +364,7 @@ Content-Type: application/json
 ### US-14 — lớp trưởng chọn trả lời chính thức cho một câu hỏi
 POST {{host}}/api/v1/class-space/threads/1/replies/1/answer
 Authorization: Bearer {{monitorToken}}
+
+### US-16 — lớp trưởng chuyển phản hồi chính thức vào chủ đề của lớp
+POST {{host}}/api/v1/class-space/escalations/1/relay
+Authorization: Bearer {{monitorToken}}
