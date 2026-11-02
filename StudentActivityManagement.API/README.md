@@ -287,6 +287,19 @@ Prefix `/api/v1/admin/class-escalations`, quyền `BusinessAdmin` (HSSV hoặc S
 
 Phản hồi ghi người trả lời và thời gian UTC, hiện lại trong danh sách của lớp trưởng. Trả lời lần hai hoặc trả lời câu hỏi đã rút lại trả `409`; câu hỏi không tồn tại trả `404`. Cập nhật có điều kiện bảo đảm thao tác trả lời và rút lại đồng thời chỉ một bên thành công. Chuyển phản hồi tới cả lớp thuộc US-16.
 
+### Cấu hình check-in và lịch nhắc (US-26)
+
+Phòng QL HSSV và SystemAdmin quản lý cấu hình theo hoạt động:
+
+| Endpoint | Nội dung |
+|---|---|
+| `GET /api/v1/admin/activities/{id}/check-in-config` | Phương thức `Code`/`Manual`, cửa sổ mở/đóng; chưa lưu thì mặc định `Code`, 15/30 phút |
+| `PUT /api/v1/admin/activities/{id}/check-in-config` | `{ method, openBeforeMinutes, closeAfterMinutes }`, lưu người cập nhật từ JWT và thời điểm UTC |
+| `GET /api/v1/admin/activities/{id}/reminder-schedule` | Các mốc trước từng buổi; mặc định `[1440]` phút |
+| `PUT /api/v1/admin/activities/{id}/reminder-schedule` | `{ offsetsMinutes: [1440, 60] }`; thay toàn bộ, lưu tăng dần |
+
+Cửa sổ check-in từ 0–240 phút; lịch nhắc có 1–3 mốc khác nhau từ 10–10080 phút. Chỉ sửa khi hoạt động ở `Draft`, `Published` hoặc `Ongoing`; không đổi phương thức sau khi đã có check-in. US-26 chỉ lưu cấu hình; gửi thông báo thuộc US-06.
+
 Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động có `organizerName`, danh sách `sessions` và `audienceRules`. Sinh viên chỉ thấy và đăng ký hoạt động phù hợp cơ sở, khóa hoặc lớp của mình.
 
 ### US-06 — thông báo nhắc lịch trong ứng dụng
