@@ -97,6 +97,49 @@ public sealed class StudentPointsTests : IClassFixture<CustomWebApplicationFacto
             (await _api.GetAsync("/api/v1/student/reports/points-and-recommendations", null)).StatusCode);
     }
 
+    [Fact]
+    public async Task Recommendations_IncludeEligibleActivityBeyondFirstCatalogPage()
+    {
+        var staff = await _api.LoginAsync(AccountTestClient.HssvCode, AccountTestClient.HssvPassword);
+        var student = await _api.LoginAsync("SV210002", "123456");
+        var periodId = await CreatePeriodAsync(staff, $"Recommendation 2034 {Guid.NewGuid():N}", 2034, 50);
+        var now = DateTime.UtcNow;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Activity NewCandidate(int year, DateTime createdAt) => new()
+            {
+                ActivityName = $"Gợi ý phân trang {Guid.NewGuid():N}",
+                OrganizerName = "Phòng QL HSSV",
+                Status = ActivityStatus.Published,
+                CreatedAt = createdAt,
+                RegistrationOpenTime = now.AddDays(-1),
+                RegistrationCloseTime = now.AddDays(1),
+                StartTime = new DateTime(year, 2, 1, 8, 0, 0, DateTimeKind.Utc),
+                EndTime = new DateTime(year, 2, 1, 10, 0, 0, DateTimeKind.Utc),
+                MaxParticipants = 10,
+                TrainingPoints = 5,
+                Sessions = [new ActivitySession
+                {
+                    SessionName = "Buổi chính", Campus = "Cơ sở 1", Location = "Hội trường",
+                    StartTime = new DateTime(year, 2, 1, 8, 0, 0, DateTimeKind.Utc),
+                    EndTime = new DateTime(year, 2, 1, 10, 0, 0, DateTimeKind.Utc), SortOrder = 1
+                }]
+            };
+            var target = NewCandidate(2034, now.AddDays(-2));
+            db.Activities.Add(target);
+            for (var index = 0; index < 100; index++)
+                db.Activities.Add(NewCandidate(2035, now.AddDays(-1)));
+            await db.SaveChangesAsync();
+
+            var response = await _api.GetAsync($"/api/v1/student/reports/points-and-recommendations?periodId={periodId}", student);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var data = (await AccountTestClient.ReadJsonAsync(response)).GetProperty("data");
+            Assert.Contains(data.GetProperty("recommendedActivities").EnumerateArray(),
+                item => item.GetProperty("id").GetInt32() == target.Id);
+        }
+    }
+
     private async Task<int> CreatePeriodAsync(string staff, string name, int year, int targetPoints)
     {
         var response = await _api.SendAsync(HttpMethod.Post, "/api/v1/admin/evaluation-periods", staff, new
