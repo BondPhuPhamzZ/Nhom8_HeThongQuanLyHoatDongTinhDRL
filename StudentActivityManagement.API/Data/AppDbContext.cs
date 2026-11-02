@@ -274,6 +274,11 @@ namespace StudentActivityManagement.API.Data
                       .WithMany()
                       .HasForeignKey(escalation => escalation.AnsweredById)
                       .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(escalation => escalation.RelayedBy)
+                      .WithMany()
+                      .HasForeignKey(escalation => escalation.RelayedById)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<PointRecordHistory>(entity =>

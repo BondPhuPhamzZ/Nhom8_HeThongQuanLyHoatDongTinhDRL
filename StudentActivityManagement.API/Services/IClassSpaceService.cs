@@ -33,4 +33,6 @@ public interface IClassSpaceService
 
     /// <summary>US-15: the monitor withdraws an escalation that is still Pending.</summary>
     Task<ApiResponseDto<ThreadEscalationDto>> WithdrawEscalationAsync(int userId, int escalationId);
+
+    Task<ApiResponseDto<ThreadEscalationDto>> RelayEscalationAsync(int userId, int escalationId);
 }

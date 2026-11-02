@@ -642,6 +642,12 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Property<int?>("RaisedById")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("RelayedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("RelayedById")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -658,6 +664,8 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.HasIndex("AnsweredById");
 
                     b.HasIndex("RaisedById");
+
+                    b.HasIndex("RelayedById");
 
                     b.HasIndex("ThreadId")
                         .IsUnique()
@@ -1043,6 +1051,11 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .HasForeignKey("RaisedById")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("StudentActivityManagement.API.Models.User", "RelayedBy")
+                        .WithMany()
+                        .HasForeignKey("RelayedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("StudentActivityManagement.API.Models.ClassThread", "Thread")
                         .WithMany("Escalations")
                         .HasForeignKey("ThreadId")
@@ -1052,6 +1065,8 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Navigation("AnsweredBy");
 
                     b.Navigation("RaisedBy");
+
+                    b.Navigation("RelayedBy");
 
                     b.Navigation("Thread");
                 });
