@@ -112,8 +112,12 @@ public sealed class ActivitySettingsService : IActivitySettingsService
     public async Task<ApiResponseDto<ReminderScheduleDto>> UpdateReminderScheduleAsync(
         int activityId, ReminderScheduleUpdateDto request)
     {
-        if (!await _context.Activities.AnyAsync(item => item.Id == activityId))
-            return NotFound<ReminderScheduleDto>();
+        var activity = await _context.Activities.FirstOrDefaultAsync(item => item.Id == activityId);
+        if (activity == null) return NotFound<ReminderScheduleDto>();
+        if (!EditableStatuses.Contains(activity.Status, StringComparer.OrdinalIgnoreCase))
+        {
+            return Conflict<ReminderScheduleDto>("Không thể sửa lịch nhắc của hoạt động đã kết thúc hoặc đã hủy.");
+        }
 
         var offsets = request.OffsetsMinutes;
         if (offsets.Count == 0 || offsets.Count > SettingDefaults.MaxReminderCount ||
