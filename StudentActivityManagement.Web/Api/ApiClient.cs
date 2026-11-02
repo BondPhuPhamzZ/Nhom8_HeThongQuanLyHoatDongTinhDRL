@@ -62,6 +62,10 @@ public sealed class ApiClient
     public Task<ApiResult<StudentEvaluationHistoryDto>> GetStudentActivityHistoryAsync(int? periodId, string? registrationStatus) =>
         SendAsync<StudentEvaluationHistoryDto>(HttpMethod.Get, $"api/v1/student/reports/activity-history?{Query(("periodId", periodId?.ToString()), ("registrationStatus", registrationStatus))}");
 
+    public Task<ApiResult<StudentPointsRecommendationDto>> GetStudentPointsRecommendationsAsync(int? periodId = null) =>
+        SendAsync<StudentPointsRecommendationDto>(HttpMethod.Get,
+            $"api/v1/student/reports/points-and-recommendations?{Query(("periodId", periodId?.ToString()))}");
+
     // ---- Student Evidences (US-08)
     public Task<ApiResult<List<StudentEvidence>>> GetStudentEvidencesAsync(int activityId) =>
         SendAsync<List<StudentEvidence>>(HttpMethod.Get, $"api/v1/student-activities/{activityId}/evidences");

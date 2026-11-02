@@ -37,6 +37,10 @@ Authorization: Bearer {{studentToken}}
 GET {{host}}/api/v1/student/reports/activity-history?periodId=1&registrationStatus=Attended
 Authorization: Bearer {{studentToken}}
 
+### US-11 — Điểm đã duyệt, điểm còn thiếu và hoạt động phù hợp
+GET {{host}}/api/v1/student/reports/points-and-recommendations
+Authorization: Bearer {{studentToken}}
+
 ### Đăng nhập Quản trị viên hệ thống (SystemAdmin)
 POST {{host}}/api/v1/auth/login
 Content-Type: application/json

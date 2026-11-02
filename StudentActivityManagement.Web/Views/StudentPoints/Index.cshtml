@@ -1,0 +1,47 @@
+@model StudentPointsPageViewModel
+@{
+    ViewData["Title"] = "Điểm rèn luyện và gợi ý";
+}
+<h1 class="h3">Điểm rèn luyện và gợi ý</h1>
+@if (Model.Summary is not { } summary)
+{
+    <div class="alert alert-info">Chưa có kỳ đánh giá để tính mức điểm hiện tại.</div>
+}
+else
+{
+    <p class="text-muted">Kỳ @summary.Period.Name · mục tiêu @summary.Period.TargetPoints điểm</p>
+    <div class="row g-3 mb-4">
+        <div class="col-sm-4"><div class="stat-tile"><div class="stat-value">@summary.ApprovedPoints</div><div class="stat-label">Điểm đã duyệt</div></div></div>
+        <div class="col-sm-4"><div class="stat-tile"><div class="stat-value">@summary.Period.TargetPoints</div><div class="stat-label">Mục tiêu kỳ</div></div></div>
+        <div class="col-sm-4"><div class="stat-tile"><div class="stat-value">@summary.MissingPoints</div><div class="stat-label">Điểm còn thiếu</div></div></div>
+    </div>
+
+    @if (!summary.IsAtRisk)
+    {
+        <div class="alert alert-success">Bạn đã đạt mục tiêu điểm của kỳ này.</div>
+    }
+    else
+    {
+        <div class="alert alert-warning">Bạn đang có nguy cơ thiếu @summary.MissingPoints điểm. Các hoạt động dưới đây còn mở đăng ký, còn chỗ và phù hợp với lớp/cơ sở của bạn.</div>
+        @if (summary.RecommendedActivities.Count == 0)
+        {
+            <div class="alert alert-light border">Hiện chưa có hoạt động phù hợp đang mở đăng ký trong kỳ này. Hãy kiểm tra lại sau.</div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var activity in summary.RecommendedActivities)
+                {
+                    <div class="col-md-6">
+                        <article class="card h-100"><div class="card-body">
+                            <div class="d-flex justify-content-between gap-2"><h2 class="h5"><a asp-controller="StudentActivities" asp-action="Details" asp-route-id="@activity.Id">@activity.ActivityName</a></h2><span class="badge text-bg-primary">@activity.TrainingPoints điểm</span></div>
+                            <p class="small text-muted mb-2">@activity.OrganizerName · @activity.Campus · còn @activity.RemainingSlots chỗ</p>
+                            <p class="mb-2">@activity.Eligibility?.Reason</p>
+                            <p class="small mb-0">Đóng đăng ký: <vn-time value="@activity.RegistrationCloseTime" /></p>
+                        </div></article>
+                    </div>
+                }
+            </div>
+        }
+    }
+}
