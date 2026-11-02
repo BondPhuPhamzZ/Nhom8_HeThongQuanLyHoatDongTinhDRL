@@ -65,6 +65,12 @@ else
                     <vn-time value="@reply.CreatedAt" />
                 </div>
                 <p class="pre-line mb-0">@reply.Body</p>
+                @if (reply.CanMarkAnswer)
+                {
+                    <form asp-action="MarkAnswer" asp-route-id="@Model.Id" asp-route-replyId="@reply.Id" method="post" class="mt-2">
+                        <button type="submit" class="btn btn-sm btn-outline-success">Chọn làm câu trả lời chính thức</button>
+                    </form>
+                }
                 @if (reply.CanDelete)
                 {
                     <form asp-action="DeleteReply" asp-route-id="@Model.Id" asp-route-replyId="@reply.Id" method="post" class="mt-2" onsubmit="return confirm('Xóa trả lời này?');">

@@ -69,6 +69,14 @@ public sealed class ClassSpaceController : WebControllerBase
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkAnswer(int id, int replyId)
+    {
+        var result = await _api.MarkClassThreadAnswerAsync(id, replyId);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Thread), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _api.DeleteClassThreadAsync(id);

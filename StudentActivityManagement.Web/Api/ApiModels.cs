@@ -530,6 +530,7 @@ public sealed class ClassThreadDetail : ClassThreadSummary
     public bool CanDelete { get; set; }
     public bool CanEscalate { get; set; }
     public bool CanPin { get; set; }
+    public bool CanManageAnswers { get; set; }
     public List<ClassThreadReply> Replies { get; set; } = [];
 }
 
@@ -541,6 +542,7 @@ public sealed class ClassThreadReply
     public bool IsAnswer { get; set; }
     public DateTime CreatedAt { get; set; }
     public bool CanDelete { get; set; }
+    public bool CanMarkAnswer { get; set; }
 }
 
 public sealed class PostAuthor
