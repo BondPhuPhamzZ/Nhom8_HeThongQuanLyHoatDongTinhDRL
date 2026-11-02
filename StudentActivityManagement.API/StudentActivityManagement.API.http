@@ -332,3 +332,31 @@ Authorization: Bearer {{monitorToken}}
 ### US-15 — Rút lại câu hỏi đang chờ trả lời
 POST {{host}}/api/v1/class-space/escalations/1/withdraw
 Authorization: Bearer {{monitorToken}}
+
+### US-26 — Xem cấu hình check-in của hoạt động (HSSV/SystemAdmin)
+GET {{host}}/api/v1/admin/activities/1/check-in-config
+Authorization: Bearer {{staffToken}}
+
+### US-26 — Cập nhật cấu hình check-in
+PUT {{host}}/api/v1/admin/activities/1/check-in-config
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "method": "Code",
+  "openBeforeMinutes": 15,
+  "closeAfterMinutes": 30
+}
+
+### US-26 — Xem các mốc nhắc trước mỗi buổi
+GET {{host}}/api/v1/admin/activities/1/reminder-schedule
+Authorization: Bearer {{staffToken}}
+
+### US-26 — Thay toàn bộ lịch nhắc (phút trước giờ bắt đầu buổi)
+PUT {{host}}/api/v1/admin/activities/1/reminder-schedule
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "offsetsMinutes": [1440, 60]
+}

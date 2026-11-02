@@ -256,6 +256,19 @@ Trạng thái (`EscalationStatus`): `Pending → Answered` (Phòng QL HSSV trả
 - **Thông tin cho cả lớp:** danh sách và chi tiết chủ đề trả `escalationStatus` (trạng thái lần chuyển gần nhất). Chi tiết trả thêm `canEscalate` cho lớp trưởng. Nội dung phản hồi chỉ hiện trong `GET escalations` của lớp trưởng; việc chuyển lại cho lớp thuộc US-16.
 - **Mã lỗi:** không phải lớp trưởng của lớp `403 access_denied`; chủ đề hoặc câu hỏi của lớp khác `404`; rút lại câu hỏi không còn `Pending` `409`.
 
+### Cấu hình check-in và lịch nhắc (US-26)
+
+Phòng QL HSSV và SystemAdmin quản lý cấu hình theo hoạt động:
+
+| Endpoint | Nội dung |
+|---|---|
+| `GET /api/v1/admin/activities/{id}/check-in-config` | Phương thức `Code`/`Manual`, cửa sổ mở/đóng; chưa lưu thì mặc định `Code`, 15/30 phút |
+| `PUT /api/v1/admin/activities/{id}/check-in-config` | `{ method, openBeforeMinutes, closeAfterMinutes }`, lưu người cập nhật từ JWT và thời điểm UTC |
+| `GET /api/v1/admin/activities/{id}/reminder-schedule` | Các mốc trước từng buổi; mặc định `[1440]` phút |
+| `PUT /api/v1/admin/activities/{id}/reminder-schedule` | `{ offsetsMinutes: [1440, 60] }`; thay toàn bộ, lưu tăng dần |
+
+Cửa sổ check-in từ 0–240 phút; lịch nhắc có 1–3 mốc khác nhau từ 10–10080 phút. Chỉ sửa khi hoạt động ở `Draft`, `Published` hoặc `Ongoing`; không đổi phương thức sau khi đã có check-in. US-26 chỉ lưu cấu hình; gửi thông báo thuộc US-06.
+
 Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động có `organizerName`, danh sách `sessions` và `audienceRules`. Sinh viên chỉ thấy và đăng ký hoạt động phù hợp cơ sở, khóa hoặc lớp của mình.
 
 ## Cấu trúc project
