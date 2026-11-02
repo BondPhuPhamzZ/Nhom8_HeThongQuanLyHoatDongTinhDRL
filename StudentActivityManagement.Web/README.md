@@ -43,6 +43,17 @@ Tài khoản demo (seed Development): `SV210002` sinh viên, `SV210001` lớp tr
 | Phòng QL HSSV, SystemAdmin | "Kỳ đánh giá": tạo kỳ theo ngày Việt Nam, khóa/mở lại kỳ. Bảng ghi điểm trên hoạt động đã kết thúc: xem điều kiện từng sinh viên, ghi điểm người đã chọn hoặc tất cả, chuyển quyết định hợp lệ kèm lý do và xem lịch sử (US-22/23) | `/admin/evaluation-periods`, `/admin/activities/{id}/scoring`, `/admin/point-records/{id}/transition`, `/admin/point-records/{id}/history` |
 | Phòng QL HSSV, SystemAdmin | "Báo cáo": lọc theo kỳ/cơ sở/khóa/lớp; chỉ số tổng hợp; chia theo lớp, khóa hoặc cơ sở; hoạt động trong kỳ; danh sách sinh viên nguy cơ thiếu điểm (US-24) | `/admin/reports/overview`, `/admin/reports/activities`, `/admin/reports/at-risk-students` |
 
+## Phạm vi tích hợp US-29
+
+| Vai trò | Trang bắt đầu sau đăng nhập | Phạm vi thao tác |
+|---|---|---|
+| Sinh viên | Hoạt động dành cho tôi | Đăng ký, check-in, nộp minh chứng, xem lịch sử và điểm/gợi ý, trao đổi lớp, đọc thông báo |
+| Lớp trưởng | Hoạt động dành cho tôi | Toàn bộ luồng sinh viên; đăng thông báo ghim, quản lý câu hỏi/đáp án trong lớp, chuyển câu hỏi lên phòng và relay phản hồi chính thức |
+| Phòng QL HSSV | Quản lý hoạt động | Quản lý sinh viên/lớp/hoạt động, cấu hình check-in và nhắc lịch, kiểm tra minh chứng, ghi/chỉnh quyết định điểm, báo cáo, trả lời câu hỏi lớp |
+| SystemAdmin | Quản lý hoạt động | Luồng cán bộ và quản trị tài khoản/phân quyền |
+
+Các trang dùng chính sách Web theo vai trò, còn dữ liệu và luật nghiệp vụ được xử lý qua API v1 bằng `ApiClient`; Web không kết nối trực tiếp cơ sở dữ liệu. `Home/Index` điều hướng cán bộ tới quản lý hoạt động và sinh viên/lớp trưởng tới danh sách hoạt động.
+
 ## Cách tổ chức
 
 - `Api/ApiClient.cs`: typed `HttpClient` cho API; đọc `ApiResponseDto` khi thành công và ProblemDetails (`detail`, `errorCode`, `errors`) khi lỗi, nên mọi trang hiển thị lỗi giống nhau.
