@@ -64,4 +64,20 @@ public sealed class ActivityScoringController : ApiControllerBase
         var result = await _scoringService.GetHistoryAsync(pointRecordId);
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
+
+    /// <summary>Moves an existing score decision to an allowed state with a required reason.</summary>
+    [HttpPost("point-records/{pointRecordId:int}/transition")]
+    [ProducesResponseType(typeof(ApiResponseDto<PointRecordDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Transition(int pointRecordId, [FromBody] PointRecordTransitionDto request)
+    {
+        if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var staffId))
+        {
+            return ApiProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.AuthenticationRequired, "Không xác định được người dùng.");
+        }
+
+        var result = await _scoringService.TransitionAsync(pointRecordId, request, staffId);
+        return result.Success ? Ok(result) : ProblemFrom(result);
+    }
 }

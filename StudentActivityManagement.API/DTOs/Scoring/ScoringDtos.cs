@@ -82,6 +82,18 @@ public sealed class PointRecordDto
     public string? Reason { get; set; }
     public string? DecidedByName { get; set; }
     public DateTime DecidedAt { get; set; }
+    public IReadOnlyList<string> AllowedNextStatuses { get; set; } = [];
+}
+
+public sealed class PointRecordTransitionDto
+{
+    [Required(ErrorMessage = "Chọn trạng thái mới.")]
+    [StringLength(20)]
+    public string Status { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Nhập lý do thay đổi quyết định điểm.")]
+    [StringLength(500, MinimumLength = 1, ErrorMessage = "Lý do tối đa 500 ký tự.")]
+    public string Reason { get; set; } = string.Empty;
 }
 
 public sealed class PointRecordHistoryDto

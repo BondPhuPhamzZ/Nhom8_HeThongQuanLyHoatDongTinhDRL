@@ -23,4 +23,6 @@ public interface IScoringService
     Task<ApiResponseDto<ApprovePointsResultDto>> ApproveAsync(int activityId, ApprovePointsRequestDto request, int staffId);
 
     Task<ApiResponseDto<List<PointRecordHistoryDto>>> GetHistoryAsync(int pointRecordId);
+
+    Task<ApiResponseDto<PointRecordDto>> TransitionAsync(int pointRecordId, PointRecordTransitionDto request, int staffId);
 }
