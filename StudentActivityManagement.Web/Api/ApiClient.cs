@@ -284,6 +284,9 @@ public sealed class ApiClient
     public Task<ApiResult<ClassThreadReply>> ReplyClassThreadAsync(int threadId, string body) =>
         SendAsync<ClassThreadReply>(HttpMethod.Post, $"api/v1/class-space/threads/{threadId}/replies", new { body });
 
+    public Task<ApiResult<ClassThreadDetail>> MarkClassThreadAnswerAsync(int threadId, int replyId) =>
+        SendAsync<ClassThreadDetail>(HttpMethod.Post, $"api/v1/class-space/threads/{threadId}/replies/{replyId}/answer");
+
     public Task<ApiResult<bool>> DeleteClassThreadAsync(int threadId) =>
         SendAsync<bool>(HttpMethod.Delete, $"api/v1/class-space/threads/{threadId}");
 
