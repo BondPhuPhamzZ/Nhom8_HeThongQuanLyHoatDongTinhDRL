@@ -17,6 +17,48 @@ public sealed class ClassSpaceController : WebControllerBase
     public async Task<IActionResult> Index(string? kind, string? search, int page = 1) =>
         View(await LoadIndexAsync(kind, search, page, new ClassThreadForm()));
 
+    /// <summary>Prepares an activity announcement for the current class monitor to review and post.</summary>
+    [HttpGet]
+    public async Task<IActionResult> ForwardActivity(int activityId)
+    {
+        var space = await _api.GetClassSpaceAsync(null, null, 1);
+        if (!space.Success || space.Data == null)
+        {
+            FlashError(space.Message);
+            return RedirectToAction(nameof(Index));
+        }
+        if (!space.Data.IsMonitor) return Forbid();
+
+        var activity = await _api.GetStudentActivityAsync(activityId);
+        if (!activity.Success || activity.Data == null)
+        {
+            FlashError(activity.Message);
+            return RedirectToAction("Index", "StudentActivities");
+        }
+
+        var firstSession = activity.Data.Sessions.OrderBy(item => item.SortOrder).FirstOrDefault();
+        var lines = new List<string>
+        {
+            $"Hoạt động: {activity.Data.ActivityName}",
+            $"Đơn vị tổ chức: {activity.Data.OrganizerName}",
+            $"Hạn đăng ký: {VnTime.Format(activity.Data.RegistrationCloseTime)}",
+            $"Điểm rèn luyện: {activity.Data.TrainingPoints}",
+            $"Xem chi tiết: /StudentActivities/Details/{activityId}"
+        };
+        if (firstSession != null)
+            lines.Insert(2, $"Buổi đầu: {VnTime.Format(firstSession.StartTime)} tại {firstSession.Location}, {firstSession.Campus}");
+        if (!string.IsNullOrWhiteSpace(activity.Data.Requirements))
+            lines.Add($"Cần chuẩn bị: {activity.Data.Requirements}");
+
+        var title = $"Thông tin hoạt động: {activity.Data.ActivityName}";
+        return View(nameof(Index), await LoadIndexAsync(null, null, 1, new ClassThreadForm
+        {
+            Kind = "Announcement",
+            Title = title[..Math.Min(200, title.Length)],
+            Body = string.Join("\n", lines)
+        }));
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([Bind(Prefix = nameof(ClassSpaceViewModel.NewThread))] ClassThreadForm form)
     {

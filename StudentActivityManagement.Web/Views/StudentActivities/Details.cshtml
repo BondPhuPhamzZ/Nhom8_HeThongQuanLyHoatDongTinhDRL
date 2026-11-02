@@ -22,6 +22,10 @@
         </div>
         <h1 class="h3">@Model.ActivityName</h1>
         <p class="text-muted">Đơn vị tổ chức: @Model.OrganizerName</p>
+        @if (User.IsInRole("Monitor") && (Model.Status is "Published" or "Ongoing"))
+        {
+            <a class="btn btn-outline-primary btn-sm mb-3" asp-controller="ClassSpace" asp-action="ForwardActivity" asp-route-activityId="@Model.Id">Chuyển thông tin vào lớp</a>
+        }
         <p class="pre-line">@Model.Description</p>
         @if (!string.IsNullOrWhiteSpace(Model.Requirements))
         {
