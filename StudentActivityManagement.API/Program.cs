@@ -40,6 +40,7 @@ builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IAccountAccessValidator, AccountAccessValidator>();
 builder.Services.AddScoped<ICheckInConfigProvider, CheckInConfigProvider>();
+builder.Services.AddScoped<IActivitySettingsService, ActivitySettingsService>();
 builder.Services.AddScoped<ICheckInService, CheckInService>();
 builder.Services.AddScoped<IParticipantService, ParticipantService>();
 builder.Services.AddScoped<IEvaluationPeriodService, EvaluationPeriodService>();
