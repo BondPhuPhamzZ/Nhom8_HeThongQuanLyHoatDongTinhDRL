@@ -160,6 +160,68 @@ public sealed class ScoringService : IScoringService
     }
 
     /// <summary>The period whose range contains the activity's end time.</summary>
+    public async Task<ApiResponseDto<PointRecordDto>> TransitionAsync(int pointRecordId, PointRecordTransitionDto request, int staffId)
+    {
+        var record = await _context.PointRecords.FirstOrDefaultAsync(item => item.Id == pointRecordId);
+        if (record == null)
+        {
+            return Fail<PointRecordDto>("Không tìm thấy bản ghi điểm.", StatusCodes.Status404NotFound, ApiErrorCodes.ResourceNotFound);
+        }
+
+        var nextStatus = request.Status.Trim();
+        var fromStatus = record.Status;
+        if (!PointRecordStatus.All.Contains(nextStatus, StringComparer.Ordinal))
+        {
+            return Fail<PointRecordDto>("Trạng thái điểm không hợp lệ.", StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationFailed);
+        }
+        if (!PointRecordStatus.NextOf(fromStatus).Contains(nextStatus, StringComparer.Ordinal))
+        {
+            return Fail<PointRecordDto>(
+                $"Không thể chuyển quyết định điểm từ {fromStatus} sang {nextStatus}.",
+                StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation);
+        }
+
+        var now = DateTime.UtcNow;
+        var reason = request.Reason.Trim();
+        await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        record.Status = nextStatus;
+        record.Reason = reason;
+        record.DecidedById = staffId;
+        record.DecidedAt = now;
+        record.History.Add(new PointRecordHistory
+        {
+            FromStatus = fromStatus,
+            ToStatus = nextStatus,
+            Points = record.Points,
+            Reason = reason,
+            ChangedById = staffId,
+            ChangedAt = now
+        });
+
+        var legacyPoints = nextStatus == PointRecordStatus.Approved ? record.Points : 0;
+        await _context.ActivityRegistrations
+            .Where(item => item.Id == record.RegistrationId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.PointsEarned, legacyPoints));
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        await _context.Entry(record).Reference(item => item.DecidedBy).LoadAsync();
+        return ApiResponseDto<PointRecordDto>.Ok(new PointRecordDto
+        {
+            Id = record.Id,
+            RegistrationId = record.RegistrationId,
+            StudentId = record.StudentId,
+            ActivityId = record.ActivityId,
+            PeriodId = record.PeriodId,
+            Points = record.Points,
+            Status = record.Status,
+            Reason = record.Reason,
+            DecidedByName = record.DecidedBy?.FullName,
+            DecidedAt = record.DecidedAt,
+            AllowedNextStatuses = PointRecordStatus.NextOf(record.Status)
+        });
+    }
+
     private Task<EvaluationPeriod?> FindPeriodAsync(Activity activity) => _context.EvaluationPeriods.AsNoTracking()
         .FirstOrDefaultAsync(period => period.StartDate <= activity.EndTime && activity.EndTime <= period.EndDate);
 
@@ -243,7 +305,8 @@ public sealed class ScoringService : IScoringService
                     Status = record.Status,
                     Reason = record.Reason,
                     DecidedByName = record.DecidedBy?.FullName,
-                    DecidedAt = record.DecidedAt
+                    DecidedAt = record.DecidedAt,
+                    AllowedNextStatuses = PointRecordStatus.NextOf(record.Status)
                 }
             };
         }).ToList();
