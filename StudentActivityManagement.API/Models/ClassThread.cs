@@ -96,6 +96,14 @@ public class ThreadEscalation
 
     public DateTime? AnsweredAt { get; set; }
 
+    /// <summary>When the monitor relayed the official answer into the class thread (US-16).</summary>
+    public DateTime? RelayedAt { get; set; }
+
+    public int? RelayedById { get; set; }
+
+    [ForeignKey(nameof(RelayedById))]
+    public User? RelayedBy { get; set; }
+
     public DateTime? WithdrawnAt { get; set; }
 }
 

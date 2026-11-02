@@ -28,6 +28,57 @@ public sealed class ActivityListViewModel
     public bool Mine { get; set; }
 }
 
+public sealed class StudentEvaluationHistoryPageViewModel
+{
+    public List<StudentEvaluationPeriodDto> Periods { get; set; } = [];
+    public StudentEvaluationHistoryDto? History { get; set; }
+    public int? PeriodId { get; set; }
+    public string? RegistrationStatus { get; set; }
+}
+
+public sealed class StudentPointsPageViewModel
+{
+    public StudentPointsRecommendationDto? Summary { get; set; }
+    public int? PeriodId { get; set; }
+}
+
+public sealed class ActivitySettingsViewModel
+{
+    public CheckInConfigDto CheckIn { get; set; } = new();
+    public ReminderScheduleDto Reminders { get; set; } = new();
+    public string ActivityStatus { get; set; } = string.Empty;
+    public bool CanEdit => ActivityStatus is "Draft" or "Published" or "Ongoing";
+}
+
+public sealed class CheckInSettingsForm
+{
+    [Required]
+    public string Method { get; set; } = "Code";
+
+    [Range(0, 240)]
+    public int OpenBeforeMinutes { get; set; } = 15;
+
+    [Range(0, 240)]
+    public int CloseAfterMinutes { get; set; } = 30;
+}
+
+public sealed class ReminderScheduleForm
+{
+    [Range(10, 10080)]
+    public int? Offset1 { get; set; }
+
+    [Range(10, 10080)]
+    public int? Offset2 { get; set; }
+
+    [Range(10, 10080)]
+    public int? Offset3 { get; set; }
+
+    public IReadOnlyList<int> GetOffsets() => new[] { Offset1, Offset2, Offset3 }
+        .Where(value => value.HasValue)
+        .Select(value => value!.Value)
+        .ToArray();
+}
+
 public sealed class ParticipantListViewModel
 {
     public ActivityParticipants Data { get; set; } = new();

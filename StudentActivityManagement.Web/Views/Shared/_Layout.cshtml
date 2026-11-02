@@ -29,6 +29,7 @@
                                 <li class="nav-item"><a class="nav-link" asp-controller="Classes" asp-action="Index">Lớp</a></li>
                                 <li class="nav-item"><a class="nav-link" asp-controller="EvaluationPeriods" asp-action="Index">Kỳ đánh giá</a></li>
                                 <li class="nav-item"><a class="nav-link" asp-controller="Reports" asp-action="Index">Báo cáo</a></li>
+                                <li class="nav-item"><a class="nav-link" asp-controller="StaffEscalations" asp-action="Index">Câu hỏi lớp</a></li>
                                 if (User.IsInRole("SystemAdmin"))
                                 {
                                     <li class="nav-item"><a class="nav-link" asp-controller="UserAccounts" asp-action="Index">Tài khoản</a></li>
@@ -37,7 +38,10 @@
                             else
                             {
                                 <li class="nav-item"><a class="nav-link" asp-controller="StudentActivities" asp-action="Index">Hoạt động dành cho tôi</a></li>
+                                <li class="nav-item"><a class="nav-link" asp-controller="StudentReports" asp-action="History">Lịch sử &amp; điểm</a></li>
+                                <li class="nav-item"><a class="nav-link" asp-controller="StudentPoints" asp-action="Index">Điểm &amp; gợi ý</a></li>
                                 <li class="nav-item"><a class="nav-link" asp-controller="ClassSpace" asp-action="Index">Trao đổi lớp</a></li>
+                                <li class="nav-item"><a class="nav-link" asp-controller="Notifications" asp-action="Index">Thông báo</a></li>
                             }
                         }
                     </ul>

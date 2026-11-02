@@ -15,7 +15,11 @@ public interface IClassSpaceService
 
     Task<ApiResponseDto<ClassThreadDetailDto>> CreateThreadAsync(int userId, ClassThreadCreateDto request);
 
+    Task<ApiResponseDto<ClassThreadDetailDto>> SetPinnedAsync(int userId, int threadId, ClassThreadPinDto request);
+
     Task<ApiResponseDto<ClassThreadReplyDto>> ReplyAsync(int userId, int threadId, ClassThreadReplyCreateDto request);
+
+    Task<ApiResponseDto<ClassThreadDetailDto>> MarkAnswerAsync(int userId, int threadId, int replyId);
 
     Task<ApiResponseDto<bool>> DeleteThreadAsync(int userId, int threadId);
 
@@ -29,4 +33,6 @@ public interface IClassSpaceService
 
     /// <summary>US-15: the monitor withdraws an escalation that is still Pending.</summary>
     Task<ApiResponseDto<ThreadEscalationDto>> WithdrawEscalationAsync(int userId, int escalationId);
+
+    Task<ApiResponseDto<ThreadEscalationDto>> RelayEscalationAsync(int userId, int escalationId);
 }

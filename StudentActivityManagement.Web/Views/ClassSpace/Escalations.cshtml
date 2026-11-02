@@ -44,6 +44,16 @@ else
                         <div class="small fw-semibold">Phản hồi của @(item.AnsweredByName ?? "Phòng QL HSSV")@if (item.AnsweredAt is DateTime answeredAt) {<text> · </text><vn-time value="@answeredAt" />}</div>
                         <div class="pre-line">@item.Answer</div>
                     </div>
+                    @if (item.CanRelay)
+                    {
+                        <form asp-action="Relay" asp-route-escalationId="@item.Id" asp-route-status="@status" method="post" class="mt-2">
+                            <button type="submit" class="btn btn-sm btn-primary">Chuyển phản hồi vào lớp</button>
+                        </form>
+                    }
+                    else if (item.RelayedAt is DateTime relayedAt)
+                    {
+                        <p class="small text-success mt-2 mb-0">Đã chuyển lại lớp bởi @(item.RelayedByName ?? "lớp trưởng") · <vn-time value="@relayedAt" /></p>
+                    }
                 }
                 else if (item.Status == "Pending")
                 {

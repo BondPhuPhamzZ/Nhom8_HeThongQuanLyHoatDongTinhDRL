@@ -60,6 +60,18 @@ public sealed class ClassSpaceController : ApiControllerBase
         return result.Success ? Created($"/api/v1/class-space/threads/{result.Data!.Id}", result) : ProblemFrom(result);
     }
 
+    /// <summary>Lớp trưởng ghim hoặc bỏ ghim thông báo/câu hỏi trong lớp (US-13).</summary>
+    [HttpPatch("threads/{threadId:int}/pin")]
+    [ProducesResponseType(typeof(ApiResponseDto<ClassThreadDetailDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetPinned(int threadId, [FromBody] ClassThreadPinDto request)
+    {
+        if (!TryGetUserId(out var userId)) return InvalidSession();
+        var result = await _classSpaceService.SetPinnedAsync(userId, threadId, request);
+        return result.Success ? Ok(result) : ProblemFrom(result);
+    }
+
     /// <summary>Trả lời một chủ đề chưa đóng.</summary>
     [HttpPost("threads/{threadId:int}/replies")]
     [ProducesResponseType(typeof(ApiResponseDto<ClassThreadReplyDto>), StatusCodes.Status201Created)]
@@ -70,6 +82,19 @@ public sealed class ClassSpaceController : ApiControllerBase
         if (!TryGetUserId(out var userId)) return InvalidSession();
         var result = await _classSpaceService.ReplyAsync(userId, threadId, request);
         return result.Success ? Created($"/api/v1/class-space/threads/{threadId}", result) : ProblemFrom(result);
+    }
+
+    /// <summary>Lớp trưởng chọn một trả lời làm lời giải đáp chính thức cho câu hỏi (US-14).</summary>
+    [HttpPost("threads/{threadId:int}/replies/{replyId:int}/answer")]
+    [ProducesResponseType(typeof(ApiResponseDto<ClassThreadDetailDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> MarkAnswer(int threadId, int replyId)
+    {
+        if (!TryGetUserId(out var userId)) return InvalidSession();
+        var result = await _classSpaceService.MarkAnswerAsync(userId, threadId, replyId);
+        return result.Success ? Ok(result) : ProblemFrom(result);
     }
 
     /// <summary>Người tạo xóa chủ đề khi chưa có ai khác trả lời.</summary>
@@ -125,6 +150,19 @@ public sealed class ClassSpaceController : ApiControllerBase
     {
         if (!TryGetUserId(out var userId)) return InvalidSession();
         var result = await _classSpaceService.WithdrawEscalationAsync(userId, escalationId);
+        return result.Success ? Ok(result) : ProblemFrom(result);
+    }
+
+    /// <summary>Lớp trưởng đăng phản hồi chính thức vào chủ đề lớp sau khi phòng đã trả lời (US-16).</summary>
+    [HttpPost("escalations/{escalationId:int}/relay")]
+    [ProducesResponseType(typeof(ApiResponseDto<ThreadEscalationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RelayEscalation(int escalationId)
+    {
+        if (!TryGetUserId(out var userId)) return InvalidSession();
+        var result = await _classSpaceService.RelayEscalationAsync(userId, escalationId);
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
 

@@ -40,12 +40,18 @@ builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IAccountAccessValidator, AccountAccessValidator>();
 builder.Services.AddScoped<ICheckInConfigProvider, CheckInConfigProvider>();
+builder.Services.AddScoped<IActivitySettingsService, ActivitySettingsService>();
 builder.Services.AddScoped<ICheckInService, CheckInService>();
 builder.Services.AddScoped<IParticipantService, ParticipantService>();
 builder.Services.AddScoped<IEvaluationPeriodService, EvaluationPeriodService>();
 builder.Services.AddScoped<IScoringService, ScoringService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IStudentReportService, StudentReportService>();
+builder.Services.AddScoped<IStudentPointsService, StudentPointsService>();
 builder.Services.AddScoped<IClassSpaceService, ClassSpaceService>();
+builder.Services.AddScoped<IStaffEscalationService, StaffEscalationService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddHostedService<ReminderDispatchWorker>();
 builder.Services.AddScoped<IEvidenceService, EvidenceService>();
 
 // Evidence files (US-08): stored outside wwwroot, validated by extension, size and signature.

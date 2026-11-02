@@ -25,6 +25,7 @@ namespace StudentActivityManagement.API.Data
         public DbSet<ClassThread> ClassThreads { get; set; } = null!;
         public DbSet<ClassThreadReply> ClassThreadReplies { get; set; } = null!;
         public DbSet<ThreadEscalation> ThreadEscalations { get; set; } = null!;
+        public DbSet<UserNotification> UserNotifications { get; set; } = null!;
 
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
@@ -148,6 +149,16 @@ namespace StudentActivityManagement.API.Data
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
+            modelBuilder.Entity<UserNotification>(entity =>
+            {
+                entity.HasIndex(notification => notification.SourceKey).IsUnique();
+                entity.HasIndex(notification => new { notification.RecipientUserId, notification.CreatedAt });
+                entity.HasOne(notification => notification.Recipient)
+                      .WithMany()
+                      .HasForeignKey(notification => notification.RecipientUserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<ActivityEvidence>(entity =>
             {
                 entity.HasIndex(evidence => evidence.RegistrationId);
@@ -262,6 +273,11 @@ namespace StudentActivityManagement.API.Data
                 entity.HasOne(escalation => escalation.AnsweredBy)
                       .WithMany()
                       .HasForeignKey(escalation => escalation.AnsweredById)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(escalation => escalation.RelayedBy)
+                      .WithMany()
+                      .HasForeignKey(escalation => escalation.RelayedById)
                       .OnDelete(DeleteBehavior.SetNull);
             });
 
