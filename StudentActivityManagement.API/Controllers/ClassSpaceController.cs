@@ -84,6 +84,19 @@ public sealed class ClassSpaceController : ApiControllerBase
         return result.Success ? Created($"/api/v1/class-space/threads/{threadId}", result) : ProblemFrom(result);
     }
 
+    /// <summary>Lớp trưởng chọn một trả lời làm lời giải đáp chính thức cho câu hỏi (US-14).</summary>
+    [HttpPost("threads/{threadId:int}/replies/{replyId:int}/answer")]
+    [ProducesResponseType(typeof(ApiResponseDto<ClassThreadDetailDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> MarkAnswer(int threadId, int replyId)
+    {
+        if (!TryGetUserId(out var userId)) return InvalidSession();
+        var result = await _classSpaceService.MarkAnswerAsync(userId, threadId, replyId);
+        return result.Success ? Ok(result) : ProblemFrom(result);
+    }
+
     /// <summary>Người tạo xóa chủ đề khi chưa có ai khác trả lời.</summary>
     [HttpDelete("threads/{threadId:int}")]
     [ProducesResponseType(typeof(ApiResponseDto<bool>), StatusCodes.Status200OK)]
