@@ -276,6 +276,10 @@ Worker kiểm tra mỗi phút và khi API khởi động. Mỗi buổi dùng cá
 
 Sinh viên và lớp trưởng dùng `GET /api/v1/notifications?unreadOnly=&pageIndex=&pageSize=` và `POST /api/v1/notifications/{id}/read`; chỉ xem hoặc đánh dấu thông báo của chính mình. Đây là thông báo trong ứng dụng, không gửi email/SMS/push. Mốc nhắc tùy chỉnh do US-26 quản lý; thông báo hoạt động mới và chuyển tiếp của lớp trưởng thuộc US-12/US-13.
 
+### US-12 — thông báo hoạt động mới cho lớp trưởng
+
+Khi hoạt động được tạo ở trạng thái `Published` hoặc chuyển từ trạng thái khác sang `Published`, hệ thống tạo một thông báo `ClassActivity` cho lớp trưởng đang hoạt động có lớp khớp ít nhất một quy tắc đối tượng của hoạt động. Không khai báo quy tắc thì thông báo tới mọi lớp trưởng đang hoạt động. `SourceKey` theo hoạt động/người nhận ngăn gửi trùng. Lớp trưởng dùng chung API danh sách/lọc chưa đọc và đánh dấu đã đọc ở trên; các sinh viên khác không nhận thông báo này.
+
 ## Cấu trúc project
 
 - `Controllers`, `Services`, `DTOs`, `Models`, `Data`: các lớp chính của RESTful API.

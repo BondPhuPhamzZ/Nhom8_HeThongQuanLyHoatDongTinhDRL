@@ -332,3 +332,11 @@ Authorization: Bearer {{monitorToken}}
 ### US-15 — Rút lại câu hỏi đang chờ trả lời
 POST {{host}}/api/v1/class-space/escalations/1/withdraw
 Authorization: Bearer {{monitorToken}}
+
+### US-12 — lớp trưởng xem thông báo hoạt động mới liên quan đến lớp
+GET {{host}}/api/v1/notifications?unreadOnly=true&pageIndex=1&pageSize=20
+Authorization: Bearer {{monitorToken}}
+
+### US-12 — lớp trưởng đánh dấu thông báo hoạt động mới đã đọc
+POST {{host}}/api/v1/notifications/1/read
+Authorization: Bearer {{monitorToken}}
