@@ -45,6 +45,7 @@ builder.Services.AddScoped<IParticipantService, ParticipantService>();
 builder.Services.AddScoped<IEvaluationPeriodService, EvaluationPeriodService>();
 builder.Services.AddScoped<IScoringService, ScoringService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IStudentReportService, StudentReportService>();
 builder.Services.AddScoped<IClassSpaceService, ClassSpaceService>();
 builder.Services.AddScoped<IStaffEscalationService, StaffEscalationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();

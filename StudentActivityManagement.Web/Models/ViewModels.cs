@@ -28,6 +28,14 @@ public sealed class ActivityListViewModel
     public bool Mine { get; set; }
 }
 
+public sealed class StudentEvaluationHistoryPageViewModel
+{
+    public List<StudentEvaluationPeriodDto> Periods { get; set; } = [];
+    public StudentEvaluationHistoryDto? History { get; set; }
+    public int? PeriodId { get; set; }
+    public string? RegistrationStatus { get; set; }
+}
+
 public sealed class ParticipantListViewModel
 {
     public ActivityParticipants Data { get; set; } = new();
