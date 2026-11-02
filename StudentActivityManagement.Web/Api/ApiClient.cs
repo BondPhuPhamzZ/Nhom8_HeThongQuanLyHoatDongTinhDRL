@@ -56,6 +56,10 @@ public sealed class ApiClient
     public Task<ApiResult<CheckInResult>> CheckInAsync(int activityId, int sessionId, string code) =>
         SendAsync<CheckInResult>(HttpMethod.Post, $"api/v1/student-activities/{activityId}/sessions/{sessionId}/check-in", new { code });
 
+    public Task<ApiResult<StudentPointsRecommendationDto>> GetStudentPointsRecommendationsAsync(int? periodId = null) =>
+        SendAsync<StudentPointsRecommendationDto>(HttpMethod.Get,
+            $"api/v1/student/reports/points-and-recommendations?{Query(("periodId", periodId?.ToString()))}");
+
     // ---- Student Evidences (US-08)
     public Task<ApiResult<List<StudentEvidence>>> GetStudentEvidencesAsync(int activityId) =>
         SendAsync<List<StudentEvidence>>(HttpMethod.Get, $"api/v1/student-activities/{activityId}/evidences");

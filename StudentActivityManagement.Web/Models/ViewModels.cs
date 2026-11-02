@@ -28,6 +28,12 @@ public sealed class ActivityListViewModel
     public bool Mine { get; set; }
 }
 
+public sealed class StudentPointsPageViewModel
+{
+    public StudentPointsRecommendationDto? Summary { get; set; }
+    public int? PeriodId { get; set; }
+}
+
 public sealed class ParticipantListViewModel
 {
     public ActivityParticipants Data { get; set; } = new();
