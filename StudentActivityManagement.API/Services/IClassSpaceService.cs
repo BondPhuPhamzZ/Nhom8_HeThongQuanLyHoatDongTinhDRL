@@ -15,6 +15,8 @@ public interface IClassSpaceService
 
     Task<ApiResponseDto<ClassThreadDetailDto>> CreateThreadAsync(int userId, ClassThreadCreateDto request);
 
+    Task<ApiResponseDto<ClassThreadDetailDto>> SetPinnedAsync(int userId, int threadId, ClassThreadPinDto request);
+
     Task<ApiResponseDto<ClassThreadReplyDto>> ReplyAsync(int userId, int threadId, ClassThreadReplyCreateDto request);
 
     Task<ApiResponseDto<bool>> DeleteThreadAsync(int userId, int threadId);

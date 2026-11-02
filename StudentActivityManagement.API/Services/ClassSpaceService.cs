@@ -94,11 +94,18 @@ public sealed class ClassSpaceService : IClassSpaceService
             return error;
         }
 
-        var kind = ClassThreadKind.MemberKinds.FirstOrDefault(item => item.Equals(request.Kind?.Trim(), StringComparison.OrdinalIgnoreCase));
+        var requestedKind = ClassThreadKind.All.FirstOrDefault(item => item.Equals(request.Kind?.Trim(), StringComparison.OrdinalIgnoreCase));
+        var kind = requestedKind == ClassThreadKind.Announcement && member!.MonitorId == userId
+            ? requestedKind
+            : ClassThreadKind.MemberKinds.FirstOrDefault(item => item.Equals(request.Kind?.Trim(), StringComparison.OrdinalIgnoreCase));
         if (kind == null)
         {
-            return Fail<ClassThreadDetailDto>("Loại bài chỉ nhận Question (câu hỏi) hoặc Discussion (thảo luận).",
-                StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationFailed);
+            var failureMessage = requestedKind == ClassThreadKind.Announcement
+                ? "Chỉ lớp trưởng hiện tại mới được đăng thông báo."
+                : "Loại bài chỉ nhận Question (câu hỏi), Discussion (thảo luận) hoặc Announcement (thông báo của lớp trưởng).";
+            var code = requestedKind == ClassThreadKind.Announcement ? ApiErrorCodes.AccessDenied : ApiErrorCodes.ValidationFailed;
+            var status = requestedKind == ClassThreadKind.Announcement ? StatusCodes.Status403Forbidden : StatusCodes.Status400BadRequest;
+            return Fail<ClassThreadDetailDto>(failureMessage, status, code);
         }
 
         var title = request.Title.Trim();
@@ -118,6 +125,7 @@ public sealed class ClassSpaceService : IClassSpaceService
             Title = title,
             Body = body,
             Status = ClassThreadStatus.Open,
+            IsPinned = kind == ClassThreadKind.Announcement,
             CreatedAt = now,
             LastActivityAt = now
         };
@@ -125,7 +133,31 @@ public sealed class ClassSpaceService : IClassSpaceService
         await _context.SaveChangesAsync();
 
         var detail = await LoadDetailAsync(member, thread.Id, userId);
-        return ApiResponseDto<ClassThreadDetailDto>.Ok(detail!, kind == ClassThreadKind.Question ? "Đã gửi câu hỏi cho lớp." : "Đã mở chủ đề thảo luận.");
+        var message = kind switch
+        {
+            ClassThreadKind.Question => "Đã gửi câu hỏi cho lớp.",
+            ClassThreadKind.Announcement => "Đã đăng và ghim thông báo cho lớp.",
+            _ => "Đã mở chủ đề thảo luận."
+        };
+        return ApiResponseDto<ClassThreadDetailDto>.Ok(detail!, message);
+    }
+
+    public async Task<ApiResponseDto<ClassThreadDetailDto>> SetPinnedAsync(int userId, int threadId, ClassThreadPinDto request)
+    {
+        var (error, member) = await ResolveMemberAsync<ClassThreadDetailDto>(userId);
+        if (error != null) return error;
+        if (member!.MonitorId != userId)
+        {
+            return Fail<ClassThreadDetailDto>("Chỉ lớp trưởng hiện tại mới được ghim hoặc bỏ ghim chủ đề.",
+                StatusCodes.Status403Forbidden, ApiErrorCodes.AccessDenied);
+        }
+
+        var thread = await _context.ClassThreads.FirstOrDefaultAsync(item => item.Id == threadId && item.ClassId == member.ClassId);
+        if (thread == null) return ThreadNotFound<ClassThreadDetailDto>();
+        thread.IsPinned = request.IsPinned;
+        await _context.SaveChangesAsync();
+        var detail = await LoadDetailAsync(member, threadId, userId);
+        return ApiResponseDto<ClassThreadDetailDto>.Ok(detail!, request.IsPinned ? "Đã ghim chủ đề lên đầu lớp." : "Đã bỏ ghim chủ đề.");
     }
 
     public async Task<ApiResponseDto<ClassThreadReplyDto>> ReplyAsync(int userId, int threadId, ClassThreadReplyCreateDto request)
@@ -426,6 +458,7 @@ public sealed class ClassSpaceService : IClassSpaceService
         detail.CanEscalate = member.MonitorId == userId
             && ClassThreadKind.MemberKinds.Contains(thread.Kind)
             && escalationStatus != EscalationStatus.Pending;
+        detail.CanPin = member.MonitorId == userId;
         return detail;
     }
 

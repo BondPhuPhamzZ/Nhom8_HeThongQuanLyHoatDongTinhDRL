@@ -60,6 +60,18 @@ public sealed class ClassSpaceController : ApiControllerBase
         return result.Success ? Created($"/api/v1/class-space/threads/{result.Data!.Id}", result) : ProblemFrom(result);
     }
 
+    /// <summary>Lớp trưởng ghim hoặc bỏ ghim thông báo/câu hỏi trong lớp (US-13).</summary>
+    [HttpPatch("threads/{threadId:int}/pin")]
+    [ProducesResponseType(typeof(ApiResponseDto<ClassThreadDetailDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetPinned(int threadId, [FromBody] ClassThreadPinDto request)
+    {
+        if (!TryGetUserId(out var userId)) return InvalidSession();
+        var result = await _classSpaceService.SetPinnedAsync(userId, threadId, request);
+        return result.Success ? Ok(result) : ProblemFrom(result);
+    }
+
     /// <summary>Trả lời một chủ đề chưa đóng.</summary>
     [HttpPost("threads/{threadId:int}/replies")]
     [ProducesResponseType(typeof(ApiResponseDto<ClassThreadReplyDto>), StatusCodes.Status201Created)]
