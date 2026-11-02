@@ -268,6 +268,9 @@ public sealed class ApiClient
     public Task<ApiResult<List<PointRecordHistoryEntry>>> GetPointHistoryAsync(int pointRecordId) =>
         SendAsync<List<PointRecordHistoryEntry>>(HttpMethod.Get, $"api/v1/admin/point-records/{pointRecordId}/history");
 
+    public Task<ApiResult<PointRecordInfo>> TransitionPointRecordAsync(int pointRecordId, string status, string reason) =>
+        SendAsync<PointRecordInfo>(HttpMethod.Post, $"api/v1/admin/point-records/{pointRecordId}/transition", new { status, reason });
+
     // ---- Class discussion space (US-09)
     public Task<ApiResult<ClassSpace>> GetClassSpaceAsync(string? kind, string? search, int page, int pageSize = 15) =>
         SendAsync<ClassSpace>(HttpMethod.Get, $"api/v1/class-space/threads?{Query(("kind", kind), ("search", search), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
