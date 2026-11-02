@@ -340,3 +340,23 @@ Authorization: Bearer {{monitorToken}}
 ### US-12 — lớp trưởng đánh dấu thông báo hoạt động mới đã đọc
 POST {{host}}/api/v1/notifications/1/read
 Authorization: Bearer {{monitorToken}}
+
+### US-13 — lớp trưởng đăng thông báo / lời nhắc trong không gian lớp
+POST {{host}}/api/v1/class-space/threads
+Authorization: Bearer {{monitorToken}}
+Content-Type: application/json
+
+{
+  "kind": "Announcement",
+  "title": "Nhắc lịch sinh hoạt lớp",
+  "body": "Cả lớp có mặt lúc 9 giờ tại phòng A."
+}
+
+### US-13 — lớp trưởng bỏ ghim thông báo khi đã hết cần ưu tiên
+PATCH {{host}}/api/v1/class-space/threads/1/pin
+Authorization: Bearer {{monitorToken}}
+Content-Type: application/json
+
+{
+  "isPinned": false
+}
