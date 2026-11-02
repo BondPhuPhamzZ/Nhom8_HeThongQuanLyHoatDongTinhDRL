@@ -418,6 +418,65 @@ public sealed class ClassSpaceService : IClassSpaceService
         return ApiResponseDto<ThreadEscalationDto>.Ok((await LoadEscalationAsync(escalationId))!, "Đã rút lại câu hỏi.");
     }
 
+    public async Task<ApiResponseDto<ThreadEscalationDto>> RelayEscalationAsync(int userId, int escalationId)
+    {
+        var (error, member) = await ResolveMonitorAsync<ThreadEscalationDto>(userId);
+        if (error != null) return error;
+
+        var escalation = await _context.ThreadEscalations
+            .Include(item => item.Thread)
+            .FirstOrDefaultAsync(item => item.Id == escalationId && item.Thread!.ClassId == member!.ClassId);
+        if (escalation == null)
+        {
+            return Fail<ThreadEscalationDto>("Không tìm thấy câu hỏi đã chuyển của lớp bạn.",
+                StatusCodes.Status404NotFound, ApiErrorCodes.ResourceNotFound);
+        }
+        if (escalation.Status != EscalationStatus.Answered || string.IsNullOrWhiteSpace(escalation.Answer))
+        {
+            return Fail<ThreadEscalationDto>("Chỉ chuyển lại được phản hồi chính thức đã nhận từ Phòng QL HSSV.",
+                StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation);
+        }
+        if (escalation.RelayedAt.HasValue)
+        {
+            return Fail<ThreadEscalationDto>("Phản hồi chính thức này đã được chuyển vào lớp.",
+                StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation);
+        }
+
+        var now = DateTime.UtcNow;
+        await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        var claimed = await _context.ThreadEscalations
+            .Where(item => item.Id == escalationId && item.Status == EscalationStatus.Answered && item.RelayedAt == null)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(item => item.RelayedAt, now)
+                .SetProperty(item => item.RelayedById, userId));
+        if (claimed == 0)
+        {
+            await transaction.RollbackAsync();
+            return Fail<ThreadEscalationDto>("Phản hồi chính thức này đã được chuyển vào lớp.",
+                StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation);
+        }
+
+        var threadReplies = await _context.ClassThreadReplies.Where(reply => reply.ThreadId == escalation.ThreadId).ToListAsync();
+        foreach (var reply in threadReplies) reply.IsAnswer = false;
+        _context.ClassThreadReplies.Add(new ClassThreadReply
+        {
+            ThreadId = escalation.ThreadId,
+            AuthorId = userId,
+            Body = $"Phản hồi chính thức từ Phòng QL HSSV:\n\n{escalation.Answer.Trim()}",
+            IsAnswer = true,
+            CreatedAt = now
+        });
+        escalation.RelayedAt = now;
+        escalation.RelayedById = userId;
+        escalation.Thread!.Status = ClassThreadStatus.Answered;
+        escalation.Thread.LastActivityAt = now;
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        var result = await LoadEscalationAsync(escalationId);
+        return ApiResponseDto<ThreadEscalationDto>.Ok(result!, "Đã chuyển phản hồi chính thức vào chủ đề lớp.");
+    }
+
     private sealed record ClassMember(int ClassId, string ClassCode, string ClassName, string? MonitorName, int? MonitorId);
 
     /// <summary>Escalations are the class monitor's tool: the class's MonitorStudentId decides, not the role alone.</summary>
@@ -436,7 +495,8 @@ public sealed class ClassSpaceService : IClassSpaceService
     private IQueryable<ThreadEscalation> EscalationQuery() => _context.ThreadEscalations.AsNoTracking()
         .Include(escalation => escalation.Thread)
         .Include(escalation => escalation.RaisedBy)
-        .Include(escalation => escalation.AnsweredBy);
+        .Include(escalation => escalation.AnsweredBy)
+        .Include(escalation => escalation.RelayedBy);
 
     private async Task<ThreadEscalationDto?> LoadEscalationAsync(int escalationId)
     {
@@ -456,6 +516,9 @@ public sealed class ClassSpaceService : IClassSpaceService
         Answer = escalation.Answer,
         AnsweredByName = escalation.AnsweredBy?.FullName,
         AnsweredAt = escalation.AnsweredAt,
+        RelayedByName = escalation.RelayedBy?.FullName,
+        RelayedAt = escalation.RelayedAt,
+        CanRelay = escalation.Status == EscalationStatus.Answered && !escalation.RelayedAt.HasValue,
         WithdrawnAt = escalation.WithdrawnAt
     };
 

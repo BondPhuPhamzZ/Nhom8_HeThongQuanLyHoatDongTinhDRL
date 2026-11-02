@@ -107,6 +107,9 @@ public sealed class ThreadEscalationDto
     public string? Answer { get; set; }
     public string? AnsweredByName { get; set; }
     public DateTime? AnsweredAt { get; set; }
+    public string? RelayedByName { get; set; }
+    public DateTime? RelayedAt { get; set; }
+    public bool CanRelay { get; set; }
     public DateTime? WithdrawnAt { get; set; }
 }
 

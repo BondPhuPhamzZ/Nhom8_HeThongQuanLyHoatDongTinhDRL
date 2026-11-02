@@ -153,6 +153,19 @@ public sealed class ClassSpaceController : ApiControllerBase
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
 
+    /// <summary>Lớp trưởng đăng phản hồi chính thức vào chủ đề lớp sau khi phòng đã trả lời (US-16).</summary>
+    [HttpPost("escalations/{escalationId:int}/relay")]
+    [ProducesResponseType(typeof(ApiResponseDto<ThreadEscalationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RelayEscalation(int escalationId)
+    {
+        if (!TryGetUserId(out var userId)) return InvalidSession();
+        var result = await _classSpaceService.RelayEscalationAsync(userId, escalationId);
+        return result.Success ? Ok(result) : ProblemFrom(result);
+    }
+
     private bool TryGetUserId(out int userId) =>
         int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out userId);
 
