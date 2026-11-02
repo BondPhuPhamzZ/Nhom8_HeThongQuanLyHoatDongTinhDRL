@@ -40,6 +40,7 @@ public sealed class ClassThreadDetailDto : ClassThreadSummaryDto
     /// <summary>True for the class monitor on a question or discussion that is not already waiting for an answer.</summary>
     public bool CanEscalate { get; set; }
     public bool CanPin { get; set; }
+    public bool CanManageAnswers { get; set; }
     public List<ClassThreadReplyDto> Replies { get; set; } = [];
 }
 
@@ -52,6 +53,7 @@ public sealed class ClassThreadReplyDto
     public DateTime CreatedAt { get; set; }
     /// <summary>True when the signed-in user wrote the reply and it is not marked as the answer.</summary>
     public bool CanDelete { get; set; }
+    public bool CanMarkAnswer { get; set; }
 }
 
 public sealed class PostAuthorDto

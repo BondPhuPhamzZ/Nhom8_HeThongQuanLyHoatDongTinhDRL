@@ -194,6 +194,45 @@ public sealed class ClassSpaceService : IClassSpaceService
         return ApiResponseDto<ClassThreadReplyDto>.Ok(MapReply(reply, author, userId), "Đã gửi trả lời.");
     }
 
+    public async Task<ApiResponseDto<ClassThreadDetailDto>> MarkAnswerAsync(int userId, int threadId, int replyId)
+    {
+        var (error, member) = await ResolveMemberAsync<ClassThreadDetailDto>(userId);
+        if (error != null) return error;
+        if (member!.MonitorId != userId)
+        {
+            return Fail<ClassThreadDetailDto>("Chỉ lớp trưởng hiện tại mới được chọn câu trả lời.",
+                StatusCodes.Status403Forbidden, ApiErrorCodes.AccessDenied);
+        }
+
+        var thread = await _context.ClassThreads.FirstOrDefaultAsync(item => item.Id == threadId && item.ClassId == member.ClassId);
+        if (thread == null) return ThreadNotFound<ClassThreadDetailDto>();
+        if (thread.Kind != ClassThreadKind.Question || thread.Status == ClassThreadStatus.Closed)
+        {
+            return Fail<ClassThreadDetailDto>("Chỉ chọn câu trả lời cho câu hỏi chưa đóng.",
+                StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation);
+        }
+
+        var replies = await _context.ClassThreadReplies.Where(reply => reply.ThreadId == threadId).ToListAsync();
+        var selected = replies.FirstOrDefault(reply => reply.Id == replyId);
+        if (selected == null)
+        {
+            return Fail<ClassThreadDetailDto>("Không tìm thấy trả lời trong câu hỏi này.",
+                StatusCodes.Status404NotFound, ApiErrorCodes.ResourceNotFound);
+        }
+        if (!selected.IsAnswer)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            foreach (var reply in replies) reply.IsAnswer = reply.Id == replyId;
+            thread.Status = ClassThreadStatus.Answered;
+            thread.LastActivityAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+
+        var detail = await LoadDetailAsync(member, threadId, userId);
+        return ApiResponseDto<ClassThreadDetailDto>.Ok(detail!, "Đã chọn câu trả lời và cập nhật trạng thái câu hỏi.");
+    }
+
     public async Task<ApiResponseDto<bool>> DeleteThreadAsync(int userId, int threadId)
     {
         var (error, member) = await ResolveMemberAsync<bool>(userId);
@@ -452,8 +491,10 @@ public sealed class ClassSpaceService : IClassSpaceService
         var escalationStatus = thread.Escalations.OrderByDescending(escalation => escalation.Id).Select(escalation => escalation.Status).FirstOrDefault();
         var detail = FillSummary(new ClassThreadDetailDto(), thread, thread.Replies.Count, escalationStatus, userId);
         detail.Body = thread.Body;
+        detail.CanManageAnswers = member.MonitorId == userId && thread.Kind == ClassThreadKind.Question;
         detail.Replies = thread.Replies.OrderBy(reply => reply.CreatedAt).ThenBy(reply => reply.Id)
-            .Select(reply => MapReply(reply, reply.Author!, userId)).ToList();
+            .Select(reply => MapReply(reply, reply.Author!, userId,
+                detail.CanManageAnswers && thread.Status != ClassThreadStatus.Closed)).ToList();
         detail.CanDelete = thread.AuthorId == userId && thread.Replies.All(reply => reply.AuthorId == userId) && thread.Escalations.Count == 0;
         detail.CanEscalate = member.MonitorId == userId
             && ClassThreadKind.MemberKinds.Contains(thread.Kind)
@@ -478,14 +519,15 @@ public sealed class ClassSpaceService : IClassSpaceService
         return target;
     }
 
-    private static ClassThreadReplyDto MapReply(ClassThreadReply reply, User author, int userId) => new()
+    private static ClassThreadReplyDto MapReply(ClassThreadReply reply, User author, int userId, bool canMarkAnswer = false) => new()
     {
         Id = reply.Id,
         Body = reply.Body,
         Author = MapAuthor(author, userId),
         IsAnswer = reply.IsAnswer,
         CreatedAt = reply.CreatedAt,
-        CanDelete = reply.AuthorId == userId && !reply.IsAnswer
+        CanDelete = reply.AuthorId == userId && !reply.IsAnswer,
+        CanMarkAnswer = canMarkAnswer && !reply.IsAnswer
     };
 
     private static PostAuthorDto MapAuthor(User user, int userId) => new()

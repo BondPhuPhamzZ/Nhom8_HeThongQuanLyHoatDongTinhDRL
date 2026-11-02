@@ -19,6 +19,8 @@ public interface IClassSpaceService
 
     Task<ApiResponseDto<ClassThreadReplyDto>> ReplyAsync(int userId, int threadId, ClassThreadReplyCreateDto request);
 
+    Task<ApiResponseDto<ClassThreadDetailDto>> MarkAnswerAsync(int userId, int threadId, int replyId);
+
     Task<ApiResponseDto<bool>> DeleteThreadAsync(int userId, int threadId);
 
     Task<ApiResponseDto<bool>> DeleteReplyAsync(int userId, int threadId, int replyId);
