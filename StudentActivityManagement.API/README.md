@@ -197,6 +197,10 @@ Quy tắc:
 
 `PointRecordStatus` đã khai báo sẵn các chuyển trạng thái cho US-23 (Kiệt): `Approved → Revoked/Pending`, `Pending → Approved/Rejected`, `Rejected → Pending`, `Revoked` là trạng thái cuối. Mỗi lần chuyển phải kèm lý do và ghi một dòng `PointRecordHistories`.
 
+### Mức điểm và hoạt động phù hợp của sinh viên (US-11)
+
+`GET /api/v1/student/reports/points-and-recommendations?periodId=` trả điểm đã duyệt, mục tiêu, điểm còn thiếu và hoạt động đề xuất. Bỏ `periodId` để lấy kỳ hiện tại/gần nhất. Gợi ý chỉ xuất hiện khi còn thiếu điểm trong kỳ đang `Open`; mỗi hoạt động phải thuộc thời gian kỳ, còn đăng ký mở và chỗ trống, có điểm, đạt eligibility chung và chưa được sinh viên đăng ký/điểm danh.
+
 ### Báo cáo theo kỳ (US-24)
 
 `GET /api/v1/admin/reports/overview | activities | at-risk-students`, chỉ HSSV và SystemAdmin.

@@ -36,6 +36,12 @@ public sealed class StudentEvaluationHistoryPageViewModel
     public string? RegistrationStatus { get; set; }
 }
 
+public sealed class StudentPointsPageViewModel
+{
+    public StudentPointsRecommendationDto? Summary { get; set; }
+    public int? PeriodId { get; set; }
+}
+
 public sealed class ParticipantListViewModel
 {
     public ActivityParticipants Data { get; set; } = new();
