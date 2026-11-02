@@ -11,6 +11,50 @@ public sealed class PagedResult<T>
     public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
 }
 
+public sealed class StudentEvaluationPeriodDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public int TargetPoints { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public int ApprovedPoints { get; set; }
+}
+
+public sealed class StudentSessionHistoryDto
+{
+    public int SessionId { get; set; }
+    public string SessionName { get; set; } = string.Empty;
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+    public DateTime? CheckedInAt { get; set; }
+    public string? CheckInMethod { get; set; }
+}
+
+public sealed class StudentActivityHistoryDto
+{
+    public int RegistrationId { get; set; }
+    public int ActivityId { get; set; }
+    public string ActivityName { get; set; } = string.Empty;
+    public string OrganizerName { get; set; } = string.Empty;
+    public string RegistrationStatus { get; set; } = string.Empty;
+    public DateTime RegisteredAt { get; set; }
+    public int TrainingPoints { get; set; }
+    public string? PointStatus { get; set; }
+    public int? PointsAwarded { get; set; }
+    public string? PointReason { get; set; }
+    public DateTime? PointDecidedAt { get; set; }
+    public int CheckInCount { get; set; }
+    public List<StudentSessionHistoryDto> Sessions { get; set; } = [];
+}
+
+public sealed class StudentEvaluationHistoryDto
+{
+    public StudentEvaluationPeriodDto Period { get; set; } = new();
+    public List<StudentActivityHistoryDto> Activities { get; set; } = [];
+}
+
 public sealed class AuthResponse
 {
     public string Token { get; set; } = string.Empty;
@@ -61,6 +105,24 @@ public sealed class ActivityDto
     public bool IsRegistrationOpen { get; set; }
 }
 
+public sealed class CheckInConfigDto
+{
+    public int ActivityId { get; set; }
+    public string Method { get; set; } = "Code";
+    public int OpenBeforeMinutes { get; set; }
+    public int CloseAfterMinutes { get; set; }
+    public bool IsDefault { get; set; }
+    public bool HasCheckIns { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+}
+
+public sealed class ReminderScheduleDto
+{
+    public int ActivityId { get; set; }
+    public List<int> OffsetsMinutes { get; set; } = [];
+    public bool IsDefault { get; set; }
+}
+
 public sealed class SessionDto
 {
     public int Id { get; set; }
@@ -87,6 +149,25 @@ public sealed class EligibilityDto
     public bool IsEligible { get; set; }
     public string? ParticipationType { get; set; }
     public string Reason { get; set; } = string.Empty;
+}
+
+public sealed class StudentPointsRecommendationDto
+{
+    public EvaluationPeriodSummaryDto Period { get; set; } = new();
+    public int ApprovedPoints { get; set; }
+    public int MissingPoints { get; set; }
+    public bool IsAtRisk { get; set; }
+    public List<ActivityDto> RecommendedActivities { get; set; } = [];
+}
+
+public sealed class EvaluationPeriodSummaryDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public int TargetPoints { get; set; }
+    public string Status { get; set; } = string.Empty;
 }
 
 public sealed class ClassDto
@@ -402,6 +483,7 @@ public sealed class PointRecordInfo
     public string? Reason { get; set; }
     public string? DecidedByName { get; set; }
     public DateTime DecidedAt { get; set; }
+    public List<string> AllowedNextStatuses { get; set; } = [];
 }
 
 public sealed class PointRecordHistoryEntry
@@ -529,6 +611,8 @@ public sealed class ClassThreadDetail : ClassThreadSummary
     public string Body { get; set; } = string.Empty;
     public bool CanDelete { get; set; }
     public bool CanEscalate { get; set; }
+    public bool CanPin { get; set; }
+    public bool CanManageAnswers { get; set; }
     public List<ClassThreadReply> Replies { get; set; } = [];
 }
 
@@ -540,6 +624,7 @@ public sealed class ClassThreadReply
     public bool IsAnswer { get; set; }
     public DateTime CreatedAt { get; set; }
     public bool CanDelete { get; set; }
+    public bool CanMarkAnswer { get; set; }
 }
 
 public sealed class PostAuthor
@@ -564,5 +649,21 @@ public sealed class ThreadEscalation
     public string? Answer { get; set; }
     public string? AnsweredByName { get; set; }
     public DateTime? AnsweredAt { get; set; }
+    public string? RelayedByName { get; set; }
+    public DateTime? RelayedAt { get; set; }
+    public bool CanRelay { get; set; }
     public DateTime? WithdrawnAt { get; set; }
+}
+
+/// <summary>In-app activity reminder for the signed-in student (US-06).</summary>
+public sealed class UserNotification
+{
+    public int Id { get; set; }
+    public string Kind { get; set; } = string.Empty;
+    public int ActivityId { get; set; }
+    public int SessionId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public DateTime? ReadAt { get; set; }
 }

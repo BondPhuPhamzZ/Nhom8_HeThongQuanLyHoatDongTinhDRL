@@ -47,6 +47,14 @@ public sealed class ClassSpaceController : WebControllerBase
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Pin(int id, bool isPinned)
+    {
+        var result = await _api.SetClassThreadPinnedAsync(id, isPinned);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Thread), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Reply(int id, string? body)
     {
         if (string.IsNullOrWhiteSpace(body))
@@ -56,6 +64,14 @@ public sealed class ClassSpaceController : WebControllerBase
         }
 
         var result = await _api.ReplyClassThreadAsync(id, body);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Thread), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkAnswer(int id, int replyId)
+    {
+        var result = await _api.MarkClassThreadAnswerAsync(id, replyId);
         if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
         return RedirectToAction(nameof(Thread), new { id });
     }
@@ -115,6 +131,14 @@ public sealed class ClassSpaceController : WebControllerBase
     public async Task<IActionResult> Withdraw(int escalationId, string? status)
     {
         var result = await _api.WithdrawClassEscalationAsync(escalationId);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Escalations), new { status });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Relay(int escalationId, string? status)
+    {
+        var result = await _api.RelayClassEscalationAsync(escalationId);
         if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
         return RedirectToAction(nameof(Escalations), new { status });
     }

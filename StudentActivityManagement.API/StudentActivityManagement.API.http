@@ -29,6 +29,18 @@ Authorization: Bearer {{studentToken}}
 DELETE {{host}}/api/v1/student-activities/2/registration
 Authorization: Bearer {{studentToken}}
 
+### US-10 — Các kỳ đánh giá và tổng điểm cá nhân
+GET {{host}}/api/v1/student/reports/evaluation-periods
+Authorization: Bearer {{studentToken}}
+
+### US-10 — Lịch sử hoạt động theo kỳ (có thể bỏ periodId để lấy kỳ hiện tại/gần nhất)
+GET {{host}}/api/v1/student/reports/activity-history?periodId=1&registrationStatus=Attended
+Authorization: Bearer {{studentToken}}
+
+### US-11 — Điểm đã duyệt, điểm còn thiếu và hoạt động phù hợp
+GET {{host}}/api/v1/student/reports/points-and-recommendations
+Authorization: Bearer {{studentToken}}
+
 ### Đăng nhập Quản trị viên hệ thống (SystemAdmin)
 POST {{host}}/api/v1/auth/login
 Content-Type: application/json
@@ -272,6 +284,16 @@ Content-Type: application/json
 GET {{host}}/api/v1/admin/point-records/1/history
 Authorization: Bearer {{hssvToken}}
 
+### US-23 — Chuyển trạng thái bản ghi điểm (mọi thay đổi cần lý do)
+POST {{host}}/api/v1/admin/point-records/1/transition
+Authorization: Bearer {{hssvToken}}
+Content-Type: application/json
+
+{
+  "status": "Pending",
+  "reason": "Cần đối chiếu lại minh chứng"
+}
+
 ### US-24 — Báo cáo tổng hợp kỳ hiện tại, chia theo lớp
 GET {{host}}/api/v1/admin/reports/overview?groupBy=class
 Authorization: Bearer {{hssvToken}}
@@ -332,3 +354,67 @@ Authorization: Bearer {{monitorToken}}
 ### US-15 — Rút lại câu hỏi đang chờ trả lời
 POST {{host}}/api/v1/class-space/escalations/1/withdraw
 Authorization: Bearer {{monitorToken}}
+
+### US-12 — lớp trưởng xem thông báo hoạt động mới liên quan đến lớp
+GET {{host}}/api/v1/notifications?unreadOnly=true&pageIndex=1&pageSize=20
+Authorization: Bearer {{monitorToken}}
+
+### US-12 — lớp trưởng đánh dấu thông báo hoạt động mới đã đọc
+POST {{host}}/api/v1/notifications/1/read
+Authorization: Bearer {{monitorToken}}
+
+### US-13 — lớp trưởng đăng thông báo / lời nhắc trong không gian lớp
+POST {{host}}/api/v1/class-space/threads
+Authorization: Bearer {{monitorToken}}
+Content-Type: application/json
+
+{
+  "kind": "Announcement",
+  "title": "Nhắc lịch sinh hoạt lớp",
+  "body": "Cả lớp có mặt lúc 9 giờ tại phòng A."
+}
+
+### US-13 — lớp trưởng bỏ ghim thông báo khi đã hết cần ưu tiên
+PATCH {{host}}/api/v1/class-space/threads/1/pin
+Authorization: Bearer {{monitorToken}}
+Content-Type: application/json
+
+{
+  "isPinned": false
+}
+
+### US-14 — lớp trưởng chọn trả lời chính thức cho một câu hỏi
+POST {{host}}/api/v1/class-space/threads/1/replies/1/answer
+Authorization: Bearer {{monitorToken}}
+
+### US-16 — lớp trưởng chuyển phản hồi chính thức vào chủ đề của lớp
+POST {{host}}/api/v1/class-space/escalations/1/relay
+Authorization: Bearer {{monitorToken}}
+
+### US-26 — Xem cấu hình check-in của hoạt động (HSSV/SystemAdmin)
+GET {{host}}/api/v1/admin/activities/1/check-in-config
+Authorization: Bearer {{staffToken}}
+
+### US-26 — Cập nhật cấu hình check-in
+PUT {{host}}/api/v1/admin/activities/1/check-in-config
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "method": "Code",
+  "openBeforeMinutes": 15,
+  "closeAfterMinutes": 30
+}
+
+### US-26 — Xem các mốc nhắc trước mỗi buổi
+GET {{host}}/api/v1/admin/activities/1/reminder-schedule
+Authorization: Bearer {{staffToken}}
+
+### US-26 — Thay toàn bộ lịch nhắc (phút trước giờ bắt đầu buổi)
+PUT {{host}}/api/v1/admin/activities/1/reminder-schedule
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "offsetsMinutes": [1440, 60]
+}

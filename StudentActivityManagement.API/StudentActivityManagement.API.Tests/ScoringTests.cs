@@ -2,6 +2,9 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using StudentActivityManagement.API.Data;
 
 namespace StudentActivityManagement.API.Tests;
 
@@ -9,11 +12,13 @@ namespace StudentActivityManagement.API.Tests;
 public sealed class ScoringTests : IClassFixture<CustomWebApplicationFactory>
 {
     private const string Password = "123456";
+    private readonly CustomWebApplicationFactory _factory;
     private readonly AccountTestClient _api;
     private readonly HttpClient _client;
 
     public ScoringTests(CustomWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
         _api = new AccountTestClient(_client);
     }
@@ -81,6 +86,93 @@ public sealed class ScoringTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, (await ReviewAsync(setup, setup.EvidenceId, "Accepted")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await ApproveAsync(setup, [setup.EvidenceRegistrationId])).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await ReviewAsync(setup, setup.EvidenceId, "Rejected", "Thử đổi sau khi ghi điểm")).StatusCode);
+    }
+
+    [Fact]
+    public async Task PointRecordTransitions_RequireReason_FollowStateMachine_AndMaintainPointTotals()
+    {
+        var setup = await SetupAsync(complete: true);
+        Assert.Equal(HttpStatusCode.OK, (await ApproveAsync(setup, [setup.AttendedRegistrationId])).StatusCode);
+        var sheet = await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff));
+        var recordId = Candidate(sheet, setup.AttendedRegistrationId).GetProperty("pointRecord").GetProperty("id").GetInt32();
+
+        var missingReason = await TransitionAsync(setup, recordId, "Pending", " ");
+        Assert.Equal(HttpStatusCode.BadRequest, missingReason.StatusCode);
+
+        var pending = await TransitionAsync(setup, recordId, "Pending", "Cần đối chiếu lại minh chứng");
+        Assert.Equal(HttpStatusCode.OK, pending.StatusCode);
+        Assert.Equal("Pending", (await DataAsync(pending)).GetProperty("status").GetString());
+        var registrationPoints = await RegistrationPointsAsync(setup.AttendedRegistrationId);
+        Assert.Equal(0, registrationPoints);
+
+        var reapproved = await TransitionAsync(setup, recordId, "Approved", "Đã xác minh đủ điều kiện");
+        Assert.Equal(HttpStatusCode.OK, reapproved.StatusCode);
+        Assert.Equal(7, await RegistrationPointsAsync(setup.AttendedRegistrationId));
+
+        var revoked = await TransitionAsync(setup, recordId, "Revoked", "Phát hiện ghi nhận nhầm");
+        Assert.Equal(HttpStatusCode.OK, revoked.StatusCode);
+        Assert.Equal(0, await RegistrationPointsAsync(setup.AttendedRegistrationId));
+        Assert.Equal(HttpStatusCode.Conflict, (await TransitionAsync(setup, recordId, "Approved", "Không được mở lại")).StatusCode);
+
+        var history = await DataAsync(await _api.GetAsync($"/api/v1/admin/point-records/{recordId}/history", setup.Staff));
+        Assert.Equal(new[] { "Approved", "Pending", "Approved", "Revoked" },
+            history.EnumerateArray().Select(item => item.GetProperty("toStatus").GetString()).ToArray());
+        Assert.Equal("Cần đối chiếu lại minh chứng", history[1].GetProperty("reason").GetString());
+        Assert.Equal("Approved", history[1].GetProperty("fromStatus").GetString());
+    }
+
+    [Fact]
+    public async Task PointRecordTransition_RejectsInvalidTarget_AndRequiresBusinessAdmin()
+    {
+        var setup = await SetupAsync(complete: true);
+        Assert.Equal(HttpStatusCode.OK, (await ApproveAsync(setup, [setup.AttendedRegistrationId])).StatusCode);
+        var sheet = await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff));
+        var recordId = Candidate(sheet, setup.AttendedRegistrationId).GetProperty("pointRecord").GetProperty("id").GetInt32();
+
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/point-records/{recordId}/transition", setup.Staff,
+                new { status = "Unknown", reason = "Lý do" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/point-records/{recordId}/transition", setup.StudentToken,
+                new { status = "Pending", reason = "Lý do" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized,
+            (await _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/point-records/{recordId}/transition", null,
+                new { status = "Pending", reason = "Lý do" })).StatusCode);
+    }
+
+    [Fact]
+    public async Task ClosedPeriod_BlocksPointTransitionUntilReopened()
+    {
+        var setup = await SetupAsync(complete: true);
+        Assert.Equal(HttpStatusCode.OK, (await ApproveAsync(setup, [setup.AttendedRegistrationId])).StatusCode);
+        var sheet = await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff));
+        var recordId = Candidate(sheet, setup.AttendedRegistrationId).GetProperty("pointRecord").GetProperty("id").GetInt32();
+        var periodId = sheet.GetProperty("period").GetProperty("id").GetInt32();
+
+        await SetPeriodStatusAsync(setup.Staff, periodId, "Closed");
+        try
+        {
+            Assert.Equal(HttpStatusCode.Conflict,
+                (await TransitionAsync(setup, recordId, "Pending", "Đối chiếu thêm")).StatusCode);
+            Assert.Equal(7, await RegistrationPointsAsync(setup.AttendedRegistrationId));
+        }
+        finally
+        {
+            await SetPeriodStatusAsync(setup.Staff, periodId, "Open");
+        }
+
+        Assert.Equal(HttpStatusCode.OK,
+            (await TransitionAsync(setup, recordId, "Pending", "Đối chiếu thêm")).StatusCode);
+    }
+
+    private Task<HttpResponseMessage> TransitionAsync(Setup setup, int pointRecordId, string status, string reason) =>
+        _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/point-records/{pointRecordId}/transition", setup.Staff, new { status, reason });
+
+    private async Task<int> RegistrationPointsAsync(int registrationId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        return await context.ActivityRegistrations.Where(item => item.Id == registrationId).Select(item => item.PointsEarned).SingleAsync();
     }
 
     [Fact]

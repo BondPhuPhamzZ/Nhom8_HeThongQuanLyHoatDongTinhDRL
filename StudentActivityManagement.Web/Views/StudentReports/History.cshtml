@@ -1,0 +1,84 @@
+@model StudentEvaluationHistoryPageViewModel
+@{
+    ViewData["Title"] = "Lịch sử hoạt động và điểm";
+}
+<h1 class="h3">Lịch sử hoạt động và điểm</h1>
+<p class="text-muted">Xem hoạt động, trạng thái đăng ký, điểm danh và quyết định điểm đã duyệt theo kỳ.</p>
+
+@if (Model.Periods.Count == 0)
+{
+    <div class="alert alert-info">Chưa có kỳ đánh giá để hiển thị.</div>
+}
+else
+{
+    <form method="get" class="row g-2 align-items-end mb-4">
+        <div class="col-md-6">
+            <label class="form-label" for="periodId">Kỳ đánh giá</label>
+            <select class="form-select" id="periodId" name="periodId">
+                @foreach (var period in Model.Periods)
+                {
+                    <option value="@period.Id" selected="@(Model.PeriodId == period.Id ? "selected" : null)">@period.Name — @period.ApprovedPoints/@period.TargetPoints điểm</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="registrationStatus">Trạng thái đăng ký</label>
+            <select class="form-select" id="registrationStatus" name="registrationStatus">
+                <option value="">Tất cả</option>
+                @foreach (var status in new[] { "Registered", "Attended", "Absent", "Cancelled" })
+                {
+                    <option value="@status" selected="@(Model.RegistrationStatus == status ? "selected" : null)">@status</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Xem</button></div>
+    </form>
+
+    @if (Model.History is { } history)
+    {
+        <div class="stat-tile mb-3"><div class="stat-value">@history.Period.ApprovedPoints / @history.Period.TargetPoints</div><div class="stat-label">Điểm đã duyệt trong @history.Period.Name</div></div>
+        @if (history.Activities.Count == 0)
+        {
+            <div class="alert alert-light border">Chưa có đăng ký hoạt động trong kỳ này.</div>
+        }
+        else
+        {
+            <div class="table-responsive"><table class="table table-hover align-middle">
+                <thead><tr><th>Hoạt động</th><th>Buổi &amp; điểm danh</th><th>Đăng ký</th><th>Điểm</th></tr></thead>
+                <tbody>
+                @foreach (var activity in history.Activities)
+                {
+                    <tr>
+                        <td><a asp-controller="StudentActivities" asp-action="Details" asp-route-id="@activity.ActivityId">@activity.ActivityName</a><div class="small text-muted">@activity.OrganizerName · đăng ký <vn-time value="@activity.RegisteredAt" format="date" /></div></td>
+                        <td>
+                            @foreach (var session in activity.Sessions)
+                            {
+                                <div class="small">@session.SessionName · <vn-time value="@session.StartTime" format="date" /> — @(session.CheckedInAt.HasValue ? "Đã điểm danh" : "Chưa điểm danh")</div>
+                            }
+                        </td>
+                        <td><status-badge value="@activity.RegistrationStatus" /></td>
+                        <td>
+                            @if (activity.PointStatus == "Approved")
+                            {
+                                <span>@activity.PointsAwarded điểm đã duyệt</span>
+                            }
+                            else if (activity.PointStatus != null)
+                            {
+                                <span>@activity.PointStatus</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Chưa ghi điểm</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(activity.PointReason))
+                            {
+                                <div class="small text-muted">@activity.PointReason</div>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table></div>
+        }
+    }
+}

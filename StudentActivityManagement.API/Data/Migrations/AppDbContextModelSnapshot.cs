@@ -642,6 +642,12 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Property<int?>("RaisedById")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("RelayedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("RelayedById")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -658,6 +664,8 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.HasIndex("AnsweredById");
 
                     b.HasIndex("RaisedById");
+
+                    b.HasIndex("RelayedById");
 
                     b.HasIndex("ThreadId")
                         .IsUnique()
@@ -742,6 +750,57 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.UserNotification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ActivityId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RecipientUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SessionId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceKey")
+                        .IsUnique();
+
+                    b.HasIndex("RecipientUserId", "CreatedAt");
+
+                    b.ToTable("UserNotifications");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityAudienceRule", b =>
@@ -992,6 +1051,11 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .HasForeignKey("RaisedById")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("StudentActivityManagement.API.Models.User", "RelayedBy")
+                        .WithMany()
+                        .HasForeignKey("RelayedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("StudentActivityManagement.API.Models.ClassThread", "Thread")
                         .WithMany("Escalations")
                         .HasForeignKey("ThreadId")
@@ -1001,6 +1065,8 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Navigation("AnsweredBy");
 
                     b.Navigation("RaisedBy");
+
+                    b.Navigation("RelayedBy");
 
                     b.Navigation("Thread");
                 });
@@ -1013,6 +1079,17 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Class");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.UserNotification", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.User", "Recipient")
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Recipient");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.Activity", b =>

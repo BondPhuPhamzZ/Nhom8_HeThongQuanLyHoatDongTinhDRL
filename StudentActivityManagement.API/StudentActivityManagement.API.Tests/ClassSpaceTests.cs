@@ -89,14 +89,14 @@ public sealed class ClassSpaceTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task Create_RejectsAnnouncementsAndInvalidInput()
+    public async Task Create_RestrictsAnnouncementsToMonitorAndRejectsInvalidInput()
     {
         var student = await _api.LoginAsync("SV210002", Password);
 
         var announcement = await _api.SendAsync(HttpMethod.Post, "/api/v1/class-space/threads", student,
             new { kind = "Announcement", title = "Thông báo lớp", body = "Chỉ lớp trưởng mới được đăng." });
-        Assert.Equal(HttpStatusCode.BadRequest, announcement.StatusCode);
-        Assert.Equal("validation_failed", await ErrorCodeAsync(announcement));
+        Assert.Equal(HttpStatusCode.Forbidden, announcement.StatusCode);
+        Assert.Equal("access_denied", await ErrorCodeAsync(announcement));
 
         var shortTitle = await _api.SendAsync(HttpMethod.Post, "/api/v1/class-space/threads", student,
             new { kind = "Question", title = "Hi", body = "Nội dung" });

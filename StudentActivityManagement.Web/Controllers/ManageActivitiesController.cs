@@ -34,6 +34,17 @@ public sealed class ManageActivitiesController : WebControllerBase
             return RedirectToAction(nameof(Index));
         }
 
+        var checkIn = await _api.GetCheckInConfigAsync(id);
+        var reminders = await _api.GetReminderScheduleAsync(id);
+        if (!checkIn.Success || checkIn.Data == null) FlashError(checkIn.Message);
+        if (!reminders.Success || reminders.Data == null) FlashError(reminders.Message);
+
+        ViewBag.Settings = new ActivitySettingsViewModel
+        {
+            CheckIn = checkIn.Data ?? new CheckInConfigDto(),
+            Reminders = reminders.Data ?? new ReminderScheduleDto(),
+            ActivityStatus = result.Data.Status
+        };
         return View(result.Data);
     }
 
@@ -114,6 +125,35 @@ public sealed class ManageActivitiesController : WebControllerBase
     {
         var result = await _api.GenerateCheckInCodeAsync(id, sessionId);
         if (result.Success) FlashSuccess($"{result.Message} Mã mới: {result.Data?.Code}"); else FlashError(result.Message);
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveCheckInConfig(int id, CheckInSettingsForm form)
+    {
+        if (!ModelState.IsValid)
+        {
+            FlashError("Cửa sổ check-in phải nằm trong khoảng 0–240 phút.");
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var result = await _api.UpdateCheckInConfigAsync(id, form.Method, form.OpenBeforeMinutes, form.CloseAfterMinutes);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveReminderSchedule(int id, ReminderScheduleForm form)
+    {
+        var offsets = form.GetOffsets();
+        if (!ModelState.IsValid || offsets.Count is < 1 or > 3 || offsets.Distinct().Count() != offsets.Count)
+        {
+            FlashError("Chọn từ 1 đến 3 mốc nhắc khác nhau, trong khoảng 10–10080 phút.");
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var result = await _api.UpdateReminderScheduleAsync(id, offsets);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
         return RedirectToAction(nameof(Details), new { id });
     }
 

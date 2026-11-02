@@ -90,6 +90,11 @@
 {
     <p class="text-muted">Mọi sinh viên (@Model.TargetAudience).</p>
 }
+
+@if (ViewBag.Settings is ActivitySettingsViewModel settings)
+{
+    @await Html.PartialAsync("_Settings", settings)
+}
 else
 {
     <ul class="list-unstyled">

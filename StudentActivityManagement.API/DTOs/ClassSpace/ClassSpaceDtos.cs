@@ -39,6 +39,8 @@ public sealed class ClassThreadDetailDto : ClassThreadSummaryDto
     public bool CanDelete { get; set; }
     /// <summary>True for the class monitor on a question or discussion that is not already waiting for an answer.</summary>
     public bool CanEscalate { get; set; }
+    public bool CanPin { get; set; }
+    public bool CanManageAnswers { get; set; }
     public List<ClassThreadReplyDto> Replies { get; set; } = [];
 }
 
@@ -51,6 +53,7 @@ public sealed class ClassThreadReplyDto
     public DateTime CreatedAt { get; set; }
     /// <summary>True when the signed-in user wrote the reply and it is not marked as the answer.</summary>
     public bool CanDelete { get; set; }
+    public bool CanMarkAnswer { get; set; }
 }
 
 public sealed class PostAuthorDto
@@ -65,7 +68,7 @@ public sealed class PostAuthorDto
 
 public sealed class ClassThreadCreateDto
 {
-    /// <summary>Question or Discussion (Announcement is reserved for the class monitor, US-13).</summary>
+    /// <summary>Question or Discussion for any class member; Announcement only for its current monitor (US-13).</summary>
     [Required(ErrorMessage = "Chọn loại bài: Question hoặc Discussion.")]
     public string Kind { get; set; } = string.Empty;
 
@@ -76,6 +79,11 @@ public sealed class ClassThreadCreateDto
     [Required(ErrorMessage = "Nhập nội dung.")]
     [StringLength(4000, ErrorMessage = "Nội dung tối đa 4000 ký tự.")]
     public string Body { get; set; } = string.Empty;
+}
+
+public sealed class ClassThreadPinDto
+{
+    public bool IsPinned { get; set; }
 }
 
 public sealed class ClassThreadReplyCreateDto
@@ -99,6 +107,9 @@ public sealed class ThreadEscalationDto
     public string? Answer { get; set; }
     public string? AnsweredByName { get; set; }
     public DateTime? AnsweredAt { get; set; }
+    public string? RelayedByName { get; set; }
+    public DateTime? RelayedAt { get; set; }
+    public bool CanRelay { get; set; }
     public DateTime? WithdrawnAt { get; set; }
 }
 

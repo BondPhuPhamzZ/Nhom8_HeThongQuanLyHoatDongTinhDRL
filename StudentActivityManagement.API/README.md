@@ -189,13 +189,18 @@ Migration `Sprint4ScoreLedger` thêm 3 bảng:
 | `GET /api/v1/admin/activities/{id}/scoring` | Bảng ghi điểm: kỳ chứa thời điểm kết thúc của hoạt động, `canApprove` kèm lý do bị chặn, và từng đăng ký với check-in, minh chứng, điều kiện, quyết định đã có |
 | `POST /api/v1/admin/activities/{id}/scoring/approve` body `{ "registrationIds": [..] \| null, "note" }` | Ghi điểm `Approved` (bằng `TrainingPoints` của hoạt động) cho các đăng ký đã chọn, hoặc mọi đăng ký đủ điều kiện khi không gửi danh sách |
 | `GET /api/v1/admin/point-records/{id}/history` | Lịch sử phê duyệt của một bản ghi điểm |
+| `POST /api/v1/admin/point-records/{id}/transition` body `{ "status": "Pending", "reason": "..." }` | Chuyển theo state machine; bắt buộc ghi lý do, trả quyết định mới cùng `allowedNextStatuses` |
 
 Quy tắc:
 - **Đủ điều kiện:** đăng ký `Attended` (có check-in bằng mã hoặc điểm danh thủ công), hoặc có ít nhất một minh chứng `Accepted`; và chưa có quyết định điểm.
 - **Điều kiện để ghi điểm:** hoạt động `Completed`, kỳ tìm được và đang `Open`; trường hợp khác trả `409`.
 - **Mỗi đăng ký chỉ ghi một lần:** unique index kết hợp transaction serializable.
 
-`PointRecordStatus` đã khai báo sẵn các chuyển trạng thái cho US-23 (Kiệt): `Approved → Revoked/Pending`, `Pending → Approved/Rejected`, `Rejected → Pending`, `Revoked` là trạng thái cuối. Mỗi lần chuyển phải kèm lý do và ghi một dòng `PointRecordHistories`.
+`PointRecordStatus` chuyển theo state machine: `Approved → Revoked/Pending`, `Pending → Approved/Rejected`, `Rejected → Pending`, `Revoked` là trạng thái cuối. Mỗi lần chuyển phải kèm lý do, cập nhật điểm tương thích trên đăng ký (chỉ `Approved` còn điểm), và thêm một dòng `PointRecordHistories`.
+
+### Mức điểm và hoạt động phù hợp của sinh viên (US-11)
+
+`GET /api/v1/student/reports/points-and-recommendations?periodId=` trả điểm đã duyệt, mục tiêu, điểm còn thiếu và hoạt động đề xuất. Bỏ `periodId` để lấy kỳ hiện tại/gần nhất. Gợi ý chỉ xuất hiện khi còn thiếu điểm trong kỳ đang `Open`; mỗi hoạt động phải thuộc thời gian kỳ, còn đăng ký mở và chỗ trống, có điểm, đạt eligibility chung và chưa được sinh viên đăng ký/điểm danh.
 
 ### Báo cáo theo kỳ (US-24)
 
@@ -224,6 +229,17 @@ Tham số lọc:
 
 Không tìm thấy kỳ (hoặc chưa có kỳ nào) trả `404`. `groupBy` không hợp lệ trả `400`.
 
+### Lịch sử đăng ký và điểm cá nhân (US-10)
+
+Student/Monitor xem các kỳ và lịch sử của chính tài khoản đang đăng nhập:
+
+| Endpoint | Nội dung |
+|---|---|
+| `GET /api/v1/student/reports/evaluation-periods` | Kỳ đánh giá theo ngày bắt đầu giảm dần, kèm tổng điểm `Approved` của sinh viên |
+| `GET /api/v1/student/reports/activity-history?periodId=&registrationStatus=` | Đăng ký có buổi giao nhau với kỳ, trạng thái, từng buổi/điểm danh và quyết định điểm |
+
+Bỏ `periodId` để chọn kỳ hiện tại; nếu không có kỳ hiện tại thì dùng kỳ gần nhất. `registrationStatus` nhận `Registered`, `Attended`, `Absent` hoặc `Cancelled`. Điểm cộng và tổng kỳ chỉ tính bản ghi `Approved`; mỗi truy vấn luôn lấy student ID từ JWT, không nhận ID người dùng từ client.
+
 ### Không gian trao đổi của lớp (US-09)
 
 `/api/v1/class-space`, chỉ `Student`/`Monitor`. Lớp lấy theo tài khoản đang đăng nhập (route không có mã lớp), nên không ai đọc được không gian của lớp khác.
@@ -232,12 +248,14 @@ Không tìm thấy kỳ (hoặc chưa có kỳ nào) trả `404`. `groupBy` khô
 |---|---|
 | `GET threads?kind=&search=&pageIndex=&pageSize=` | Thông tin lớp, lớp trưởng và danh sách chủ đề: ghim trước, sau đó theo hoạt động gần nhất. `pageSize` tối đa 50 |
 | `GET threads/{id}` | Chủ đề và các trả lời theo thứ tự thời gian, kèm `canDelete` cho người đang xem |
-| `POST threads` | `{ kind, title, body }`; `kind` chỉ nhận `Question` hoặc `Discussion` (`Announcement` dành cho thông báo của lớp trưởng ở US-13). Trả `201` |
+| `POST threads` | `{ kind, title, body }`; `Question`/`Discussion` dành cho thành viên, `Announcement` chỉ lớp trưởng hiện tại mới được đăng và tự ghim lên đầu. Trả `201` |
+| `PATCH threads/{id}/pin` | `{ isPinned }`; chỉ lớp trưởng hiện tại được ghim/bỏ ghim chủ đề của lớp mình |
 | `POST threads/{id}/replies` | `{ body }`; cập nhật thời điểm hoạt động của chủ đề. Trả `201` |
+| `POST threads/{id}/replies/{replyId}/answer` | Chỉ lớp trưởng của lớp chọn một trả lời làm đáp án; chủ đề chuyển `Answered`, khi đổi đáp án thì đáp án cũ được bỏ chọn |
 | `DELETE threads/{id}` | Chỉ người tạo, khi chưa có người khác trả lời |
 | `DELETE threads/{id}/replies/{replyId}` | Chỉ người viết, trừ trả lời đã được chọn làm câu trả lời (`isAnswer`) |
 
-Mã lỗi: sinh viên chưa được xếp lớp `409 business_rule_violation`; chủ đề của lớp khác hoặc không tồn tại `404`; không phải tác giả `403 access_denied`; chủ đề `Closed` không nhận trả lời `409`. Trạng thái `Answered`/`Closed`, ghim chủ đề và chọn câu trả lời đã có sẵn trong schema cho các chức năng của lớp trưởng (US-13/US-14).
+Mã lỗi: sinh viên chưa được xếp lớp `409 business_rule_violation`; chủ đề của lớp khác hoặc không tồn tại `404`; không phải tác giả/lớp trưởng hiện tại `403 access_denied`; chủ đề `Closed` không nhận trả lời `409`. Lớp trưởng có thể theo dõi câu hỏi theo `kind=Question`, trả lời, chọn một trả lời làm đáp án chính thức và cập nhật trạng thái câu hỏi `Answered` (US-14).
 
 ### Lớp trưởng chuyển câu hỏi lên Phòng QL HSSV (US-15)
 
@@ -248,15 +266,51 @@ Cùng prefix `/api/v1/class-space`. Người được thao tác là lớp trư�
 | `POST threads/{id}/escalations` | `{ question }` (5–2000 ký tự): nội dung cần phòng xác nhận. Chỉ áp dụng cho chủ đề `Question`/`Discussion`. Trả `201` |
 | `GET escalations?status=&pageIndex=&pageSize=` | Các câu hỏi lớp đã chuyển, mới nhất trước, kèm `answer` khi phòng đã trả lời |
 | `POST escalations/{id}/withdraw` | Rút lại câu hỏi đang `Pending` |
+| `POST escalations/{id}/relay` | Khi đã `Answered`, lớp trưởng đăng phản hồi chính thức thành trả lời được chọn trong thread của lớp; chỉ chuyển một lần |
 
 Trạng thái (`EscalationStatus`): `Pending → Answered` (Phòng QL HSSV trả lời, US-20) hoặc `Pending → Withdrawn` (lớp trưởng rút lại). `Answered`, `Withdrawn` là trạng thái cuối.
 
 - **Chống trùng:** mỗi chủ đề chỉ có một câu hỏi `Pending`, nhờ unique index có điều kiện. Chuyển lần nữa trả `409`. Sau khi rút lại hoặc đã được trả lời thì chuyển lại được.
 - **Khóa chủ đề:** chủ đề đã từng được chuyển lên thì tác giả không xóa được nữa (`409`), để Phòng QL HSSV không mất câu hỏi.
-- **Thông tin cho cả lớp:** danh sách và chi tiết chủ đề trả `escalationStatus` (trạng thái lần chuyển gần nhất). Chi tiết trả thêm `canEscalate` cho lớp trưởng. Nội dung phản hồi chỉ hiện trong `GET escalations` của lớp trưởng; việc chuyển lại cho lớp thuộc US-16.
+- **Thông tin cho cả lớp:** danh sách và chi tiết chủ đề trả `escalationStatus` (trạng thái lần chuyển gần nhất). Chi tiết trả thêm `canEscalate` cho lớp trưởng. Phản hồi chính thức chỉ hiện trong `GET escalations` của lớp trưởng cho tới khi được chuyển lại (US-16); khi relay, nó xuất hiện trong thread dưới tên lớp trưởng và được đánh dấu là trả lời chính thức.
 - **Mã lỗi:** không phải lớp trưởng của lớp `403 access_denied`; chủ đề hoặc câu hỏi của lớp khác `404`; rút lại câu hỏi không còn `Pending` `409`.
 
+### US-20 — Phòng QL HSSV tiếp nhận và trả lời
+
+Prefix `/api/v1/admin/class-escalations`, quyền `BusinessAdmin` (HSSV hoặc SystemAdmin):
+
+| Endpoint | Mô tả |
+|---|---|
+| `GET ?status=&pageIndex=&pageSize=` | Hộp thư câu hỏi, mới nhất trước; lọc `Pending`, `Answered`, `Withdrawn` |
+| `GET {id}` | Xem một câu hỏi cùng trạng thái và phản hồi |
+| `POST {id}/answer` | `{ "answer": "..." }` (5–4000 ký tự sau khi trim), chỉ khi `Pending` |
+
+Phản hồi ghi người trả lời và thời gian UTC, hiện lại trong danh sách của lớp trưởng. Trả lời lần hai hoặc trả lời câu hỏi đã rút lại trả `409`; câu hỏi không tồn tại trả `404`. Cập nhật có điều kiện bảo đảm thao tác trả lời và rút lại đồng thời chỉ một bên thành công. Chuyển phản hồi tới cả lớp thuộc US-16.
+
+### Cấu hình check-in và lịch nhắc (US-26)
+
+Phòng QL HSSV và SystemAdmin quản lý cấu hình theo hoạt động:
+
+| Endpoint | Nội dung |
+|---|---|
+| `GET /api/v1/admin/activities/{id}/check-in-config` | Phương thức `Code`/`Manual`, cửa sổ mở/đóng; chưa lưu thì mặc định `Code`, 15/30 phút |
+| `PUT /api/v1/admin/activities/{id}/check-in-config` | `{ method, openBeforeMinutes, closeAfterMinutes }`, lưu người cập nhật từ JWT và thời điểm UTC |
+| `GET /api/v1/admin/activities/{id}/reminder-schedule` | Các mốc trước từng buổi; mặc định `[1440]` phút |
+| `PUT /api/v1/admin/activities/{id}/reminder-schedule` | `{ offsetsMinutes: [1440, 60] }`; thay toàn bộ, lưu tăng dần |
+
+Cửa sổ check-in từ 0–240 phút; lịch nhắc có 1–3 mốc khác nhau từ 10–10080 phút. Chỉ sửa khi hoạt động ở `Draft`, `Published` hoặc `Ongoing`; không đổi phương thức sau khi đã có check-in. US-26 chỉ lưu cấu hình; gửi thông báo thuộc US-06.
+
 Sprint 2 đã chuẩn hóa hoạt động nhiều buổi. Mỗi hoạt động có `organizerName`, danh sách `sessions` và `audienceRules`. Sinh viên chỉ thấy và đăng ký hoạt động phù hợp cơ sở, khóa hoặc lớp của mình.
+
+### US-06 — thông báo nhắc lịch trong ứng dụng
+
+Worker kiểm tra mỗi phút và khi API khởi động. Mỗi buổi dùng các mốc trong `ActivityReminderOffsets`; nếu chưa cấu hình thì nhắc trước 1 ngày. Khi đến mốc và buổi chưa bắt đầu, hệ thống tạo thông báo cho sinh viên đang đăng ký (`Registered`/`Attended`) hoặc khớp quy tắc đối tượng `Required`; tài khoản khóa và đăng ký đã hủy không được nhận trừ khi thuộc diện bắt buộc. Nội dung gồm giờ Việt Nam, địa điểm, cơ sở và yêu cầu cần chuẩn bị. Khóa `SourceKey` duy nhất bảo đảm không gửi lặp khi worker chạy lại hoặc nhiều instance cùng chạy.
+
+Sinh viên và lớp trưởng dùng `GET /api/v1/notifications?unreadOnly=&pageIndex=&pageSize=` và `POST /api/v1/notifications/{id}/read`; chỉ xem hoặc đánh dấu thông báo của chính mình. Khi hoạt động được công bố, sinh viên thuộc đối tượng nhận thêm thông báo `StudentActivity` trực tiếp; thông báo này khác với lời nhắc trước từng buổi. Đây là thông báo trong ứng dụng, không gửi email/SMS/push. Mốc nhắc tùy chỉnh do US-26 quản lý; thông báo cho lớp trưởng và thông tin chuyển vào lớp thuộc US-12/US-13.
+
+### US-12 — thông báo hoạt động mới cho lớp trưởng
+
+Khi hoạt động được tạo ở trạng thái `Published` hoặc chuyển từ trạng thái khác sang `Published`, hệ thống tạo một thông báo `ClassActivity` cho lớp trưởng đang hoạt động có lớp khớp ít nhất một quy tắc đối tượng của hoạt động. Không khai báo quy tắc thì thông báo tới mọi lớp trưởng đang hoạt động. `SourceKey` theo hoạt động/người nhận ngăn gửi trùng. Nếu đối tượng được sửa khi hoạt động đã công bố, người mới phù hợp cũng nhận thông báo. Lớp trưởng dùng chung API danh sách/lọc chưa đọc và đánh dấu đã đọc ở trên; sinh viên khác nhận thông báo riêng `StudentActivity`, không nhận `ClassActivity`.
 
 ## Cấu trúc project
 

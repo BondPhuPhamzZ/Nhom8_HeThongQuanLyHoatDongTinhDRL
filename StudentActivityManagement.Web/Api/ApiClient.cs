@@ -56,6 +56,16 @@ public sealed class ApiClient
     public Task<ApiResult<CheckInResult>> CheckInAsync(int activityId, int sessionId, string code) =>
         SendAsync<CheckInResult>(HttpMethod.Post, $"api/v1/student-activities/{activityId}/sessions/{sessionId}/check-in", new { code });
 
+    public Task<ApiResult<List<StudentEvaluationPeriodDto>>> GetStudentReportPeriodsAsync() =>
+        SendAsync<List<StudentEvaluationPeriodDto>>(HttpMethod.Get, "api/v1/student/reports/evaluation-periods");
+
+    public Task<ApiResult<StudentEvaluationHistoryDto>> GetStudentActivityHistoryAsync(int? periodId, string? registrationStatus) =>
+        SendAsync<StudentEvaluationHistoryDto>(HttpMethod.Get, $"api/v1/student/reports/activity-history?{Query(("periodId", periodId?.ToString()), ("registrationStatus", registrationStatus))}");
+
+    public Task<ApiResult<StudentPointsRecommendationDto>> GetStudentPointsRecommendationsAsync(int? periodId = null) =>
+        SendAsync<StudentPointsRecommendationDto>(HttpMethod.Get,
+            $"api/v1/student/reports/points-and-recommendations?{Query(("periodId", periodId?.ToString()))}");
+
     // ---- Student Evidences (US-08)
     public Task<ApiResult<List<StudentEvidence>>> GetStudentEvidencesAsync(int activityId) =>
         SendAsync<List<StudentEvidence>>(HttpMethod.Get, $"api/v1/student-activities/{activityId}/evidences");
@@ -195,6 +205,18 @@ public sealed class ApiClient
     public Task<ApiResult<SessionCheckInCode>> GenerateCheckInCodeAsync(int activityId, int sessionId) =>
         SendAsync<SessionCheckInCode>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-in-code");
 
+    public Task<ApiResult<CheckInConfigDto>> GetCheckInConfigAsync(int activityId) =>
+        SendAsync<CheckInConfigDto>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/check-in-config");
+
+    public Task<ApiResult<CheckInConfigDto>> UpdateCheckInConfigAsync(int activityId, string method, int openBeforeMinutes, int closeAfterMinutes) =>
+        SendAsync<CheckInConfigDto>(HttpMethod.Put, $"api/v1/admin/activities/{activityId}/check-in-config", new { method, openBeforeMinutes, closeAfterMinutes });
+
+    public Task<ApiResult<ReminderScheduleDto>> GetReminderScheduleAsync(int activityId) =>
+        SendAsync<ReminderScheduleDto>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/reminder-schedule");
+
+    public Task<ApiResult<ReminderScheduleDto>> UpdateReminderScheduleAsync(int activityId, IReadOnlyList<int> offsetsMinutes) =>
+        SendAsync<ReminderScheduleDto>(HttpMethod.Put, $"api/v1/admin/activities/{activityId}/reminder-schedule", new { offsetsMinutes });
+
     public Task<ApiResult<ActivityParticipants>> GetParticipantsAsync(int activityId, string? status, string? search, bool pendingOnly, int page, int pageSize = 20) =>
         SendAsync<ActivityParticipants>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/participants?{Query(
             ("status", status), ("search", search), ("hasPendingEvidence", pendingOnly ? "true" : null),
@@ -268,6 +290,9 @@ public sealed class ApiClient
     public Task<ApiResult<List<PointRecordHistoryEntry>>> GetPointHistoryAsync(int pointRecordId) =>
         SendAsync<List<PointRecordHistoryEntry>>(HttpMethod.Get, $"api/v1/admin/point-records/{pointRecordId}/history");
 
+    public Task<ApiResult<PointRecordInfo>> TransitionPointRecordAsync(int pointRecordId, string status, string reason) =>
+        SendAsync<PointRecordInfo>(HttpMethod.Post, $"api/v1/admin/point-records/{pointRecordId}/transition", new { status, reason });
+
     // ---- Class discussion space (US-09)
     public Task<ApiResult<ClassSpace>> GetClassSpaceAsync(string? kind, string? search, int page, int pageSize = 15) =>
         SendAsync<ClassSpace>(HttpMethod.Get, $"api/v1/class-space/threads?{Query(("kind", kind), ("search", search), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
@@ -278,8 +303,14 @@ public sealed class ApiClient
     public Task<ApiResult<ClassThreadDetail>> CreateClassThreadAsync(string kind, string title, string body) =>
         SendAsync<ClassThreadDetail>(HttpMethod.Post, "api/v1/class-space/threads", new { kind, title, body });
 
+    public Task<ApiResult<ClassThreadDetail>> SetClassThreadPinnedAsync(int threadId, bool isPinned) =>
+        SendAsync<ClassThreadDetail>(HttpMethod.Patch, $"api/v1/class-space/threads/{threadId}/pin", new { isPinned });
+
     public Task<ApiResult<ClassThreadReply>> ReplyClassThreadAsync(int threadId, string body) =>
         SendAsync<ClassThreadReply>(HttpMethod.Post, $"api/v1/class-space/threads/{threadId}/replies", new { body });
+
+    public Task<ApiResult<ClassThreadDetail>> MarkClassThreadAnswerAsync(int threadId, int replyId) =>
+        SendAsync<ClassThreadDetail>(HttpMethod.Post, $"api/v1/class-space/threads/{threadId}/replies/{replyId}/answer");
 
     public Task<ApiResult<bool>> DeleteClassThreadAsync(int threadId) =>
         SendAsync<bool>(HttpMethod.Delete, $"api/v1/class-space/threads/{threadId}");
@@ -296,6 +327,23 @@ public sealed class ApiClient
 
     public Task<ApiResult<ThreadEscalation>> WithdrawClassEscalationAsync(int escalationId) =>
         SendAsync<ThreadEscalation>(HttpMethod.Post, $"api/v1/class-space/escalations/{escalationId}/withdraw");
+
+    public Task<ApiResult<ThreadEscalation>> RelayClassEscalationAsync(int escalationId) =>
+        SendAsync<ThreadEscalation>(HttpMethod.Post, $"api/v1/class-space/escalations/{escalationId}/relay");
+
+    // ---- Phòng QL HSSV escalation inbox (US-20)
+    public Task<ApiResult<PagedResult<ThreadEscalation>>> GetStaffEscalationsAsync(string? status, int page, int pageSize = 20) =>
+        SendAsync<PagedResult<ThreadEscalation>>(HttpMethod.Get, $"api/v1/admin/class-escalations?{Query(("status", status), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
+
+    public Task<ApiResult<ThreadEscalation>> AnswerStaffEscalationAsync(int escalationId, string answer) =>
+        SendAsync<ThreadEscalation>(HttpMethod.Post, $"api/v1/admin/class-escalations/{escalationId}/answer", new { answer });
+
+    // ---- In-app reminders (US-06)
+    public Task<ApiResult<PagedResult<UserNotification>>> GetNotificationsAsync(bool unreadOnly, int page, int pageSize = 20) =>
+        SendAsync<PagedResult<UserNotification>>(HttpMethod.Get, $"api/v1/notifications?{Query(("unreadOnly", unreadOnly.ToString().ToLowerInvariant()), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
+
+    public Task<ApiResult<UserNotification>> MarkNotificationReadAsync(int id) =>
+        SendAsync<UserNotification>(HttpMethod.Post, $"api/v1/notifications/{id}/read");
 
     // ---- Reports (US-24)
     public Task<ApiResult<ReportOverview>> GetReportOverviewAsync(ReportFilter filter) =>
