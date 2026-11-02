@@ -189,13 +189,14 @@ Migration `Sprint4ScoreLedger` thêm 3 bảng:
 | `GET /api/v1/admin/activities/{id}/scoring` | Bảng ghi điểm: kỳ chứa thời điểm kết thúc của hoạt động, `canApprove` kèm lý do bị chặn, và từng đăng ký với check-in, minh chứng, điều kiện, quyết định đã có |
 | `POST /api/v1/admin/activities/{id}/scoring/approve` body `{ "registrationIds": [..] \| null, "note" }` | Ghi điểm `Approved` (bằng `TrainingPoints` của hoạt động) cho các đăng ký đã chọn, hoặc mọi đăng ký đủ điều kiện khi không gửi danh sách |
 | `GET /api/v1/admin/point-records/{id}/history` | Lịch sử phê duyệt của một bản ghi điểm |
+| `POST /api/v1/admin/point-records/{id}/transition` body `{ "status": "Pending", "reason": "..." }` | Chuyển theo state machine; bắt buộc ghi lý do, trả quyết định mới cùng `allowedNextStatuses` |
 
 Quy tắc:
 - **Đủ điều kiện:** đăng ký `Attended` (có check-in bằng mã hoặc điểm danh thủ công), hoặc có ít nhất một minh chứng `Accepted`; và chưa có quyết định điểm.
 - **Điều kiện để ghi điểm:** hoạt động `Completed`, kỳ tìm được và đang `Open`; trường hợp khác trả `409`.
 - **Mỗi đăng ký chỉ ghi một lần:** unique index kết hợp transaction serializable.
 
-`PointRecordStatus` đã khai báo sẵn các chuyển trạng thái cho US-23 (Kiệt): `Approved → Revoked/Pending`, `Pending → Approved/Rejected`, `Rejected → Pending`, `Revoked` là trạng thái cuối. Mỗi lần chuyển phải kèm lý do và ghi một dòng `PointRecordHistories`.
+`PointRecordStatus` chuyển theo state machine: `Approved → Revoked/Pending`, `Pending → Approved/Rejected`, `Rejected → Pending`, `Revoked` là trạng thái cuối. Mỗi lần chuyển phải kèm lý do, cập nhật điểm tương thích trên đăng ký (chỉ `Approved` còn điểm), và thêm một dòng `PointRecordHistories`.
 
 ### Mức điểm và hoạt động phù hợp của sinh viên (US-11)
 

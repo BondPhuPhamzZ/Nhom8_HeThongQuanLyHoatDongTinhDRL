@@ -59,6 +59,22 @@ else
                                     <div class="small text-muted">@record.DecidedByName · <vn-time value="@record.DecidedAt" /></div>
                                     <a class="small" asp-action="History" asp-route-id="@Model.ActivityId" asp-route-pointRecordId="@record.Id"
                                        asp-route-student="@($"{candidate.StudentCode} – {candidate.FullName}")">Lịch sử</a>
+                                    @if (record.AllowedNextStatuses.Count > 0)
+                                    {
+                                        <form asp-action="Transition" asp-route-id="@Model.ActivityId" method="post" class="mt-2">
+                                            <input type="hidden" name="pointRecordId" value="@record.Id" />
+                                            <div class="input-group input-group-sm mb-1">
+                                                <select name="status" class="form-select" aria-label="Trạng thái điểm mới">
+                                                    @foreach (var nextStatus in record.AllowedNextStatuses)
+                                                    {
+                                                        <option value="@nextStatus">@(nextStatus switch { "Approved" => "Đã ghi điểm", "Pending" => "Chờ kiểm tra", "Rejected" => "Từ chối", "Revoked" => "Thu hồi điểm", _ => nextStatus })</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <input name="reason" class="form-control form-control-sm mb-1" maxlength="500" required placeholder="Lý do bắt buộc" aria-label="Lý do chuyển trạng thái điểm" />
+                                            <button class="btn btn-sm btn-outline-secondary" type="submit">Cập nhật quyết định</button>
+                                        </form>
+                                    }
                                 }
                                 else { <span class="text-muted small">Chưa ghi điểm</span> }
                             </td>

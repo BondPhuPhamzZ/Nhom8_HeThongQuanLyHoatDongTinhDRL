@@ -284,6 +284,16 @@ Content-Type: application/json
 GET {{host}}/api/v1/admin/point-records/1/history
 Authorization: Bearer {{hssvToken}}
 
+### US-23 — Chuyển trạng thái bản ghi điểm (mọi thay đổi cần lý do)
+POST {{host}}/api/v1/admin/point-records/1/transition
+Authorization: Bearer {{hssvToken}}
+Content-Type: application/json
+
+{
+  "status": "Pending",
+  "reason": "Cần đối chiếu lại minh chứng"
+}
+
 ### US-24 — Báo cáo tổng hợp kỳ hiện tại, chia theo lớp
 GET {{host}}/api/v1/admin/reports/overview?groupBy=class
 Authorization: Bearer {{hssvToken}}
