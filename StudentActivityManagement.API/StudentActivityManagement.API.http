@@ -29,6 +29,14 @@ Authorization: Bearer {{studentToken}}
 DELETE {{host}}/api/v1/student-activities/2/registration
 Authorization: Bearer {{studentToken}}
 
+### US-10 — Các kỳ đánh giá và tổng điểm cá nhân
+GET {{host}}/api/v1/student/reports/evaluation-periods
+Authorization: Bearer {{studentToken}}
+
+### US-10 — Lịch sử hoạt động theo kỳ (có thể bỏ periodId để lấy kỳ hiện tại/gần nhất)
+GET {{host}}/api/v1/student/reports/activity-history?periodId=1&registrationStatus=Attended
+Authorization: Bearer {{studentToken}}
+
 ### Đăng nhập Quản trị viên hệ thống (SystemAdmin)
 POST {{host}}/api/v1/auth/login
 Content-Type: application/json

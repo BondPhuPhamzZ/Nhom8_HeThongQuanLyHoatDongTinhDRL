@@ -224,6 +224,17 @@ Tham số lọc:
 
 Không tìm thấy kỳ (hoặc chưa có kỳ nào) trả `404`. `groupBy` không hợp lệ trả `400`.
 
+### Lịch sử đăng ký và điểm cá nhân (US-10)
+
+Student/Monitor xem các kỳ và lịch sử của chính tài khoản đang đăng nhập:
+
+| Endpoint | Nội dung |
+|---|---|
+| `GET /api/v1/student/reports/evaluation-periods` | Kỳ đánh giá theo ngày bắt đầu giảm dần, kèm tổng điểm `Approved` của sinh viên |
+| `GET /api/v1/student/reports/activity-history?periodId=&registrationStatus=` | Đăng ký có buổi giao nhau với kỳ, trạng thái, từng buổi/điểm danh và quyết định điểm |
+
+Bỏ `periodId` để chọn kỳ hiện tại; nếu không có kỳ hiện tại thì dùng kỳ gần nhất. `registrationStatus` nhận `Registered`, `Attended`, `Absent` hoặc `Cancelled`. Điểm cộng và tổng kỳ chỉ tính bản ghi `Approved`; mỗi truy vấn luôn lấy student ID từ JWT, không nhận ID người dùng từ client.
+
 ### Không gian trao đổi của lớp (US-09)
 
 `/api/v1/class-space`, chỉ `Student`/`Monitor`. Lớp lấy theo tài khoản đang đăng nhập (route không có mã lớp), nên không ai đọc được không gian của lớp khác.
