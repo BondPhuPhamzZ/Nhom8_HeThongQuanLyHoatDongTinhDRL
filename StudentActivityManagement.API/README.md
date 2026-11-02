@@ -250,12 +250,13 @@ Cùng prefix `/api/v1/class-space`. Người được thao tác là lớp trư�
 | `POST threads/{id}/escalations` | `{ question }` (5–2000 ký tự): nội dung cần phòng xác nhận. Chỉ áp dụng cho chủ đề `Question`/`Discussion`. Trả `201` |
 | `GET escalations?status=&pageIndex=&pageSize=` | Các câu hỏi lớp đã chuyển, mới nhất trước, kèm `answer` khi phòng đã trả lời |
 | `POST escalations/{id}/withdraw` | Rút lại câu hỏi đang `Pending` |
+| `POST escalations/{id}/relay` | Khi đã `Answered`, lớp trưởng đăng phản hồi chính thức thành trả lời được chọn trong thread của lớp; chỉ chuyển một lần |
 
 Trạng thái (`EscalationStatus`): `Pending → Answered` (Phòng QL HSSV trả lời, US-20) hoặc `Pending → Withdrawn` (lớp trưởng rút lại). `Answered`, `Withdrawn` là trạng thái cuối.
 
 - **Chống trùng:** mỗi chủ đề chỉ có một câu hỏi `Pending`, nhờ unique index có điều kiện. Chuyển lần nữa trả `409`. Sau khi rút lại hoặc đã được trả lời thì chuyển lại được.
 - **Khóa chủ đề:** chủ đề đã từng được chuyển lên thì tác giả không xóa được nữa (`409`), để Phòng QL HSSV không mất câu hỏi.
-- **Thông tin cho cả lớp:** danh sách và chi tiết chủ đề trả `escalationStatus` (trạng thái lần chuyển gần nhất). Chi tiết trả thêm `canEscalate` cho lớp trưởng. Nội dung phản hồi chỉ hiện trong `GET escalations` của lớp trưởng; việc chuyển lại cho lớp thuộc US-16.
+- **Thông tin cho cả lớp:** danh sách và chi tiết chủ đề trả `escalationStatus` (trạng thái lần chuyển gần nhất). Chi tiết trả thêm `canEscalate` cho lớp trưởng. Phản hồi chính thức chỉ hiện trong `GET escalations` của lớp trưởng cho tới khi được chuyển lại (US-16); khi relay, nó xuất hiện trong thread dưới tên lớp trưởng và được đánh dấu là trả lời chính thức.
 - **Mã lỗi:** không phải lớp trưởng của lớp `403 access_denied`; chủ đề hoặc câu hỏi của lớp khác `404`; rút lại câu hỏi không còn `Pending` `409`.
 
 ### US-20 — Phòng QL HSSV tiếp nhận và trả lời
