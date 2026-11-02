@@ -140,6 +140,31 @@ public sealed class ScoringTests : IClassFixture<CustomWebApplicationFactory>
                 new { status = "Pending", reason = "Lý do" })).StatusCode);
     }
 
+    [Fact]
+    public async Task ClosedPeriod_BlocksPointTransitionUntilReopened()
+    {
+        var setup = await SetupAsync(complete: true);
+        Assert.Equal(HttpStatusCode.OK, (await ApproveAsync(setup, [setup.AttendedRegistrationId])).StatusCode);
+        var sheet = await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff));
+        var recordId = Candidate(sheet, setup.AttendedRegistrationId).GetProperty("pointRecord").GetProperty("id").GetInt32();
+        var periodId = sheet.GetProperty("period").GetProperty("id").GetInt32();
+
+        await SetPeriodStatusAsync(setup.Staff, periodId, "Closed");
+        try
+        {
+            Assert.Equal(HttpStatusCode.Conflict,
+                (await TransitionAsync(setup, recordId, "Pending", "Đối chiếu thêm")).StatusCode);
+            Assert.Equal(7, await RegistrationPointsAsync(setup.AttendedRegistrationId));
+        }
+        finally
+        {
+            await SetPeriodStatusAsync(setup.Staff, periodId, "Open");
+        }
+
+        Assert.Equal(HttpStatusCode.OK,
+            (await TransitionAsync(setup, recordId, "Pending", "Đối chiếu thêm")).StatusCode);
+    }
+
     private Task<HttpResponseMessage> TransitionAsync(Setup setup, int pointRecordId, string status, string reason) =>
         _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/point-records/{pointRecordId}/transition", setup.Staff, new { status, reason });
 
