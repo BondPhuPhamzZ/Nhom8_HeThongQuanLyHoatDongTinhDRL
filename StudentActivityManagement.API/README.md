@@ -232,7 +232,8 @@ Không tìm thấy kỳ (hoặc chưa có kỳ nào) trả `404`. `groupBy` khô
 |---|---|
 | `GET threads?kind=&search=&pageIndex=&pageSize=` | Thông tin lớp, lớp trưởng và danh sách chủ đề: ghim trước, sau đó theo hoạt động gần nhất. `pageSize` tối đa 50 |
 | `GET threads/{id}` | Chủ đề và các trả lời theo thứ tự thời gian, kèm `canDelete` cho người đang xem |
-| `POST threads` | `{ kind, title, body }`; `kind` chỉ nhận `Question` hoặc `Discussion` (`Announcement` dành cho thông báo của lớp trưởng ở US-13). Trả `201` |
+| `POST threads` | `{ kind, title, body }`; `Question`/`Discussion` dành cho thành viên, `Announcement` chỉ lớp trưởng hiện tại mới được đăng và tự ghim lên đầu. Trả `201` |
+| `PATCH threads/{id}/pin` | `{ isPinned }`; chỉ lớp trưởng hiện tại được ghim/bỏ ghim chủ đề của lớp mình |
 | `POST threads/{id}/replies` | `{ body }`; cập nhật thời điểm hoạt động của chủ đề. Trả `201` |
 | `DELETE threads/{id}` | Chỉ người tạo, khi chưa có người khác trả lời |
 | `DELETE threads/{id}/replies/{replyId}` | Chỉ người viết, trừ trả lời đã được chọn làm câu trả lời (`isAnswer`) |
