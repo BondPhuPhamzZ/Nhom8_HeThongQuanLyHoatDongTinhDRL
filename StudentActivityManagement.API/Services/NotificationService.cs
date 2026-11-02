@@ -135,6 +135,62 @@ public sealed class NotificationService : INotificationService
         return created;
     }
 
+    public async Task<int> NotifyMonitorsOfPublishedActivityAsync(int activityId, CancellationToken cancellationToken = default)
+    {
+        var activity = await _context.Activities.AsNoTracking()
+            .Include(item => item.AudienceRules)
+            .Include(item => item.Sessions)
+            .FirstOrDefaultAsync(item => item.Id == activityId && item.Status == ActivityStatus.Published, cancellationToken);
+        if (activity == null) return 0;
+
+        var session = activity.Sessions.OrderBy(item => item.SortOrder).FirstOrDefault();
+        if (session == null) return 0;
+        var monitors = await _context.Users.AsNoTracking()
+            .Where(user => user.IsActive && user.Role == Role.Monitor && user.IsClassMonitor && user.ClassId != null)
+            .ToListAsync(cancellationToken);
+        var matched = monitors.Where(monitor => activity.AudienceRules.Count == 0 || activity.AudienceRules.Any(rule =>
+            (rule.Campus == null || rule.Campus == monitor.Campus) &&
+            (rule.AcademicYear == null || rule.AcademicYear == monitor.AcademicYear) &&
+            (rule.ClassId == null || rule.ClassId == monitor.ClassId))).ToList();
+        if (matched.Count == 0) return 0;
+
+        var sourcePrefix = $"ClassActivity:{activity.Id}:";
+        var existingRecipients = await _context.UserNotifications.AsNoTracking()
+            .Where(item => item.SourceKey.StartsWith(sourcePrefix))
+            .Select(item => item.RecipientUserId)
+            .ToListAsync(cancellationToken);
+        var existing = existingRecipients.ToHashSet();
+        var now = DateTime.UtcNow;
+        foreach (var monitor in matched.Where(item => !existing.Contains(item.Id)))
+        {
+            var localStart = session.StartTime.AddHours(7);
+            _context.UserNotifications.Add(new UserNotification
+            {
+                RecipientUserId = monitor.Id,
+                SourceKey = $"{sourcePrefix}{monitor.Id}",
+                Kind = "ClassActivity",
+                ActivityId = activity.Id,
+                SessionId = session.Id,
+                Title = $"Hoạt động mới liên quan đến lớp: {activity.ActivityName}",
+                Body = $"{activity.OrganizerName} tổ chức vào {localStart:HH:mm dd/MM/yyyy} tại {session.Location}, {session.Campus}.",
+                CreatedAt = now
+            });
+        }
+
+        try
+        {
+            return await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is SqliteException sqlite
+            && sqlite.SqliteErrorCode == 19 && sqlite.SqliteExtendedErrorCode == 2067)
+        {
+            // Two simultaneous publishes may notify the same monitor; SourceKey makes delivery idempotent.
+            foreach (var entry in _context.ChangeTracker.Entries<UserNotification>().Where(item => item.State == EntityState.Added))
+                entry.State = EntityState.Detached;
+            return 0;
+        }
+    }
+
     private static string BuildBody(ActivitySession session, Activity activity)
     {
         var local = session.StartTime.AddHours(7); // The project displays Vietnam time (UTC+7).
