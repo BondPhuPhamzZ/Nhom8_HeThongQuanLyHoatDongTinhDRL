@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
@@ -14,6 +15,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await PreferenceService.instance.init();
   await initializeDateFormatting('vi');
+  await _loadFonts();
 
   runApp(
     MultiProvider(
@@ -23,6 +25,18 @@ Future<void> main() async {
       child: const Nhom8App(),
     ),
   );
+}
+
+/// Lato (design system font) is fetched by google_fonts; waiting for it before the first frame keeps text
+/// from being laid out with a fallback font and re-measured. Offline, the app starts with the fallback.
+Future<void> _loadFonts() async {
+  try {
+    await GoogleFonts.pendingFonts([
+      for (final weight in [FontWeight.w400, FontWeight.w500, FontWeight.w600, FontWeight.w700]) GoogleFonts.lato(fontWeight: weight),
+    ]).timeout(const Duration(seconds: 6));
+  } on Object {
+    // Font download failed or timed out: keep going with the platform font.
+  }
 }
 
 /// US-30: Mobile app for students and class monitors on the shared REST API.
