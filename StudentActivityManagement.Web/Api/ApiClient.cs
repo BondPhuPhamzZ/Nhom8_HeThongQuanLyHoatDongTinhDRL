@@ -367,6 +367,15 @@ public sealed class ApiClient
     public Task<ApiResult<bool>> AssignMonitorAsync(int classId, int studentId) =>
         SendAsync<bool>(HttpMethod.Put, $"api/v1/admin/classes/{classId}/monitor/{studentId}");
 
+    public Task<ApiResult<bool>> RemoveMonitorAsync(int classId) =>
+        SendAsync<bool>(HttpMethod.Delete, $"api/v1/admin/classes/{classId}/monitor");
+
+    public Task<ApiResult<ClassDto>> UpdateClassAsync(int classId, string classCode, string className, string department) =>
+        SendAsync<ClassDto>(HttpMethod.Put, $"api/v1/admin/classes/{classId}", new { classCode, className, department });
+
+    public Task<ApiResult<bool>> DeleteClassAsync(int classId) =>
+        SendAsync<bool>(HttpMethod.Delete, $"api/v1/admin/classes/{classId}");
+
     // ---- Students (US-17)
     public Task<ApiResult<PagedResult<StudentDto>>> GetStudentsAsync(string? search, string? campus, string? academicYear, int? classId, int page, int pageSize = 15) =>
         SendAsync<PagedResult<StudentDto>>(HttpMethod.Get, $"api/v1/admin/students?{Query(
