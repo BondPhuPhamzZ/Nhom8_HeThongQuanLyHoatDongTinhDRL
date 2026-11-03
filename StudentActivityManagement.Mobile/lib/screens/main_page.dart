@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import 'auth/splash_screen.dart';
 import 'tabs/activities_tab.dart';
+import 'tabs/class_tab.dart';
 import 'tabs/notifications_tab.dart';
 import 'tabs/points_tab.dart';
 import 'tabs/profile_tab.dart';
@@ -25,6 +26,7 @@ class _MainPageState extends State<MainPage> {
   static final _tabs = <({String title, IconData icon, Widget page, bool badge})>[
     (title: 'Hoạt động', icon: LucideIcons.calendar, page: const ActivitiesTab(), badge: false),
     (title: 'Điểm', icon: LucideIcons.chartColumn, page: const PointsTab(), badge: false),
+    (title: 'Lớp', icon: LucideIcons.messagesSquare, page: const ClassTab(), badge: false),
     (title: 'Thông báo', icon: LucideIcons.bell, page: const NotificationsTab(), badge: true),
     (title: 'Tài khoản', icon: LucideIcons.user, page: const ProfileTab(), badge: false),
   ];
