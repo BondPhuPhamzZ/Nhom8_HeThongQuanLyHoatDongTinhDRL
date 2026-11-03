@@ -51,8 +51,8 @@ else
                         <td class="small">@account.Email</td>
                         <td>@WebPolicies.RoleLabel(account.Role)</td>
                         <td>
-                            @if (account.IsActive) { <span class="badge rounded-pill text-bg-success">Hoạt động</span> }
-                            else { <span class="badge rounded-pill text-bg-danger">Đã khóa</span> }
+                            @if (account.IsActive) { <span class="badge text-bg-success">Hoạt động</span> }
+                            else { <span class="badge text-bg-danger">Đã khóa</span> }
                         </td>
                         <td class="text-end text-nowrap">
                             @if (isStaff && !isSelf)

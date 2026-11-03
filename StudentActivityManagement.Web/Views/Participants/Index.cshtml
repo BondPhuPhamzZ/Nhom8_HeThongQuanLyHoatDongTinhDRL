@@ -87,9 +87,9 @@ else
                             </td>
                         }
                         <td class="text-center small">
-                            @if (participant.PendingEvidenceCount > 0) { <span class="badge rounded-pill text-bg-warning">@participant.PendingEvidenceCount chờ duyệt</span> }
-                            @if (participant.AcceptedEvidenceCount > 0) { <span class="badge rounded-pill text-bg-success">@participant.AcceptedEvidenceCount đã duyệt</span> }
-                            @if (participant.RejectedEvidenceCount > 0) { <span class="badge rounded-pill text-bg-danger">@participant.RejectedEvidenceCount từ chối</span> }
+                            @if (participant.PendingEvidenceCount > 0) { <span class="badge text-bg-warning">@participant.PendingEvidenceCount chờ duyệt</span> }
+                            @if (participant.AcceptedEvidenceCount > 0) { <span class="badge text-bg-success">@participant.AcceptedEvidenceCount đã duyệt</span> }
+                            @if (participant.RejectedEvidenceCount > 0) { <span class="badge text-bg-danger">@participant.RejectedEvidenceCount từ chối</span> }
                         </td>
                         <td class="text-end"><a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@data.ActivityId" asp-route-registrationId="@participant.RegistrationId">Chi tiết</a></td>
                     </tr>

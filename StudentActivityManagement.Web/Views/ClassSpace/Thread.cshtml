@@ -6,7 +6,7 @@
 <div class="card shadow-sm border-0 mt-2 mb-4">
     <div class="card-body">
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-            @if (Model.IsPinned) { <span class="badge rounded-pill text-bg-warning">Ghim</span> }
+            @if (Model.IsPinned) { <span class="badge text-bg-warning">Ghim</span> }
             <status-badge value="@Model.Kind" />
             @if (Model.Status != "Open") { <status-badge value="@Model.Status" /> }
             <partial name="_EscalationBadge" model="Model.EscalationStatus" />
@@ -59,8 +59,8 @@ else
                 <div class="d-flex flex-wrap justify-content-between gap-2 small text-muted mb-1">
                     <span>
                         <span class="fw-semibold text-body">@reply.Author.FullName</span>
-                        @if (reply.Author.IsMonitor) { <span class="badge rounded-pill text-bg-primary">Lớp trưởng</span> }
-                        @if (reply.IsAnswer) { <span class="badge rounded-pill text-bg-success">Câu trả lời được chọn</span> }
+                        @if (reply.Author.IsMonitor) { <span class="badge text-bg-primary">Lớp trưởng</span> }
+                        @if (reply.IsAnswer) { <span class="badge text-bg-success">Câu trả lời được chọn</span> }
                     </span>
                     <vn-time value="@reply.CreatedAt" />
                 </div>
