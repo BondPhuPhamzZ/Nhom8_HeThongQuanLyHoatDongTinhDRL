@@ -7,7 +7,7 @@
 
 @if (Model.Periods.Count == 0)
 {
-    <div class="alert alert-info">Chưa có kỳ đánh giá để hiển thị.</div>
+    <div class="empty-state">Chưa có kỳ đánh giá để hiển thị.</div>
 }
 else
 {
@@ -39,7 +39,7 @@ else
         <div class="stat-tile mb-3"><div class="stat-value">@history.Period.ApprovedPoints / @history.Period.TargetPoints</div><div class="stat-label">Điểm đã duyệt trong @history.Period.Name</div></div>
         @if (history.Activities.Count == 0)
         {
-            <div class="alert alert-light border">Chưa có đăng ký hoạt động trong kỳ này.</div>
+            <div class="empty-state">Chưa có đăng ký hoạt động trong kỳ này. <a asp-controller="StudentActivities" asp-action="Index">Xem hoạt động đang mở</a></div>
         }
         else
         {
