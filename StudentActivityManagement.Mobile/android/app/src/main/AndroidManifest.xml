@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The app calls the shared REST API; the local/LAN API runs over plain HTTP during the course. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="nhom8_qlhd_tinh_drl"
+        android:label="Rèn luyện SV"
+        android:usesCleartextTraffic="true"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
