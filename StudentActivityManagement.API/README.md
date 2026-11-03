@@ -320,6 +320,7 @@ Khi hoạt động được tạo ở trạng thái `Published` hoặc chuyển 
 - `scripts/setup-local.ps1`: cấu hình JWT secret an toàn cho máy local.
 - `scripts/update-database.ps1`: restore EF tool và áp dụng migration đã commit.
 - `StudentActivityManagement.API.Tests`: integration test cho JWT, phân quyền, OpenAPI, lịch nhiều buổi, đối tượng tham gia, hủy đăng ký và quản lý tài khoản.
+- Hai client cùng dùng API này: `StudentActivityManagement.Web` (ASP.NET Core MVC, bốn vai trò) và `StudentActivityManagement.Mobile` (Flutter, sinh viên và lớp trưởng, US-30). Xem README của từng project.
 
 Backlog, Sprint, báo cáo, kịch bản demo và hướng dẫn thành viên được quản lý ngoài repository để Git chỉ chứa phần mềm cần build/chạy.
 
