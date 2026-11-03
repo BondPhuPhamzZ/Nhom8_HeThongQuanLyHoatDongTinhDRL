@@ -111,6 +111,19 @@ abstract final class AppStyles {
         selectedColor: const Color(0x1F007BFF),
         labelStyle: GoogleFonts.lato(fontWeight: FontWeight.w500, color: AppColors.charcoal),
       ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          shape: WidgetStateProperty.all(shape),
+          side: WidgetStateProperty.all(const BorderSide(color: AppColors.border)),
+          backgroundColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected) ? const Color(0x1F007BFF) : AppColors.white,
+          ),
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected) ? AppColors.primary : AppColors.charcoal,
+          ),
+          textStyle: WidgetStateProperty.all(GoogleFonts.lato(fontWeight: FontWeight.w600, fontSize: 14)),
+        ),
+      ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.white,
         indicatorColor: const Color(0x1F007BFF),
