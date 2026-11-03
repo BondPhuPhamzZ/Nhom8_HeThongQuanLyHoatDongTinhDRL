@@ -342,6 +342,7 @@ class _EvidenceFormState extends State<_EvidenceForm> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<int?>(
+              isExpanded: true,
               initialValue: _sessionId,
               decoration: const InputDecoration(labelText: 'Buổi'),
               items: [

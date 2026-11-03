@@ -89,6 +89,7 @@ class _PointsTabState extends State<PointsTab> {
         padding: const EdgeInsets.all(16),
         children: [
           DropdownButtonFormField<int>(
+            isExpanded: true,
             initialValue: _periodId,
             decoration: const InputDecoration(prefixIcon: Icon(LucideIcons.calendar, size: 18)),
             items: [
@@ -140,7 +141,7 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InfoPanel(children: [
-        Text('Kỳ ${summary.periodName}', style: const TextStyle(color: AppColors.muted)),
+        Text('Kỳ đánh giá: ${summary.periodName}', style: const TextStyle(color: AppColors.muted)),
         const SizedBox(height: 8),
         Row(children: [
           _Stat(value: '${summary.approvedPoints}', label: 'Điểm đã duyệt', color: AppColors.primary),
