@@ -5,7 +5,7 @@
 <h1 class="h3">Điểm rèn luyện và gợi ý</h1>
 @if (Model.Summary is not { } summary)
 {
-    <div class="alert alert-info">Chưa có kỳ đánh giá để tính mức điểm hiện tại.</div>
+    <div class="empty-state">Chưa có kỳ đánh giá để tính mức điểm hiện tại. Điểm và gợi ý hoạt động sẽ hiện khi Phòng QL HSSV mở kỳ đánh giá.</div>
 }
 else
 {
@@ -25,7 +25,7 @@ else
         <div class="alert alert-warning">Bạn đang có nguy cơ thiếu @summary.MissingPoints điểm. Các hoạt động dưới đây còn mở đăng ký, còn chỗ và phù hợp với lớp/cơ sở của bạn.</div>
         @if (summary.RecommendedActivities.Count == 0)
         {
-            <div class="alert alert-light border">Hiện chưa có hoạt động phù hợp đang mở đăng ký trong kỳ này. Hãy kiểm tra lại sau.</div>
+            <div class="empty-state">Hiện chưa có hoạt động phù hợp đang mở đăng ký trong kỳ này. Hãy kiểm tra lại sau.</div>
         }
         else
         {
