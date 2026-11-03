@@ -291,6 +291,89 @@ namespace StudentActivityManagement.API.Services
             return ApiResponseDto<bool>.Ok(true, "Chỉ định lớp trưởng thành công.");
         }
 
+        public async Task<ApiResponseDto<ClassDto>> UpdateClassAsync(int classId, ClassCreateDto request)
+        {
+            var targetClass = await _context.Classes.Include(c => c.MonitorStudent).Include(c => c.Students)
+                .FirstOrDefaultAsync(c => c.Id == classId);
+            if (targetClass == null) return ClassNotFound<ClassDto>();
+
+            var classCode = request.ClassCode.Trim();
+            if (await _context.Classes.AnyAsync(c => c.Id != classId && c.ClassCode == classCode))
+            {
+                return Conflict<ClassDto>("Mã lớp đã tồn tại.");
+            }
+
+            targetClass.ClassCode = classCode;
+            targetClass.ClassName = request.ClassName.Trim();
+            targetClass.Department = request.Department.Trim();
+            await _context.SaveChangesAsync();
+
+            return ApiResponseDto<ClassDto>.Ok(new ClassDto
+            {
+                Id = targetClass.Id,
+                ClassCode = targetClass.ClassCode,
+                ClassName = targetClass.ClassName,
+                Department = targetClass.Department,
+                MonitorStudentId = targetClass.MonitorStudentId,
+                MonitorStudentName = targetClass.MonitorStudent?.FullName,
+                TotalStudents = targetClass.Students.Count
+            }, "Cập nhật lớp thành công.");
+        }
+
+        public async Task<ApiResponseDto<bool>> DeleteClassAsync(int classId)
+        {
+            var targetClass = await _context.Classes.FindAsync(classId);
+            if (targetClass == null) return ClassNotFound<bool>();
+
+            // A class is only removable while nothing points at it: its students, the audience rules of
+            // activities, and its discussion space are records the school still needs.
+            if (await _context.Users.AnyAsync(u => u.ClassId == classId))
+            {
+                return BusinessRule<bool>("Lớp còn sinh viên. Chuyển sinh viên sang lớp khác trước khi xóa lớp.");
+            }
+            if (await _context.ActivityAudienceRules.AnyAsync(rule => rule.ClassId == classId))
+            {
+                return BusinessRule<bool>("Lớp đang được dùng làm đối tượng tham gia của hoạt động nên không thể xóa.");
+            }
+            if (await _context.ClassThreads.AnyAsync(thread => thread.ClassId == classId))
+            {
+                return BusinessRule<bool>("Lớp đã có dữ liệu trao đổi nên không thể xóa.");
+            }
+
+            _context.Classes.Remove(targetClass);
+            await _context.SaveChangesAsync();
+            return ApiResponseDto<bool>.Ok(true, "Xóa lớp thành công.");
+        }
+
+        public async Task<ApiResponseDto<bool>> RemoveClassMonitorAsync(int classId)
+        {
+            var targetClass = await _context.Classes.Include(c => c.MonitorStudent).FirstOrDefaultAsync(c => c.Id == classId);
+            if (targetClass == null) return ClassNotFound<bool>();
+            if (targetClass.MonitorStudent == null)
+            {
+                return BusinessRule<bool>("Lớp chưa có lớp trưởng.");
+            }
+
+            // Same single save as AssignClassMonitorAsync: the class and the former monitor change together.
+            targetClass.MonitorStudent.IsClassMonitor = false;
+            targetClass.MonitorStudent.Role = Role.Student;
+            targetClass.MonitorStudentId = null;
+            await _context.SaveChangesAsync();
+            return ApiResponseDto<bool>.Ok(true, "Đã gỡ lớp trưởng.");
+        }
+
+        private static ApiResponseDto<T> ClassNotFound<T>() =>
+            ApiResponseDto<T>.Fail(
+                "Không tìm thấy lớp học.",
+                StatusCodes.Status404NotFound,
+                ApiErrorCodes.ResourceNotFound);
+
+        private static ApiResponseDto<T> BusinessRule<T>(string message) =>
+            ApiResponseDto<T>.Fail(
+                message,
+                StatusCodes.Status409Conflict,
+                ApiErrorCodes.BusinessRuleViolation);
+
         private static ApiResponseDto<T> StudentNotFound<T>() =>
             ApiResponseDto<T>.Fail(
                 "Không tìm thấy sinh viên.",
