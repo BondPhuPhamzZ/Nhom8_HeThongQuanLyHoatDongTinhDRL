@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import 'auth/splash_screen.dart';
+import 'tabs/activities_tab.dart';
 import 'tabs/profile_tab.dart';
 
 /// Signed-in shell: one bottom navigation tab per student flow.
@@ -18,6 +19,7 @@ class _MainPageState extends State<MainPage> {
   int _index = 0;
 
   static final _tabs = <({String title, IconData icon, Widget page})>[
+    (title: 'Hoạt động', icon: LucideIcons.calendar, page: const ActivitiesTab()),
     (title: 'Tài khoản', icon: LucideIcons.user, page: const ProfileTab()),
   ];
 
