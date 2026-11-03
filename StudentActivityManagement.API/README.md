@@ -60,7 +60,8 @@ Tài khoản dữ liệu mẫu:
 | `/api/v1/admin/accounts/*` | 403 | 403 | 403 | ✓ |
 
 - Tài khoản sinh viên do Phòng QL HSSV tạo qua `POST /api/v1/admin/students`. Endpoint tự đăng ký `POST /api/v1/auth/register` đã được gỡ (breaking change).
-- API tài khoản chỉ tạo tài khoản cán bộ (`HSSV`, `SystemAdmin`) và chỉ đổi vai trò giữa hai role này. Lớp trưởng (`Monitor`) chỉ được chỉ định qua `PUT /api/v1/admin/classes/{id}/monitor/{studentId}`.
+- API tài khoản chỉ tạo tài khoản cán bộ (`HSSV`, `SystemAdmin`) và chỉ đổi vai trò giữa hai role này. Lớp trưởng (`Monitor`) chỉ được chỉ định qua `PUT /api/v1/admin/classes/{id}/monitor/{studentId}` và gỡ qua `DELETE /api/v1/admin/classes/{id}/monitor` (sinh viên trở về `Student`).
+- Quản lý lớp (US-18): `PUT /api/v1/admin/classes/{id}` sửa mã, tên lớp, khoa (mã lớp không được trùng, `409`). `DELETE /api/v1/admin/classes/{id}` chỉ xóa lớp không còn sinh viên, không là đối tượng tham gia của hoạt động và chưa có dữ liệu trao đổi; nếu vi phạm trả `409 business_rule_violation`.
 - Không thể tự đổi vai trò, tự khóa tài khoản của mình, hoặc làm hệ thống không còn `SystemAdmin` đang hoạt động.
 - Khóa tài khoản hoặc đổi vai trò (kể cả chỉ định lớp trưởng mới) có hiệu lực ngay: token cũ nhận `401`, client phải đăng nhập lại. Tài khoản bị khóa đăng nhập nhận `403` với `errorCode = account_disabled`.
 
