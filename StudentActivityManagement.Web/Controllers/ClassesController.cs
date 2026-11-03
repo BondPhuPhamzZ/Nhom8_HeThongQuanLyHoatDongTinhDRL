@@ -67,4 +67,40 @@ public sealed class ClassesController : WebControllerBase
         if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
         return RedirectToAction(nameof(Details), new { id });
     }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveMonitor(int id)
+    {
+        var result = await _api.RemoveMonitorAsync(id);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Update(int id, ClassCreateForm form)
+    {
+        if (!ModelState.IsValid)
+        {
+            FlashError(string.Join(" ", ModelState.Values.SelectMany(value => value.Errors).Select(error => error.ErrorMessage)));
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var result = await _api.UpdateClassAsync(id, form.ClassCode.Trim(), form.ClassName.Trim(), form.Department?.Trim() ?? string.Empty);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var result = await _api.DeleteClassAsync(id);
+        if (!result.Success)
+        {
+            FlashError(result.Message);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        FlashSuccess(result.Message);
+        return RedirectToAction(nameof(Index));
+    }
 }

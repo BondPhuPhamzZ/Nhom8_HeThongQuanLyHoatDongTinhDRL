@@ -62,6 +62,46 @@ namespace StudentActivityManagement.API.Controllers
             if (!result.Success) return ProblemFrom(result);
             return Ok(result);
         }
+
+        /// <summary>
+        /// Gỡ lớp trưởng hiện tại; sinh viên đó trở lại vai trò Student
+        /// </summary>
+        [HttpDelete("{id:int}/monitor")]
+        [ProducesResponseType(typeof(ApiResponseDto<bool>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> RemoveMonitor(int id)
+        {
+            var result = await _studentService.RemoveClassMonitorAsync(id);
+            return result.Success ? Ok(result) : ProblemFrom(result);
+        }
+
+        /// <summary>
+        /// Sửa mã lớp, tên lớp, khoa
+        /// </summary>
+        [HttpPut("{id:int}")]
+        [ProducesResponseType(typeof(ApiResponseDto<ClassDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> UpdateClass(int id, [FromBody] ClassCreateDto request)
+        {
+            var result = await _studentService.UpdateClassAsync(id, request);
+            return result.Success ? Ok(result) : ProblemFrom(result);
+        }
+
+        /// <summary>
+        /// Xóa lớp khi lớp không còn sinh viên, không là đối tượng của hoạt động và chưa có dữ liệu trao đổi
+        /// </summary>
+        [HttpDelete("{id:int}")]
+        [ProducesResponseType(typeof(ApiResponseDto<bool>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> DeleteClass(int id)
+        {
+            var result = await _studentService.DeleteClassAsync(id);
+            return result.Success ? Ok(result) : ProblemFrom(result);
+        }
     }
 }
 
