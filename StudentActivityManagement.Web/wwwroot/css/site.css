@@ -1,44 +1,122 @@
+/* Tokens from system_design/design.md (Flat Design Corporativo); the Mobile app uses the same values. */
 :root {
   --app-primary: #007bff;
-  --app-primary-dark: #0069d9;
+  --app-primary-dark: #0069d9; /* ~8% darker for hover */
+  --app-charcoal: #343a40;
+  --app-white: #ffffff;
   --app-surface: #f8f9fa;
+  --app-success: #28a745;
   --app-accent: #ffc107;
+  --app-danger: #dc3545;
+  --app-info: #17a2b8;
+  --app-border: #dee2e6;
+  --app-muted: #6c757d;
+  --app-radius: 4px;
+  --app-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+  --app-shadow-hover: 0 2px 8px rgba(0, 0, 0, .08);
+  --app-font: Lato, "Segoe UI", Arial, sans-serif;
+  --app-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --app-ease: cubic-bezier(.22, 1, .36, 1);
 }
 
 html { font-size: 16px; }
-body { background: var(--app-surface); color: #343a40; font-family: Lato, "Segoe UI", Arial, sans-serif; line-height: 1.6; }
+body { background: var(--app-surface); color: var(--app-charcoal); font-family: var(--app-font); line-height: 1.6; }
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 { font-family: var(--app-font); font-weight: 700; letter-spacing: -.01em; }
+.form-label, .small, small, .badge, th { letter-spacing: .01em; }
+.form-label { font-weight: 500; }
+code, kbd, .font-monospace { font-family: var(--app-mono); }
+main.container, header .container, footer .container { max-width: 1280px; padding-left: 1.5rem; padding-right: 1.5rem; }
+a { color: var(--app-primary); }
 
-/* The bundled Bootstrap is 5.1 (no --bs-btn-* variables, no text-bg-* helpers), so colours are set directly. */
+/* Sharp 4px corners everywhere (design: "Do sharp corners", base radius 4px). */
+.btn, .form-control, .form-select, .card, .alert, .list-group, .dropdown-menu, .badge, .page-link, .input-group-text, .table-responsive.card { border-radius: var(--app-radius); }
+.page-item:first-child .page-link, .page-item:last-child .page-link { border-radius: var(--app-radius); }
+
+/* Buttons: primary fill, weight 600, hover darkens 8% with a light lift, active presses 1px. */
+.btn { font-weight: 600; transition: background-color .2s var(--app-ease), box-shadow .2s var(--app-ease), transform .2s var(--app-ease); }
+.btn:hover { box-shadow: var(--app-shadow-hover); }
+.btn:active { transform: translateY(1px); box-shadow: none; }
 .btn-primary { background-color: var(--app-primary); border-color: var(--app-primary); }
 .btn-primary:hover, .btn-primary:focus { background-color: var(--app-primary-dark); border-color: var(--app-primary-dark); }
+.btn-success { background-color: var(--app-success); border-color: var(--app-success); }
+.btn-danger { background-color: var(--app-danger); border-color: var(--app-danger); }
+.btn-warning { background-color: var(--app-accent); border-color: var(--app-accent); color: var(--app-charcoal); }
+/* Ghost buttons: 1.5px muted border, primary text, subtle fill on hover. */
+[class*="btn-outline-"] { border-width: 1.5px; }
 .btn-outline-primary { color: var(--app-primary); border-color: var(--app-primary); }
-.btn-outline-primary:hover { background-color: var(--app-primary); border-color: var(--app-primary); color: #fff; }
-a { color: var(--app-primary); }
+.btn-outline-primary:hover { background-color: rgba(0, 123, 255, .08); border-color: var(--app-primary); color: var(--app-primary); }
+.btn-outline-secondary { color: var(--app-charcoal); border-color: #adb5bd; }
+.btn-outline-secondary:hover { background-color: var(--app-surface); color: var(--app-charcoal); border-color: #adb5bd; }
 .page-item.active .page-link { background-color: var(--app-primary); border-color: var(--app-primary); }
 
-.text-bg-success { background-color: #198754; color: #fff; }
+/* Inputs: label above, 1px stroke, 2px primary focus ring offset 2px, error text in semantic red. */
+.form-control, .form-select { border: 1px solid #ced4da; }
+.form-control:focus, .form-select:focus, .btn:focus-visible, a:focus-visible, .form-check-input:focus {
+  outline: 2px solid var(--app-primary); outline-offset: 2px; box-shadow: none; border-color: var(--app-primary);
+}
+.field-validation-error, .text-danger { color: var(--app-danger) !important; }
+
+/* Bootstrap 5.1 has no text-bg-* helpers; they are defined here with the design palette. */
+.text-bg-success { background-color: var(--app-success); color: #fff; }
 .text-bg-primary { background-color: var(--app-primary); color: #fff; }
-.text-bg-secondary { background-color: #6c757d; color: #fff; }
-.text-bg-danger { background-color: #dc3545; color: #fff; }
-.text-bg-warning { background-color: #ffc107; color: #212529; }
-.text-bg-info { background-color: #0dcaf0; color: #212529; }
-.text-bg-dark { background-color: #212529; color: #fff; }
-.text-bg-light { background-color: #f8f9fa; color: #212529; }
+.text-bg-secondary { background-color: var(--app-muted); color: #fff; }
+.text-bg-danger { background-color: var(--app-danger); color: #fff; }
+.text-bg-warning { background-color: var(--app-accent); color: var(--app-charcoal); }
+.text-bg-info { background-color: var(--app-info); color: #fff; }
+.text-bg-dark { background-color: var(--app-charcoal); color: #fff; }
+.text-bg-light { background-color: var(--app-surface); color: var(--app-charcoal); border: 1px solid var(--app-border); }
+.bg-success { background-color: var(--app-success) !important; }
+.bg-danger { background-color: var(--app-danger) !important; }
+.bg-info { background-color: var(--app-info) !important; }
+.text-success { color: var(--app-success) !important; }
 
-.app-navbar { background: #343a40; }
-.brand-mark { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: 4px; background: var(--app-accent); color: #1b1b1b; font-weight: 700; margin-right: .35rem; }
+/* Navigation: charcoal bar, active item marked with the accent colour and weight 500. */
+.app-navbar { background: var(--app-charcoal); position: relative; z-index: 100; }
+.app-navbar .nav-link { font-weight: 400; border-bottom: 2px solid transparent; transition: color .2s var(--app-ease), border-color .2s var(--app-ease); }
+.app-navbar .nav-link.active { color: #fff; font-weight: 500; border-bottom-color: var(--app-accent); }
+.brand-mark { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: var(--app-radius); background: var(--app-accent); color: var(--app-charcoal); font-weight: 700; margin-right: .35rem; }
 
-.activity-card { border: 1px solid #d9dfe5; transition: transform .12s ease, box-shadow .12s ease; }
-.activity-card:hover { transform: translateY(-2px); box-shadow: 0 2px 8px rgba(0, 0, 0, .08) !important; }
-.points-chip { background: #fff4d6; color: #7a5600; border-radius: 999px; padding: .1rem .6rem; font-size: .8rem; font-weight: 600; white-space: nowrap; }
+/* Cards: white surface, 1px stroke, subtle shadow. Utility classes on cards (border-0, shadow-sm) are
+   overridden on purpose so every card follows the same spec. */
+.card { background: var(--app-white); border: 1px solid var(--app-border) !important; box-shadow: var(--app-shadow) !important; }
+.list-group { box-shadow: var(--app-shadow) !important; }
+.activity-card { transition: transform .2s var(--app-ease), box-shadow .2s var(--app-ease); }
+.activity-card:hover { transform: scale(1.03); box-shadow: var(--app-shadow-hover) !important; }
+.points-chip { background: #fff4d6; color: #7a5600; border-radius: var(--app-radius); padding: .1rem .6rem; font-size: .8rem; font-weight: 700; white-space: nowrap; }
 
-.stat-tile { background: #fff; border-radius: 4px; padding: .9rem 1rem; box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .05); height: 100%; }
+.stat-tile { background: var(--app-white); border: 1px solid var(--app-border); border-radius: var(--app-radius); padding: .9rem 1rem; box-shadow: var(--app-shadow); height: 100%; }
 .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--app-primary); }
 .stat-value.small-value { font-size: 1rem; }
-.stat-label { color: #6c757d; font-size: .85rem; }
+.stat-label { color: var(--app-muted); font-size: .875rem; font-weight: 500; }
 
-.empty-state { background: #fff; border: 1px dashed #c8d1e0; border-radius: 4px; padding: 2.5rem 1rem; text-align: center; color: #6c757d; }
+/* Empty states: icon + descriptive text (Lucide "inbox" icon drawn as a mask in the current colour). */
+.empty-state { background: var(--app-white); border: 1px dashed #c8d1e0; border-radius: var(--app-radius); padding: 2.5rem 1rem; text-align: center; color: var(--app-muted); }
+.empty-state::before {
+  content: ""; display: block; width: 2.5rem; height: 2.5rem; margin: 0 auto .75rem; background-color: #adb5bd;
+  -webkit-mask: var(--empty-icon) center / contain no-repeat; mask: var(--empty-icon) center / contain no-repeat;
+  --empty-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 12h-6l-2 3h-4l-2-3H2'/%3E%3Cpath d='M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z'/%3E%3C/svg%3E");
+}
+.icon { width: 1em; height: 1em; vertical-align: -.125em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
 .pre-line { white-space: pre-line; }
-.checkin-code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 1.25rem; font-weight: 700; letter-spacing: .2em; color: var(--app-primary); }
-.checkin-code-input { letter-spacing: .15em; max-width: 16rem; }
+.checkin-code { font-family: var(--app-mono); font-size: 1.25rem; font-weight: 700; letter-spacing: .2em; color: var(--app-primary); }
+.checkin-code-input { font-family: var(--app-mono); letter-spacing: .15em; max-width: 16rem; }
 .validation-summary-valid.empty-hidden { display: none; }
+
+/* Motion: content fades in and rises 16px over 480ms; list items cascade 100ms apart. Only opacity and
+   transform animate, and everything is skipped when the user prefers reduced motion. */
+@keyframes app-enter { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: no-preference) {
+  main > * { animation: app-enter 480ms ease-out both; }
+  .list-group > *, .row > .col, tbody > tr { animation: app-enter 480ms ease-out both; }
+  .list-group > :nth-child(2), .row > .col:nth-child(2), tbody > tr:nth-child(2) { animation-delay: 100ms; }
+  .list-group > :nth-child(3), .row > .col:nth-child(3), tbody > tr:nth-child(3) { animation-delay: 200ms; }
+  .list-group > :nth-child(4), .row > .col:nth-child(4), tbody > tr:nth-child(4) { animation-delay: 300ms; }
+  .list-group > :nth-child(n+5), .row > .col:nth-child(n+5), tbody > tr:nth-child(n+5) { animation-delay: 400ms; }
+}
+
+/* Layout: all multi-column layouts collapse below 768px without horizontal overflow. */
+@media (max-width: 767.98px) {
+  main.container, header .container, footer .container { padding-left: 1rem; padding-right: 1rem; }
+  .table-responsive { overflow-x: auto; }
+}
