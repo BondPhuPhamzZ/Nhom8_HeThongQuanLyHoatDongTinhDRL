@@ -65,8 +65,12 @@ flutter run --dart-define=API_BASE_URL=http://192.168.1.10:5210   # máy thật:
 - **HTTP trên Android:** `AndroidManifest.xml` đã khai báo quyền `INTERNET` và cho phép HTTP (`usesCleartextTraffic`) để gọi API cục bộ khi làm đồ án.
 - **Tài khoản demo** (seed Development): `SV210002` là sinh viên, `SV210001` là lớp trưởng lớp 21DTH1, mật khẩu `123456`.
 
-> **Lưu ý đường dẫn trên Windows:** Flutter build không chạy được trong thư mục có ký tự `&` (ví dụ `D:\nhom8_hethongquanlyhoatdong&tinhdrl\...`), vì `cmd.exe` coi `&` là dấu nối lệnh khi build native assets. Hãy clone repo vào đường dẫn không có `&`, hoặc tạo junction tới thư mục này:
-> `New-Item -ItemType Junction -Path D:\Nhom8Mobile -Target "<đường dẫn tới StudentActivityManagement.Mobile>"`, rồi chạy Flutter trong `D:\Nhom8Mobile`.
+> **Lưu ý đường dẫn trên Windows:** Flutter build chỉ chạy được khi đường dẫn **không có ký tự `&`** và **đủ ngắn**:
+> - `cmd.exe` coi `&` (như trong `D:\nhom8_hethongquanlyhoatdong&tinhdrl\...`) là dấu nối lệnh khi build native assets.
+> - Bản Android ghi file sâu trong `build\app\intermediates\...`; khi cả đường dẫn vượt 260 ký tự thì `impellerc` báo `Could not write file`.
+>
+> Cách xử lý: clone repo vào thư mục ngắn, hoặc tạo junction rồi chạy Flutter trong đó, ví dụ:
+> `New-Item -ItemType Junction -Path D:\Projects\Nhom8Mobile -Target "<đường dẫn tới StudentActivityManagement.Mobile>"`
 
 ## Kiểm tra
 
