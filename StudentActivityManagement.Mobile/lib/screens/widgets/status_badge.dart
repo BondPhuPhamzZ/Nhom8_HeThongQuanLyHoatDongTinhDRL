@@ -36,6 +36,7 @@ class StatusBadge extends StatelessWidget {
         'Discussion' => ('Thảo luận', AppColors.primary, AppColors.white),
         'Announcement' => ('Thông báo', AppColors.danger, AppColors.white),
         'Withdrawn' => ('Đã rút lại', AppColors.muted, AppColors.white),
+        'Pinned' => ('Ghim', AppColors.accent, AppColors.charcoal),
         _ => (value, AppColors.surface, AppColors.charcoal),
       };
 

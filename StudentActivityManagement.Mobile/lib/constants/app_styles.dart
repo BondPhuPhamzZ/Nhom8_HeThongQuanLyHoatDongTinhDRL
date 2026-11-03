@@ -137,6 +137,14 @@ abstract final class AppStyles {
         ),
       ),
       snackBarTheme: SnackBarThemeData(behavior: SnackBarBehavior.floating, shape: shape),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.white,
+        elevation: 1,
+        shape: shape,
+        extendedTextStyle: GoogleFonts.lato(fontWeight: FontWeight.w600),
+      ),
+      badgeTheme: const BadgeThemeData(backgroundColor: AppColors.danger),
       dividerTheme: const DividerThemeData(color: AppColors.border, thickness: 1, space: 1),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {

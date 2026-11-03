@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_styles.dart';
 import '../../models/activity.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/activity_service.dart';
 import '../../services/api_client.dart';
 import '../../utils/vn_time.dart';
 import '../widgets/activity_card.dart';
 import '../widgets/feedback_views.dart';
 import '../widgets/status_badge.dart';
+import '../class_space/thread_form_screen.dart';
 import 'participation_sections.dart';
 
 /// US-03 detail with US-04 register and US-05 cancel.
@@ -76,7 +79,13 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
   Widget build(BuildContext context) {
     final activity = _activity;
     return Scaffold(
-      appBar: AppBar(title: Text(activity?.name ?? 'Chi tiết hoạt động', overflow: TextOverflow.ellipsis)),
+      appBar: AppBar(
+        title: Text(activity?.name ?? 'Chi tiết hoạt động', overflow: TextOverflow.ellipsis),
+        actions: [
+          if (activity != null && (context.watch<AuthProvider>().user?.isMonitor ?? false))
+            IconButton(tooltip: 'Chuyển tiếp vào lớp', icon: const Icon(LucideIcons.share2), onPressed: () => _forward(activity)),
+        ],
+      ),
       body: _error != null
           ? Padding(padding: const EdgeInsets.all(16), child: ErrorView(message: _error!, onRetry: _load))
           : activity == null
@@ -91,6 +100,31 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                   ),
                 ),
       bottomNavigationBar: activity == null ? null : _actionBar(activity),
+    );
+  }
+
+  /// US-13: the monitor forwards the activity to the class as an announcement (same text as the Web).
+  Future<void> _forward(Activity activity) async {
+    final first = activity.orderedSessions.isEmpty ? null : activity.orderedSessions.first;
+    final lines = [
+      'Hoạt động: ${activity.name}',
+      'Đơn vị tổ chức: ${activity.organizerName}',
+      if (first != null) 'Buổi đầu: ${VnTime.dateTime(first.startTime)} tại ${first.location}, ${first.campus}',
+      'Hạn đăng ký: ${VnTime.dateTime(activity.registrationCloseTime)}',
+      'Điểm rèn luyện: ${activity.trainingPoints}',
+      if (activity.requirements.isNotEmpty) 'Cần chuẩn bị: ${activity.requirements}',
+    ];
+    final title = 'Thông tin hoạt động: ${activity.name}';
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ThreadFormScreen(
+          isMonitor: true,
+          initialKind: 'Announcement',
+          initialTitle: title.length > 200 ? title.substring(0, 200) : title,
+          initialBody: lines.join('\n'),
+        ),
+      ),
     );
   }
 
