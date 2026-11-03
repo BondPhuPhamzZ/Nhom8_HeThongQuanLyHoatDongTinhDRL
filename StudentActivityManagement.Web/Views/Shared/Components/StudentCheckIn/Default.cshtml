@@ -16,12 +16,12 @@
                 <div class="text-end">
                     @if (session.CheckedInAt is DateTime checkedInAt)
                     {
-                        <span class="badge rounded-pill text-bg-primary">Đã check-in</span>
+                        <span class="badge text-bg-primary">Đã check-in</span>
                         <div class="small text-muted"><vn-time value="@checkedInAt" /></div>
                     }
                     else if (!session.CanCheckIn)
                     {
-                        <span class="badge rounded-pill text-bg-light">@(DateTime.UtcNow < session.OpensAt ? "Chưa mở" : DateTime.UtcNow > session.ClosesAt ? "Đã đóng" : "Không khả dụng")</span>
+                        <span class="badge text-bg-light">@(DateTime.UtcNow < session.OpensAt ? "Chưa mở" : DateTime.UtcNow > session.ClosesAt ? "Đã đóng" : "Không khả dụng")</span>
                     }
                 </div>
             </div>

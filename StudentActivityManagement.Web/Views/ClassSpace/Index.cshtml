@@ -56,7 +56,7 @@
                 {
                     <a class="list-group-item list-group-item-action py-3" asp-action="Thread" asp-route-id="@thread.Id">
                         <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
-                            @if (thread.IsPinned) { <span class="badge rounded-pill text-bg-warning">Ghim</span> }
+                            @if (thread.IsPinned) { <span class="badge text-bg-warning">Ghim</span> }
                             <status-badge value="@thread.Kind" />
                             @if (thread.Status != "Open") { <status-badge value="@thread.Status" /> }
                             <partial name="_EscalationBadge" model="thread.EscalationStatus" />

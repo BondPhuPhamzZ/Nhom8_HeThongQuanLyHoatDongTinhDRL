@@ -40,7 +40,7 @@ public sealed class StatusBadgeTagHelper : TagHelper
         };
         output.TagName = "span";
         output.TagMode = TagMode.StartTagAndEndTag;
-        output.Attributes.SetAttribute("class", $"badge rounded-pill {css}");
+        output.Attributes.SetAttribute("class", $"badge {css}");
         output.Content.SetContent(label);
     }
 }
