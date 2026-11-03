@@ -54,6 +54,19 @@ Tài khoản demo (seed Development): `SV210002` sinh viên, `SV210001` lớp tr
 
 Các trang dùng chính sách Web theo vai trò, còn dữ liệu và luật nghiệp vụ được xử lý qua API v1 bằng `ApiClient`; Web không kết nối trực tiếp cơ sở dữ liệu. `Home/Index` điều hướng cán bộ tới quản lý hoạt động và sinh viên/lớp trưởng tới danh sách hoạt động.
 
+## Giao diện (system design)
+
+Web và Mobile dùng chung bộ token trong `system_design/design.md` (Flat Design Corporativo). Phía Web, token khai báo trong `wwwroot/css/site.css`:
+
+| Thành phần | Quy ước |
+|---|---|
+| Màu | Primary `#007BFF` (nút, liên kết, focus); Charcoal `#343A40` (thanh điều hướng, chữ); Surface `#F8F9FA`; Success `#28A745`; Accent `#FFC107` (chỉ báo mục đang mở, cảnh báo); Danger `#DC3545`; Info `#17A2B8` |
+| Chữ | Lato 400/700 cho toàn bộ giao diện, cỡ 16px, line-height 1.6. JetBrains Mono cho mã check-in và giá trị kỹ thuật |
+| Hình khối | Bo góc 4px cho nút, thẻ, nhãn trạng thái, ô nhập; không dùng nhãn dạng viên thuốc. Bóng nhẹ nhất (tối đa `0 2px 8px rgba(0,0,0,.08)`), không gradient, không emoji (biểu tượng dùng SVG theo Lucide) |
+| Thành phần | Nút chính chữ đậm 600, hover tối hơn khoảng 8%, khi nhấn lún 1px. Nút viền 1.5px. Ô nhập có nhãn phía trên, focus ring 2px cách 2px. Thanh điều hướng đánh dấu mục đang mở bằng gạch chân màu accent. Trạng thái rỗng gồm biểu tượng, mô tả và liên kết hành động |
+| Chuyển động | Nội dung hiện dần và dịch lên 16px trong 480ms; danh sách hiện lần lượt cách nhau 100ms; chỉ animate `opacity`/`transform`; tắt khi người dùng bật `prefers-reduced-motion` |
+| Bố cục | Nội dung rộng tối đa 1280px, lề 1.5rem; dưới 768px mọi bố cục nhiều cột xếp thành một cột, không cuộn ngang |
+
 ## Cách tổ chức
 
 - `Api/ApiClient.cs`: typed `HttpClient` cho API; đọc `ApiResponseDto` khi thành công và ProblemDetails (`detail`, `errorCode`, `errors`) khi lỗi, nên mọi trang hiển thị lỗi giống nhau.

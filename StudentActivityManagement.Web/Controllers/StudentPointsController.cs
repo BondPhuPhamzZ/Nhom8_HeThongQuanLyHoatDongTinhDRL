@@ -16,7 +16,8 @@ public sealed class StudentPointsController : WebControllerBase
     public async Task<IActionResult> Index(int? periodId)
     {
         var result = await _api.GetStudentPointsRecommendationsAsync(periodId);
-        if (!result.Success) FlashError(result.Message);
+        // 404 only means no evaluation period exists yet; the view shows that as an empty state, not an error.
+        if (!result.Success && result.StatusCode != System.Net.HttpStatusCode.NotFound) FlashError(result.Message);
         return View(new StudentPointsPageViewModel { Summary = result.Data, PeriodId = periodId });
     }
 }
