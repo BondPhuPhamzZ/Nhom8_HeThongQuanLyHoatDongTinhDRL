@@ -10,6 +10,7 @@ import '../../utils/vn_time.dart';
 import '../widgets/activity_card.dart';
 import '../widgets/feedback_views.dart';
 import '../widgets/status_badge.dart';
+import 'participation_sections.dart';
 
 /// US-03 detail with US-04 register and US-05 cancel.
 class ActivityDetailScreen extends StatefulWidget {
@@ -99,6 +100,10 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
         _facts(activity),
         if (activity.description.isNotEmpty || activity.requirements.isNotEmpty) _description(activity),
         _sessions(activity),
+        if (activity.holdsPlace) ...[
+          CheckInSection(key: ValueKey('checkin-${activity.myRegistrationStatus}'), activity: activity, onChanged: _load),
+          EvidenceSection(key: ValueKey('evidence-${activity.status}'), activity: activity),
+        ],
       ];
 
   Widget _header(Activity activity) {
