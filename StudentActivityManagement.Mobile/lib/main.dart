@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import 'constants/app_styles.dart';
 import 'providers/auth_provider.dart';
+import 'providers/notification_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/main_page.dart';
@@ -21,6 +22,7 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..restore()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: const Nhom8App(),
     ),
