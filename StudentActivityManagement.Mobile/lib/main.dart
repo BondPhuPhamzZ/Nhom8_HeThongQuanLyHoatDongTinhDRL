@@ -1,7 +1,53 @@
 import 'package:flutter/material.dart';
-import 'app/app.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:provider/provider.dart';
 
-void main() {
+import 'constants/app_styles.dart';
+import 'providers/auth_provider.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/auth/splash_screen.dart';
+import 'screens/main_page.dart';
+import 'services/preference_service.dart';
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const Nhom8App());
+  await PreferenceService.instance.init();
+  await initializeDateFormatting('vi');
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()..restore()),
+      ],
+      child: const Nhom8App(),
+    ),
+  );
+}
+
+/// US-30: Mobile app for students and class monitors on the shared REST API.
+class Nhom8App extends StatelessWidget {
+  const Nhom8App({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final status = context.watch<AuthProvider>().status;
+    return MaterialApp(
+      title: 'Hoạt động & Điểm rèn luyện',
+      debugShowCheckedModeBanner: false,
+      theme: AppStyles.theme,
+      locale: const Locale('vi'),
+      supportedLocales: const [Locale('vi'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: switch (status) {
+        AuthStatus.unknown => const SplashScreen(),
+        AuthStatus.signedOut => const LoginScreen(),
+        AuthStatus.signedIn => const MainPage(),
+      },
+    );
+  }
 }

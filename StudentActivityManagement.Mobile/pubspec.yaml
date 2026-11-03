@@ -10,9 +10,11 @@ dependencies:
   file_picker: ^13.3.2
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   google_fonts: ^8.2.1
   http: ^1.6.0
-  intl: ^0.20.3
+  intl: ^0.20.2
   lucide_icons_flutter: ^4.0.1
   provider: ^6.1.5+1
   shared_preferences: ^2.5.6
