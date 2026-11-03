@@ -18,6 +18,9 @@ namespace StudentActivityManagement.API.Services
         Task<ApiResponseDto<List<ClassDto>>> GetClassesAsync();
         Task<ApiResponseDto<ClassDto>> CreateClassAsync(ClassCreateDto request);
         Task<ApiResponseDto<bool>> AssignClassMonitorAsync(int classId, int studentId);
+        Task<ApiResponseDto<ClassDto>> UpdateClassAsync(int classId, ClassCreateDto request);
+        Task<ApiResponseDto<bool>> DeleteClassAsync(int classId);
+        Task<ApiResponseDto<bool>> RemoveClassMonitorAsync(int classId);
     }
 }
 
