@@ -5,6 +5,11 @@
 *.sln text eol=crlf
 *.ps1 text eol=crlf
 
+# Flutter regenerates its plugin registrants with LF on every pub get; keep them LF so they never show as changed.
+StudentActivityManagement.Mobile/**/generated_plugin_registrant.* text eol=lf
+StudentActivityManagement.Mobile/**/generated_plugins.cmake text eol=lf
+StudentActivityManagement.Mobile/**/GeneratedPluginRegistrant.swift text eol=lf
+
 # Binary files are never normalized or diffed as text.
 *.xlsx binary
 *.docx binary
