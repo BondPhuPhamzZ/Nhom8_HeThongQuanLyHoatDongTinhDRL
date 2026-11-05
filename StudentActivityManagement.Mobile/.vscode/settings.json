@@ -1,0 +1,6 @@
+{
+  // Flutter builds the android/ project itself; the Java/Gradle extensions only try to import it and fail.
+  "gradle.autoDetect": "off",
+  "java.import.gradle.enabled": false,
+  "dart.flutterSdkPath": "C:\\flutter"
+}
