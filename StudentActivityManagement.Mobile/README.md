@@ -72,6 +72,20 @@ flutter run --dart-define=API_BASE_URL=http://192.168.1.10:5210   # máy thật:
 > Cách xử lý: clone repo vào thư mục ngắn, hoặc tạo junction rồi chạy Flutter trong đó, ví dụ:
 > `New-Item -ItemType Junction -Path D:\Projects\Nhom8Mobile -Target "<đường dẫn tới StudentActivityManagement.Mobile>"`
 
+### Chạy bằng VS Code
+
+1. Cài extension **Dart** và **Flutter**.
+2. Mở thư mục app từ đường dẫn ngắn (ví dụ `D:\Projects\Nhom8Mobile`), không mở bằng đường dẫn có `&`.
+3. Chạy API trước.
+4. Trong tab Run and Debug, chọn một trong hai cấu hình có sẵn trong `.vscode/launch.json`:
+   - **Mobile: Chrome (localhost:8080)**: Flutter build bản web rồi tự mở Chrome ở `http://localhost:8080`.
+   - **Mobile: Android (emulator/device)**: chạy trên máy ảo hoặc điện thoại đang kết nối.
+
+Lưu ý:
+- Không dùng cấu hình kiểu "Launch Chrome against localhost" (`"type": "chrome"`). Cấu hình đó chỉ mở trình duyệt chứ không khởi động Flutter, nên trang sẽ báo `ERR_CONNECTION_REFUSED`.
+- Lần chạy đầu Flutter cần khoảng 30–60 giây để biên dịch; nếu trang trắng thì tải lại sau khi terminal báo xong.
+- `.vscode/settings.json` tắt việc extension Java/Gradle tự import thư mục `android/`. Flutter tự build Android, còn import của extension luôn lỗi khi đường dẫn có `&` ("The supplied build action failed").
+
 ## Kiểm tra
 
 ```powershell
