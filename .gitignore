@@ -5,6 +5,8 @@
 [Ll]ogs/
 .vs/
 .vscode/
+# The Flutter app shares its run configurations (Chrome on :8080, Android) with the team.
+!StudentActivityManagement.Mobile/.vscode/
 *.user
 *.suo
 *.userosscache

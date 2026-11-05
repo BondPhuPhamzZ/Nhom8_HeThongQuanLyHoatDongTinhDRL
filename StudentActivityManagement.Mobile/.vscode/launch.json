@@ -1,0 +1,21 @@
+{
+  // Flutter run configurations (Dart/Flutter extension). Open this folder from a path without "&"
+  // (for example D:\Projects\Nhom8Mobile) and start the API first: http://localhost:5210.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Mobile: Chrome (localhost:8080)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+      "args": ["--web-port", "8080"]
+    },
+    {
+      "name": "Mobile: Android (emulator/device)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart"
+    }
+  ]
+}
