@@ -81,6 +81,11 @@ $registered = @((Invoke-Api GET '/api/v1/student-activities?registered=true&page
 
 $validIds = @{}
 foreach ($item in $eligible + $registered) { $validIds[[int]$item.id] = $true }
+# History of the period also lists the student's cancelled registrations; they are the student's own data too.
+$historyResponse = Invoke-Api GET '/api/v1/student/reports/activity-history' $token $null
+if ($historyResponse.Status -eq 200) {
+    foreach ($item in @($historyResponse.Json.data.activities)) { if ($item) { $validIds[[int]$item.activityId] = $true } }
+}
 $recommendedCount = 0
 if ($points) {
     foreach ($item in @($points.recommendedActivities)) { if ($item) { $validIds[[int]$item.id] = $true; $recommendedCount++ } }
