@@ -8,6 +8,7 @@ import '../../services/api_client.dart';
 import '../../services/report_service.dart';
 import '../../utils/vn_time.dart';
 import '../activity/activity_detail_screen.dart';
+import '../assistant/assistant_screen.dart';
 import '../widgets/activity_card.dart';
 import '../widgets/feedback_views.dart';
 import '../widgets/status_badge.dart';
@@ -88,6 +89,16 @@ class _PointsTabState extends State<PointsTab> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: ListTile(
+              leading: const Icon(LucideIcons.sparkles, color: AppColors.primary),
+              title: const Text('Hỏi trợ lý điểm rèn luyện'),
+              subtitle: const Text('Hỏi bằng tiếng Việt về điểm còn thiếu, hoạt động phù hợp, check-in'),
+              trailing: const Icon(LucideIcons.chevronRight, size: 18),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AssistantScreen())),
+            ),
+          ),
           DropdownButtonFormField<int>(
             isExpanded: true,
             initialValue: _periodId,
