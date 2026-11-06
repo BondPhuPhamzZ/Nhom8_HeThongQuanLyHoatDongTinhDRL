@@ -1,0 +1,66 @@
+@model AssistantPageViewModel
+@{
+    ViewData["Title"] = "Trợ lý điểm rèn luyện";
+    var suggestions = new[]
+    {
+        "Kỳ này mình còn thiếu bao nhiêu điểm?",
+        "Có hoạt động nào mình đăng ký được để bù điểm không?",
+        "Mình đã đăng ký những hoạt động nào trong kỳ này?",
+        "Khi nào mình check-in được cho hoạt động đã đăng ký?"
+    };
+}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+        <h1 class="h3 mb-1">Trợ lý điểm rèn luyện</h1>
+        <p class="text-muted mb-0">Hỏi về điểm, mục tiêu của kỳ, hoạt động phù hợp, đăng ký và check-in. Trợ lý trả lời từ dữ liệu của chính bạn.</p>
+    </div>
+    @if (Model.Enabled)
+    {
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="assistant-reset">Cuộc trò chuyện mới</button>
+    }
+</div>
+
+@if (!Model.Enabled)
+{
+    <div class="empty-state">
+        @(Model.StatusMessage ?? "Trợ lý AI chưa được bật trên máy chủ.")
+        Bạn vẫn xem được điểm và hoạt động gợi ý ở <a asp-controller="StudentPoints" asp-action="Index">Điểm &amp; gợi ý</a>.
+    </div>
+}
+else
+{
+    <div class="alert alert-info small" role="note">
+        <strong>Lưu ý:</strong> câu hỏi được gửi tới Google Gemini (bản miễn phí) và Google có thể dùng nội dung để cải thiện dịch vụ.
+        Đừng nhập họ tên, mã sinh viên, số điện thoại hay thông tin cá nhân khác. Trợ lý có thể nhầm, hãy kiểm tra lại ở trang chi tiết hoạt động.
+    </div>
+
+    <section class="card assistant" data-chat-url="@Url.Action("Chat")" aria-label="Trò chuyện với trợ lý">
+        @Html.AntiForgeryToken()
+        <div class="assistant-log" id="assistant-log" aria-live="polite">
+            <div class="assistant-msg assistant-msg-bot">
+                <div class="assistant-bubble">Chào bạn! Mình có thể tra điểm rèn luyện, số điểm còn thiếu, gợi ý hoạt động phù hợp và lịch check-in của bạn.</div>
+            </div>
+        </div>
+        <div class="assistant-suggestions" id="assistant-suggestions">
+            @foreach (var question in suggestions)
+            {
+                <button type="button" class="btn btn-outline-primary btn-sm" data-question="@question">@question</button>
+            }
+        </div>
+        <form class="assistant-form" id="assistant-form">
+            <label for="assistant-input" class="visually-hidden">Câu hỏi</label>
+            <textarea id="assistant-input" class="form-control" rows="2" maxlength="1000" placeholder="Nhập câu hỏi về điểm rèn luyện… (Enter để gửi, Shift+Enter để xuống dòng)"></textarea>
+            <button type="submit" class="btn btn-primary" id="assistant-send">
+                <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg> Gửi
+            </button>
+        </form>
+        <p class="assistant-model small text-muted mb-0">Mô hình: @Model.Model</p>
+    </section>
+}
+
+@section Scripts {
+    @if (Model.Enabled)
+    {
+        <script src="~/js/assistant.js" asp-append-version="true"></script>
+    }
+}

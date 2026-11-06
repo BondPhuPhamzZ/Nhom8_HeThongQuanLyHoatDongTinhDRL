@@ -262,3 +262,16 @@ public sealed class StudentEvidenceViewModel
     public List<StudentEvidence> Evidences { get; set; } = [];
     public bool CanUpload { get; set; }
 }
+
+/// <summary>US-31: the assistant page shows the chat only when the API reports the assistant enabled.</summary>
+public sealed class AssistantPageViewModel
+{
+    public bool Enabled { get; set; }
+    public string? Model { get; set; }
+    public string? StatusMessage { get; set; }
+}
+
+public sealed class AssistantChatInput
+{
+    public List<AssistantChatMessage>? Messages { get; set; }
+}
