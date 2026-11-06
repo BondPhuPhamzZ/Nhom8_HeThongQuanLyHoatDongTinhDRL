@@ -16,6 +16,13 @@ builder.Services.AddHttpClient<ApiClient>(client =>
         client.Timeout = TimeSpan.FromSeconds(15);
     })
     .AddHttpMessageHandler<BearerTokenHandler>();
+// US-31: one assistant question may take several Gemini round trips on the API side.
+builder.Services.AddHttpClient(ApiClient.AssistantHttpClient, client =>
+    {
+        client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
+        client.Timeout = TimeSpan.FromSeconds(90);
+    })
+    .AddHttpMessageHandler<BearerTokenHandler>();
 
 // The API's JWT is kept as a claim inside the auth cookie, which ASP.NET Core encrypts with Data Protection.
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

@@ -38,6 +38,8 @@ public abstract class ApiControllerBase : ControllerBase
         StatusCodes.Status403Forbidden => "Không có quyền truy cập",
         StatusCodes.Status404NotFound => "Không tìm thấy dữ liệu",
         StatusCodes.Status409Conflict => "Xung đột dữ liệu",
+        StatusCodes.Status429TooManyRequests => "Quá nhiều yêu cầu",
+        StatusCodes.Status503ServiceUnavailable => "Dịch vụ tạm thời không khả dụng",
         _ => "Có lỗi xảy ra"
     };
 }

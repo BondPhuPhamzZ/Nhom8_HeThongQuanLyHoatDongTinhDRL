@@ -35,7 +35,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["JwtSettings:Secret"] = JwtSecret,
                 ["JwtSettings:Issuer"] = JwtIssuer,
                 ["JwtSettings:Audience"] = JwtAudience,
-                ["EvidenceStorage:RootPath"] = EvidenceRootPath
+                ["EvidenceStorage:RootPath"] = EvidenceRootPath,
+                // A developer's real Gemini key in user-secrets must never be used by tests (US-31);
+                // AssistantTests sets a fake key together with a scripted Gemini handler.
+                ["Gemini:ApiKey"] = string.Empty
             });
         });
         builder.ConfigureServices(services =>

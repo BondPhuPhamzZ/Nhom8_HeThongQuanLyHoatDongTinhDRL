@@ -63,6 +63,13 @@ class ApiClient {
   Future<ApiResult> post(String path, [Object? body]) =>
       _send(() => _http.post(uri(path), headers: _headers(), body: body == null ? null : jsonEncode(body)));
 
+  /// POST allowed to take longer than [ApiConfig.requestTimeout]: one assistant question (US-31) may need
+  /// several model round trips on the API side.
+  Future<ApiResult> postLong(String path, Object? body, Duration timeout) => _send(
+        () => _http.post(uri(path), headers: _headers(), body: body == null ? null : jsonEncode(body)),
+        timeout: timeout,
+      );
+
   Future<ApiResult> patch(String path, [Object? body]) =>
       _send(() => _http.patch(uri(path), headers: _headers(), body: body == null ? null : jsonEncode(body)));
 
@@ -81,10 +88,10 @@ class ApiClient {
     });
   }
 
-  Future<ApiResult> _send(Future<http.Response> Function() call) async {
+  Future<ApiResult> _send(Future<http.Response> Function() call, {Duration? timeout}) async {
     final http.Response response;
     try {
-      response = await call().timeout(ApiConfig.requestTimeout);
+      response = await call().timeout(timeout ?? ApiConfig.requestTimeout);
     } on TimeoutException {
       throw ApiException('API không phản hồi. Kiểm tra kết nối mạng và địa chỉ máy chủ.');
     } on Exception {

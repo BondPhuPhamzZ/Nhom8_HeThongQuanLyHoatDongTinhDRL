@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
+import 'assistant/assistant_screen.dart';
 import 'auth/splash_screen.dart';
 import 'tabs/activities_tab.dart';
 import 'tabs/class_tab.dart';
@@ -58,6 +59,11 @@ class _MainPageState extends State<MainPage> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Trợ lý điểm rèn luyện',
+            icon: const Icon(LucideIcons.sparkles),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AssistantScreen())),
+          ),
           if (user != null)
             Padding(
               padding: const EdgeInsets.only(right: 16),

@@ -667,3 +667,39 @@ public sealed class UserNotification
     public DateTime CreatedAt { get; set; }
     public DateTime? ReadAt { get; set; }
 }
+
+// ---- Training-point assistant (US-31)
+public sealed class AssistantStatusDto
+{
+    public bool Enabled { get; set; }
+    public string? Model { get; set; }
+    public int RequestsPerMinute { get; set; }
+}
+
+/// <summary>One turn of the conversation the browser keeps: <c>user</c> or <c>assistant</c>.</summary>
+public sealed class AssistantChatMessage
+{
+    public string Role { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+}
+
+public sealed class AssistantReplyDto
+{
+    public string Reply { get; set; } = string.Empty;
+    public List<AssistantActivityDto> Activities { get; set; } = [];
+    public List<string> ToolsUsed { get; set; } = [];
+    public int DroppedActivityReferences { get; set; }
+    public string Model { get; set; } = string.Empty;
+}
+
+public sealed class AssistantActivityDto
+{
+    public int Id { get; set; }
+    public string ActivityName { get; set; } = string.Empty;
+    public int TrainingPoints { get; set; }
+    public string? Campus { get; set; }
+    public DateTime? StartTime { get; set; }
+    public DateTime? RegistrationCloseTime { get; set; }
+    public bool? IsRegistrationOpen { get; set; }
+    public string? MyRegistrationStatus { get; set; }
+}

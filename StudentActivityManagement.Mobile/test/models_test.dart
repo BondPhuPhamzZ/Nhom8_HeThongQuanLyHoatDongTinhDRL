@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nhom8_qlhd_tinh_drl/models/activity.dart';
+import 'package:nhom8_qlhd_tinh_drl/models/assistant.dart';
 import 'package:nhom8_qlhd_tinh_drl/models/class_space.dart';
 import 'package:nhom8_qlhd_tinh_drl/models/participation.dart';
 import 'package:nhom8_qlhd_tinh_drl/models/student_report.dart';
@@ -130,6 +131,52 @@ void main() {
       expect(VnTime.parse('2026-11-03T07:00:00'), DateTime.utc(2026, 11, 3, 7));
       expect(VnTime.parse('2026-11-03T07:00:00Z'), DateTime.utc(2026, 11, 3, 7));
       expect(VnTime.parseOrNull(null), isNull);
+    });
+  });
+
+  group('Assistant (US-31)', () {
+    test('parses the chat answer with its verified activity cards', () {
+      final reply = AssistantReply.fromJson({
+        'reply': 'Bạn còn thiếu 30 điểm.',
+        'activities': [
+          {
+            'id': 12,
+            'activityName': 'Hiến máu',
+            'trainingPoints': 15,
+            'campus': 'Cơ sở 1',
+            'startTime': '2026-11-10T01:00:00Z',
+            'registrationCloseTime': '2026-11-09T00:00:00Z',
+            'isRegistrationOpen': true,
+            'myRegistrationStatus': null,
+          },
+        ],
+        'toolsUsed': ['get_points_summary', 'search_activities'],
+        'droppedActivityReferences': 1,
+        'model': 'gemini-3.5-flash-lite',
+      });
+
+      expect(reply.reply, 'Bạn còn thiếu 30 điểm.');
+      expect(reply.droppedActivityReferences, 1);
+      final activity = reply.activities.single;
+      expect(activity.id, 12);
+      expect(activity.trainingPoints, 15);
+      expect(VnTime.dateTime(activity.startTime), '08:00 10/11/2026');
+      expect(activity.isRegistrationOpen, isTrue);
+      expect(ChatMessage.assistant(reply).toolLabels, ['điểm và mục tiêu của kỳ', 'hoạt động phù hợp']);
+    });
+
+    test('reads the status and sends only answered turns back', () {
+      expect(AssistantStatus.fromJson({'enabled': true, 'model': 'gemini-3.5-flash-lite'}).enabled, isTrue);
+      expect(AssistantStatus.fromJson({}).enabled, isFalse);
+
+      final question = ChatMessage.user('Mình còn thiếu bao nhiêu điểm?');
+      expect(question.toJson(), {'role': 'user', 'content': 'Mình còn thiếu bao nhiêu điểm?'});
+      expect(question.inHistory, isTrue);
+      expect(question.withoutHistory().inHistory, isFalse);
+      final error = ChatMessage.error('Trợ lý đang quá tải.');
+      expect(error.isError, isTrue);
+      expect(error.inHistory, isFalse);
+      expect(const ChatMessage(role: ChatRole.assistant, text: 'Chào bạn').toJson()['role'], 'assistant');
     });
   });
 }

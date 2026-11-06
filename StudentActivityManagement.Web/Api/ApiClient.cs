@@ -28,9 +28,25 @@ public sealed class ApiUnauthorizedException : Exception
 public sealed class ApiClient
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-    private readonly HttpClient _http;
+    /// <summary>Named client for the assistant (US-31): same API and token, longer timeout for several Gemini round trips.</summary>
+    public const string AssistantHttpClient = "api-assistant";
 
-    public ApiClient(HttpClient http) => _http = http;
+    private readonly HttpClient _http;
+    private readonly IHttpClientFactory _httpClientFactory;
+
+    public ApiClient(HttpClient http, IHttpClientFactory httpClientFactory)
+    {
+        _http = http;
+        _httpClientFactory = httpClientFactory;
+    }
+
+    // ---- Training-point assistant (US-31)
+    public Task<ApiResult<AssistantStatusDto>> GetAssistantStatusAsync() =>
+        SendAsync<AssistantStatusDto>(HttpMethod.Get, "api/v1/assistant/status");
+
+    public Task<ApiResult<AssistantReplyDto>> AssistantChatAsync(IEnumerable<AssistantChatMessage> messages) =>
+        SendAsync<AssistantReplyDto>(HttpMethod.Post, "api/v1/assistant/chat", new { messages },
+            client: _httpClientFactory.CreateClient(AssistantHttpClient));
 
     // ---- Auth
     public Task<ApiResult<AuthResponse>> LoginAsync(string usernameOrEmail, string password) =>
@@ -409,7 +425,8 @@ public sealed class ApiClient
     public Task<ApiResult<AccountDto>> UpdateAccountActiveAsync(int id, bool isActive) =>
         SendAsync<AccountDto>(HttpMethod.Patch, $"api/v1/admin/accounts/{id}/active-status", new { isActive });
 
-    private async Task<ApiResult<T>> SendAsync<T>(HttpMethod method, string url, object? body = null, bool throwOn401 = true)
+    private async Task<ApiResult<T>> SendAsync<T>(
+        HttpMethod method, string url, object? body = null, bool throwOn401 = true, HttpClient? client = null)
     {
         using var request = new HttpRequestMessage(method, url);
         if (body != null)
@@ -420,7 +437,7 @@ public sealed class ApiClient
         HttpResponseMessage response;
         try
         {
-            response = await _http.SendAsync(request);
+            response = await (client ?? _http).SendAsync(request);
         }
         catch (HttpRequestException)
         {
@@ -428,6 +445,15 @@ public sealed class ApiClient
             {
                 StatusCode = HttpStatusCode.ServiceUnavailable,
                 Message = "Không kết nối được API. Hãy kiểm tra StudentActivityManagement.API đang chạy."
+            };
+        }
+        catch (TaskCanceledException)
+        {
+            // HttpClient.Timeout elapsed.
+            return new ApiResult<T>
+            {
+                StatusCode = HttpStatusCode.GatewayTimeout,
+                Message = "API không phản hồi kịp. Vui lòng thử lại."
             };
         }
 
