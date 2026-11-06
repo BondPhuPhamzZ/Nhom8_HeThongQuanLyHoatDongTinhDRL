@@ -12,4 +12,10 @@ public static class ApiErrorCodes
     public const string BusinessRuleViolation = "business_rule_violation";
     public const string ConcurrencyConflict = "concurrency_conflict";
     public const string UnexpectedError = "unexpected_error";
+
+    /// <summary>The AI assistant (US-31) is switched off, has no Gemini key, or Gemini cannot be reached.</summary>
+    public const string AssistantUnavailable = "assistant_unavailable";
+
+    /// <summary>Too many assistant questions: the per-student limit or Gemini's free quota.</summary>
+    public const string AssistantRateLimited = "assistant_rate_limited";
 }
