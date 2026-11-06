@@ -16,6 +16,7 @@
 | Lớp trưởng: thông báo, chuyển tiếp hoạt động vào lớp, ghim, chọn câu trả lời | US-13, US-14 | `POST /class-space/threads` (Announcement), `PATCH .../pin`, `POST .../replies/{id}/answer` |
 | Lớp trưởng: chuyển câu hỏi lên Phòng QL HSSV, rút lại, chuyển phản hồi chính thức vào lớp | US-15, US-16 | `POST .../escalations`, `GET /class-space/escalations`, `.../withdraw`, `.../relay` |
 | Thông báo: nhắc lịch, hoạt động mới của bạn và của lớp; đánh dấu đã đọc; số chưa đọc trên thanh điều hướng | US-06, US-12 | `GET /notifications`, `POST /notifications/{id}/read` |
+| Trợ lý điểm rèn luyện (AI, Gemini): hỏi bằng tiếng Việt, thẻ hoạt động mở màn hình chi tiết, dòng "Đã tra cứu", cảnh báo quyền riêng tư. Mở từ nút trên thanh tiêu đề hoặc đầu tab Điểm. | US-31 | `GET /assistant/status`, `POST /assistant/chat` (timeout 90 giây) |
 
 Mọi quy tắc nghiệp vụ (đối tượng tham gia, sức chứa, khung giờ check-in, quyền lớp trưởng, trạng thái điểm) nằm ở API. Mobile chỉ ẩn hoặc hiện nút theo đúng điều kiện Web đang dùng và hiển thị thông báo lỗi mà API trả về.
 
@@ -34,6 +35,7 @@ lib/
     tabs/                   activities_tab, points_tab, class_tab, notifications_tab, profile_tab
     activity/               chi tiết hoạt động, check-in và minh chứng
     class_space/            chi tiết chủ đề, đăng bài, câu hỏi đã chuyển lên
+    assistant/              trợ lý điểm rèn luyện (US-31): khung chat, thẻ hoạt động
     widgets/                status_badge, activity_card, feedback_views (empty state, skeleton, animation)
   utils/vn_time.dart        API dùng UTC; app hiển thị giờ Việt Nam (UTC+7) như bản Web
 test/                       kiểm thử model/JSON, quy tắc đăng ký, giờ Việt Nam và widget dùng chung

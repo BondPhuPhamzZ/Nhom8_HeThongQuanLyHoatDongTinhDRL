@@ -313,12 +313,65 @@ Sinh viên và lớp trưởng dùng `GET /api/v1/notifications?unreadOnly=&page
 
 Khi hoạt động được tạo ở trạng thái `Published` hoặc chuyển từ trạng thái khác sang `Published`, hệ thống tạo một thông báo `ClassActivity` cho lớp trưởng đang hoạt động có lớp khớp ít nhất một quy tắc đối tượng của hoạt động. Không khai báo quy tắc thì thông báo tới mọi lớp trưởng đang hoạt động. `SourceKey` theo hoạt động/người nhận ngăn gửi trùng. Nếu đối tượng được sửa khi hoạt động đã công bố, người mới phù hợp cũng nhận thông báo. Lớp trưởng dùng chung API danh sách/lọc chưa đọc và đánh dấu đã đọc ở trên; sinh viên khác nhận thông báo riêng `StudentActivity`, không nhận `ClassActivity`.
 
+## Trợ lý điểm rèn luyện (US-31, Gemini API)
+
+Phần mở rộng AI. Sinh viên và lớp trưởng hỏi bằng tiếng Việt: "kỳ này mình còn thiếu bao nhiêu điểm?", "có hoạt động nào đăng ký được để bù điểm không?", "khi nào check-in được?". Trợ lý trả lời từ dữ liệu thật của chính người hỏi.
+
+| Endpoint | Quyền | Ghi chú |
+|---|---|---|
+| `GET /api/v1/assistant/status` | StudentOrMonitor | `{ enabled, model, requestsPerMinute }`. `enabled = false` khi chưa có key hoặc `Assistant:Enabled = false`. |
+| `POST /api/v1/assistant/chat` | StudentOrMonitor | Body `{ messages: [{ role: "user" \| "assistant", content }] }`, 1–12 tin nhắn, tin cuối là câu hỏi, mỗi tin ≤ 1000 ký tự. Trả `{ reply, activities[], toolsUsed[], droppedActivityReferences, model }`. |
+
+Cách hoạt động:
+
+- **Gọi Gemini:** `Services/Assistant/GeminiClient` gọi REST `models/{model}:generateContent` của Gemini, header `x-goog-api-key`. Toàn bộ code gọi Google nằm trong lớp này.
+- **Tool:** model chỉ được gọi 5 tool **chỉ đọc** trong `AssistantTools`. Mỗi tool dùng lại service có sẵn:
+  - `get_points_summary` (US-11);
+  - `list_evaluation_periods` và `get_my_activity_history` (US-10);
+  - `search_activities` (US-02);
+  - `get_activity_detail` (US-03, US-07).
+- **Phạm vi dữ liệu:** tool lấy sinh viên từ JWT và không nhận mã sinh viên, nên trợ lý không xem được dữ liệu người khác. Trợ lý cũng không đăng ký, hủy hay check-in thay sinh viên.
+- **Chống bịa hoạt động:** model ghi mã hoạt động dạng `[#id]`. API chỉ biến mã đó thành thẻ hoạt động khi một tool của **cùng câu hỏi** đã trả về hoạt động đó. Mã khác bị xóa khỏi câu trả lời và được đếm vào `droppedActivityReferences`.
+- **Thought signature:** phần `content` của model được gửi lại nguyên vẹn ở lượt tool kế tiếp, đúng yêu cầu của Gemini 3. Sau `Assistant:MaxToolRounds` lượt tool, API gửi `functionCallingConfig.mode = NONE` để buộc model trả lời bằng chữ.
+- **Kiến thức nền:** quy tắc của hệ thống nằm trong `Services/Assistant/AssistantKnowledge.md` (embedded resource). Quy chế chính thức của trường để trống, chờ nhóm bổ sung sau khi đối chiếu văn bản gốc.
+
+Cấu hình (`appsettings.json`, **không chứa key**):
+
+| Khóa | Mặc định | Ý nghĩa |
+|---|---|---|
+| `Gemini:ApiKey` | (trống) | Đặt bằng user-secrets hoặc biến môi trường `Gemini__ApiKey` |
+| `Gemini:Model` | `gemini-3.5-flash-lite` | Model miễn phí. Có thể đổi sang `gemini-3.8-flash` hoặc `gemini-3.6-flash`. |
+| `Gemini:TimeoutSeconds` | `30` | Thời gian chờ mỗi lần gọi Gemini |
+| `Assistant:Enabled` | `true` | Tắt trợ lý mà không cần xóa key |
+| `Assistant:MaxToolRounds` | `4` | Số lượt gọi tool tối đa cho một câu hỏi |
+| `Assistant:RequestsPerMinute` | `6` | Số câu hỏi tối đa mỗi sinh viên mỗi phút. Vượt thì trả `429 assistant_rate_limited`. |
+
+Đặt key (tạo key miễn phí tại https://aistudio.google.com/apikey). Chạy trong thư mục project API:
+
+```powershell
+dotnet user-secrets set "Gemini:ApiKey" "<key>"
+dotnet user-secrets list
+```
+
+User-secrets lưu key trong `%APPDATA%\Microsoft\UserSecrets\StudentActivityManagement.API-2026-Nhom8\secrets.json` của máy bạn. File này nằm ngoài repo, chỉ được nạp khi chạy ở môi trường Development, và là văn bản thường (không mã hóa).
+
+Lỗi và quyền riêng tư:
+
+- **Lỗi:**
+  - chưa có key, key sai, hoặc Google lỗi hay quá thời gian chờ → `503 assistant_unavailable`;
+  - hết quota miễn phí của Gemini → `429 assistant_rate_limited`;
+  - các chức năng khác không bị ảnh hưởng.
+- **Quyền riêng tư:** ở bản miễn phí, Google có thể dùng nội dung gửi lên để cải thiện sản phẩm. Vì vậy tool không bao giờ gửi họ tên, MSSV, email hoặc lớp; integration test kiểm tra điều này. Web và Mobile nhắc người dùng không nhập thông tin cá nhân. Log chỉ ghi số token và thời gian, không ghi nội dung câu hỏi.
+- **Kiểm thử:** `AssistantTests` thay Gemini bằng một HTTP handler trả JSON soạn sẵn, nên CI không cần key. `CustomWebApplicationFactory` xóa `Gemini:ApiKey` để test không bao giờ dùng key thật của máy.
+- **Đánh giá với Gemini thật:** chạy `scripts/assistant-eval.ps1` khi API đang chạy và đã có key. Script lấy đáp án đúng từ chính API, hỏi một bộ câu hỏi cố định, rồi in tỉ lệ đạt, số mã hoạt động bị bỏ và thời gian trả lời.
+
 ## Cấu trúc project
 
 - `Controllers`, `Services`, `DTOs`, `Models`, `Data`: các lớp chính của RESTful API.
 - [`StudentActivityManagement.API.http`](StudentActivityManagement.API.http): request mẫu dùng trong Visual Studio, Rider hoặc VS Code REST Client.
 - `scripts/setup-local.ps1`: cấu hình JWT secret an toàn cho máy local.
 - `scripts/update-database.ps1`: restore EF tool và áp dụng migration đã commit.
+- `scripts/assistant-eval.ps1`: đánh giá trợ lý điểm rèn luyện với Gemini thật (US-31).
 - `StudentActivityManagement.API.Tests`: integration test cho JWT, phân quyền, OpenAPI, lịch nhiều buổi, đối tượng tham gia, hủy đăng ký và quản lý tài khoản.
 - Hai client cùng dùng API này: `StudentActivityManagement.Web` (ASP.NET Core MVC, bốn vai trò) và `StudentActivityManagement.Mobile` (Flutter, sinh viên và lớp trưởng, US-30). Xem README của từng project.
 
@@ -334,7 +387,7 @@ dotnet test ..\Nhom8_ActivitiesManagement.sln --no-build --no-restore -m:1
 
 ## Lưu ý
 
-- Không commit JWT secret, database `.db`, thư mục `bin`, `obj` hoặc file `.user`.
+- Không commit JWT secret, Gemini API key, database `.db`, thư mục `bin`, `obj` hoặc file `.user`.
 - Script `scripts/setup-local.ps1` sinh khóa ngẫu nhiên và lưu bằng .NET user-secrets ngoài repository; script không in giá trị secret.
 - Project dùng SQLite và EF Core migrations; không sửa trực tiếp database rồi đưa file `.db` lên Git.
 - Swagger chỉ bật trong Development.
