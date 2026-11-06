@@ -155,8 +155,8 @@ public sealed class AssistantTools
                 ["id"] = item.ActivityId,
                 ["name"] = item.ActivityName,
                 ["training_points"] = item.TrainingPoints,
-                ["registration_status"] = item.RegistrationStatus,
-                ["point_status"] = item.PointStatus ?? "Chưa ghi điểm",
+                ["registration_status"] = RegistrationLabel(item.RegistrationStatus),
+                ["point_status"] = PointLabel(item.PointStatus),
                 ["points_awarded"] = item.PointsAwarded,
                 ["checked_in_sessions"] = item.CheckInCount,
                 ["total_sessions"] = item.Sessions.Count,
@@ -250,17 +250,53 @@ public sealed class AssistantTools
             ["name"] = activity.ActivityName,
             ["training_points"] = activity.TrainingPoints,
             ["campus"] = firstSession?.Campus ?? activity.Campus,
-            ["status"] = activity.Status,
+            ["status"] = ActivityLabel(activity.Status),
             ["start"] = VietnamTime(activity.StartTime),
             ["end"] = VietnamTime(activity.EndTime),
             ["session_count"] = activity.Sessions.Count,
             ["registration_close"] = VietnamTime(activity.RegistrationCloseTime),
             ["is_registration_open"] = activity.IsRegistrationOpen,
             ["remaining_slots"] = activity.RemainingSlots,
-            ["participation_type"] = activity.Eligibility?.ParticipationType,
-            ["my_registration_status"] = activity.MyRegistrationStatus ?? "Chưa đăng ký"
+            ["participation_type"] = activity.Eligibility?.ParticipationType switch
+            {
+                AudienceParticipationType.Required => "Bắt buộc",
+                AudienceParticipationType.Recommended => "Khuyến khích",
+                AudienceParticipationType.Optional => "Tự chọn",
+                var other => other
+            },
+            ["my_registration_status"] = activity.MyRegistrationStatus == null ? "Chưa đăng ký" : RegistrationLabel(activity.MyRegistrationStatus)
         };
     }
+
+    // Vietnamese labels (same wording as the Web and Mobile badges), so answers never show raw status codes.
+    private static string RegistrationLabel(string status) => status switch
+    {
+        RegistrationStatus.Registered => "Đã đăng ký",
+        RegistrationStatus.Attended => "Đã tham gia",
+        RegistrationStatus.Cancelled => "Đã hủy đăng ký",
+        RegistrationStatus.Absent => "Vắng mặt",
+        _ => status
+    };
+
+    private static string PointLabel(string? status) => status switch
+    {
+        null => "Chưa ghi điểm",
+        PointRecordStatus.Pending => "Chờ duyệt (chưa được cộng)",
+        PointRecordStatus.Approved => "Đã duyệt (đã được cộng)",
+        PointRecordStatus.Rejected => "Bị từ chối",
+        PointRecordStatus.Revoked => "Đã thu hồi",
+        _ => status
+    };
+
+    private static string ActivityLabel(string status) => status switch
+    {
+        ActivityStatus.Published => "Đã công bố",
+        ActivityStatus.Ongoing => "Đang diễn ra",
+        ActivityStatus.Completed => "Đã kết thúc",
+        ActivityStatus.Cancelled => "Đã hủy",
+        ActivityStatus.Draft => "Nháp",
+        _ => status
+    };
 
     private static AssistantActivityDto Card(ActivityResponseDto activity) => new()
     {
