@@ -1,6 +1,12 @@
+using System.Globalization;
+using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -11,6 +17,7 @@ using StudentActivityManagement.API.Models;
 using StudentActivityManagement.API.OpenApi;
 using StudentActivityManagement.API.Serialization;
 using StudentActivityManagement.API.Services;
+using StudentActivityManagement.API.Services.Assistant;
 using StudentActivityManagement.API.Services.Settings;
 using StudentActivityManagement.API.Services.Storage;
 
@@ -58,6 +65,52 @@ builder.Services.AddScoped<IEvidenceService, EvidenceService>();
 builder.Services.Configure<EvidenceStorageOptions>(builder.Configuration.GetSection(EvidenceStorageOptions.SectionName));
 builder.Services.AddSingleton<IEvidenceFileStorage, LocalEvidenceFileStorage>();
 builder.Services.AddSingleton<IEvidenceFileValidator, EvidenceFileValidator>();
+
+// US-31: training-point assistant on Gemini. Gemini:ApiKey comes from user-secrets or the Gemini__ApiKey variable;
+// without it the assistant reports itself disabled and every other feature works as before.
+builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection(GeminiOptions.SectionName));
+builder.Services.Configure<AssistantOptions>(builder.Configuration.GetSection(AssistantOptions.SectionName));
+builder.Services.AddHttpClient<GeminiClient>(client => client.Timeout = Timeout.InfiniteTimeSpan); // GeminiClient applies Gemini:TimeoutSeconds
+builder.Services.AddScoped<AssistantTools>();
+builder.Services.AddScoped<IAssistantService, AssistantService>();
+builder.Services.AddRateLimiter(options =>
+{
+    // One window per student; the limit is read per request so configuration (and tests) can change it.
+    options.AddPolicy(AssistantService.RateLimitPolicy, httpContext =>
+    {
+        var perMinute = httpContext.RequestServices.GetRequiredService<IOptions<AssistantOptions>>().Value.RequestsPerMinute;
+        var partition = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? httpContext.Connection.RemoteIpAddress?.ToString()
+            ?? "anonymous";
+        return RateLimitPartition.GetFixedWindowLimiter(partition, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = Math.Max(1, perMinute),
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        });
+    });
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        var httpContext = context.HttpContext;
+        httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            httpContext.Response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+        }
+
+        var problem = new ProblemDetails
+        {
+            Status = StatusCodes.Status429TooManyRequests,
+            Title = "Quá nhiều yêu cầu",
+            Detail = "Bạn đã hỏi trợ lý quá nhiều lần trong một phút. Vui lòng đợi một chút rồi hỏi tiếp.",
+            Type = "https://httpstatuses.com/429",
+            Instance = httpContext.Request.Path
+        };
+        problem.Extensions["errorCode"] = ApiErrorCodes.AssistantRateLimited;
+        problem.Extensions["traceId"] = httpContext.TraceIdentifier;
+        await httpContext.Response.WriteAsJsonAsync(problem, (JsonSerializerOptions?)null, "application/problem+json", cancellationToken);
+    };
+});
 
 // 3. Configure JWT Authentication
 var jwtSecret = builder.Configuration["JwtSettings:Secret"];
@@ -263,6 +316,7 @@ app.UseCors("ClientApps");
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter(); // after authentication: the assistant limit is per signed-in student
 
 app.MapControllers();
 
