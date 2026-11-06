@@ -23,6 +23,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- US-31: rules the assistant explains, kept as Markdown so the team can extend them without code changes. -->
+    <EmbeddedResource Include="Services\Assistant\AssistantKnowledge.md" LogicalName="AssistantKnowledge.md" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="StudentActivityManagement.API.Tests\**\*.cs" />
     <Content Remove="StudentActivityManagement.API.Tests\**\*" />
     <None Remove="StudentActivityManagement.API.Tests\**\*" />
