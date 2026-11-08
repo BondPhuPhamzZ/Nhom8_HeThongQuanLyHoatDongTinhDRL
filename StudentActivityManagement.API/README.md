@@ -2,7 +2,7 @@
 
 Backend RESTful API cho hệ thống quản lý hoạt động và tính điểm rèn luyện. API được thiết kế để Web và Mobile dùng chung dữ liệu, phân quyền và nghiệp vụ.
 
-> Chạy riêng project API sẽ mở Swagger để kiểm thử endpoint. Giao diện Web MVC đã nằm trong project `../StudentActivityManagement.Web` và gọi API này qua HTTP/JSON; ứng dụng Mobile chưa được triển khai.
+> Chạy riêng project API sẽ mở Swagger để kiểm thử endpoint. Giao diện Web MVC ở `../StudentActivityManagement.Web` và ứng dụng Flutter ở `../StudentActivityManagement.Mobile` đều gọi API này qua HTTP/JSON.
 
 ## Cập nhật và chạy bản mới
 
@@ -415,4 +415,4 @@ dotnet test ..\Nhom8_ActivitiesManagement.sln --no-build --no-restore -m:1
 - Script `scripts/setup-local.ps1` sinh khóa ngẫu nhiên và lưu bằng .NET user-secrets ngoài repository; script không in giá trị secret.
 - Project dùng SQLite và EF Core migrations; không sửa trực tiếp database rồi đưa file `.db` lên Git.
 - Swagger chỉ bật trong Development.
-- Web UI hiện nằm trong project `StudentActivityManagement.Web` và chạy ở `http://localhost:5220`; xem hướng dẫn chạy trong README của project Web. Mobile UI là client dự kiến, dùng chung API này qua HTTP/JSON.
+- Web UI nằm trong `StudentActivityManagement.Web` và chạy ở `http://localhost:5220`; Mobile UI nằm trong `StudentActivityManagement.Mobile`. Xem README của từng project để chạy client tương ứng.
