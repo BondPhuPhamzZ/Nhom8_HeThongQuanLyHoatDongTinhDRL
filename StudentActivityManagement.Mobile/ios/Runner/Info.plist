@@ -66,5 +66,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Dùng camera để quét mã QR check-in do ban tổ chức trình chiếu.</string>
 </dict>
 </plist>

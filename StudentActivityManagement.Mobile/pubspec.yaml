@@ -16,6 +16,7 @@ dependencies:
   http: ^1.6.0
   intl: ^0.20.2
   lucide_icons_flutter: ^4.0.1
+  mobile_scanner: ^7.5.0
   provider: ^6.1.5+1
   shared_preferences: ^2.5.6
 
