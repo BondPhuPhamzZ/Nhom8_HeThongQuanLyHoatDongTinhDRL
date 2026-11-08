@@ -51,6 +51,9 @@ namespace StudentActivityManagement.API.Models
         /// </summary>
         public bool IsActive { get; set; } = true;
 
+        public int FailedLoginCount { get; set; }
+        public DateTime? LockoutEndUtc { get; set; }
+
         public int AccumulatedPoints { get; set; } = 0;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

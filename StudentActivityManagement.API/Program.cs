@@ -70,6 +70,7 @@ builder.Services.AddSingleton<IEvidenceFileValidator, EvidenceFileValidator>();
 // without it the assistant reports itself disabled and every other feature works as before.
 builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection(GeminiOptions.SectionName));
 builder.Services.Configure<AssistantOptions>(builder.Configuration.GetSection(AssistantOptions.SectionName));
+builder.Services.Configure<LoginSecurityOptions>(builder.Configuration.GetSection(LoginSecurityOptions.SectionName));
 builder.Services.AddHttpClient<GeminiClient>(client => client.Timeout = Timeout.InfiniteTimeSpan); // GeminiClient applies Gemini:TimeoutSeconds
 builder.Services.AddScoped<AssistantTools>();
 builder.Services.AddSingleton<AssistantHistorySigner>();
