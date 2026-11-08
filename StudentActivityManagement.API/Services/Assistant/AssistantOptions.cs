@@ -21,8 +21,11 @@ public sealed class GeminiOptions
     /// <summary>Upper bound of one answer (generationConfig.maxOutputTokens); a cut answer is marked as such.</summary>
     public int MaxOutputTokens { get; set; } = 2048;
 
-    /// <summary>Gemini safety threshold applied to harassment, hate speech, sexual and dangerous content.</summary>
-    public string SafetyThreshold { get; set; } = "BLOCK_LOW_AND_ABOVE";
+    /// <summary>
+    /// Gemini safety threshold applied to harassment, hate speech, sexual and dangerous content. BLOCK_LOW_AND_ABOVE was
+    /// tried and blocked an ordinary points answer ("you have 0 points") in live testing, so medium is the default.
+    /// </summary>
+    public string SafetyThreshold { get; set; } = "BLOCK_MEDIUM_AND_ABOVE";
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(ApiKey);
 }

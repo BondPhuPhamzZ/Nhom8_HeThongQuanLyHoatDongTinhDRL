@@ -362,7 +362,7 @@ public sealed class AssistantTests : IClassFixture<CustomWebApplicationFactory>
 
         var safety = request["safetySettings"]!.AsArray();
         Assert.Equal(4, safety.Count);
-        Assert.All(safety, item => Assert.Equal("BLOCK_LOW_AND_ABOVE", item!["threshold"]!.GetValue<string>()));
+        Assert.All(safety, item => Assert.Equal("BLOCK_MEDIUM_AND_ABOVE", item!["threshold"]!.GetValue<string>()));
         Assert.Equal(2048, request["generationConfig"]!["maxOutputTokens"]!.GetValue<int>());
     }
 
