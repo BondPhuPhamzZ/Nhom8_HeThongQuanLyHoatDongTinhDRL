@@ -76,6 +76,14 @@ public sealed class UserAccountsController : WebControllerBase
         return BackTo(returnTo);
     }
 
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Unlock(int id, string? returnTo)
+    {
+        var result = await _api.UnlockAccountAsync(id);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return BackTo(returnTo);
+    }
+
     private IActionResult BackTo(string? returnTo) =>
         !string.IsNullOrEmpty(returnTo) && Url.IsLocalUrl(returnTo) ? LocalRedirect(returnTo) : RedirectToAction(nameof(Index));
 }

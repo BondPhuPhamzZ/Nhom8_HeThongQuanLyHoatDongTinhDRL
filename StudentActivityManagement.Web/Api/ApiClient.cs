@@ -434,6 +434,9 @@ public sealed class ApiClient
     public Task<ApiResult<AccountDto>> UpdateAccountActiveAsync(int id, bool isActive) =>
         SendAsync<AccountDto>(HttpMethod.Patch, $"api/v1/admin/accounts/{id}/active-status", new { isActive });
 
+    public Task<ApiResult<AccountDto>> UnlockAccountAsync(int id) =>
+        SendAsync<AccountDto>(HttpMethod.Post, $"api/v1/admin/accounts/{id}/unlock");
+
     private async Task<ApiResult<T>> SendAsync<T>(
         HttpMethod method, string url, object? body = null, bool throwOn401 = true, HttpClient? client = null)
     {

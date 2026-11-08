@@ -43,6 +43,7 @@ else
                 {
                     var isSelf = account.Id == Model.CurrentUserId;
                     var isStaff = account.Role is "HSSV" or "SystemAdmin";
+                    var isTemporarilyLocked = account.LockoutEndUtc > DateTime.UtcNow;
                     <tr>
                         <td>
                             <div class="fw-semibold">@account.FullName @(isSelf ? "(bạn)" : "")</div>
@@ -51,8 +52,12 @@ else
                         <td class="small">@account.Email</td>
                         <td>@WebPolicies.RoleLabel(account.Role)</td>
                         <td>
-                            @if (account.IsActive) { <span class="badge text-bg-success">Hoạt động</span> }
-                            else { <span class="badge text-bg-danger">Đã khóa</span> }
+                            @if (!account.IsActive) { <span class="badge text-bg-danger">Đã khóa</span> }
+                            else if (isTemporarilyLocked)
+                            {
+                                <span class="badge text-bg-warning">Tạm khóa đến @VnTime.Format(account.LockoutEndUtc!.Value)</span>
+                            }
+                            else { <span class="badge text-bg-success">Hoạt động</span> }
                         </td>
                         <td class="text-end text-nowrap">
                             @if (isStaff && !isSelf)
@@ -66,6 +71,13 @@ else
                             }
                             @if (!isSelf)
                             {
+                                @if (isTemporarilyLocked)
+                                {
+                                    <form asp-action="Unlock" asp-route-id="@account.Id" method="post" class="d-inline">
+                                        <input type="hidden" name="returnTo" value="@returnTo" />
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">Mở khóa đăng nhập</button>
+                                    </form>
+                                }
                                 <form asp-action="SetActive" asp-route-id="@account.Id" method="post" class="d-inline"
                                       onsubmit="@(account.IsActive ? $"return confirm('Khóa tài khoản {account.StudentCode}? Người dùng bị đăng xuất ngay.');" : "")">
                                     <input type="hidden" name="isActive" value="@((!account.IsActive).ToString().ToLowerInvariant())" />
