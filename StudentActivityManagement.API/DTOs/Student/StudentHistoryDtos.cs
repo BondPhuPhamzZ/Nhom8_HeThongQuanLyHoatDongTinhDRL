@@ -21,6 +21,8 @@ public sealed class StudentActivityHistoryDto
     public DateTime RegisteredAt { get; set; }
     public int TrainingPoints { get; set; }
     public string? PointStatus { get; set; }
+    public int? PointRecordId { get; set; }
+    public string? AppealStatus { get; set; }
     public int? PointsAwarded { get; set; }
     public string? PointReason { get; set; }
     public DateTime? PointDecidedAt { get; set; }

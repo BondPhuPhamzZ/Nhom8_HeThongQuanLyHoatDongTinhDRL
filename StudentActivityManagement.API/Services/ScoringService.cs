@@ -191,7 +191,9 @@ public sealed class ScoringService : IScoringService
 
         var now = DateTime.UtcNow;
         var reason = request.Reason.Trim();
-        await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        // An appeal may own the transaction across both required score transitions.
+        await using var transaction = _context.Database.CurrentTransaction == null
+            ? await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable) : null;
         var updated = await _context.PointRecords
             .Where(item => item.Id == pointRecordId && item.Status == fromStatus &&
                 item.Period!.Status == EvaluationPeriodStatus.Open)
@@ -202,7 +204,7 @@ public sealed class ScoringService : IScoringService
                 .SetProperty(item => item.DecidedAt, now));
         if (updated != 1)
         {
-            await transaction.RollbackAsync();
+            if (transaction != null) await transaction.RollbackAsync();
             return Fail<PointRecordDto>("Quyết định điểm hoặc trạng thái kỳ đã thay đổi. Vui lòng tải lại.",
                 StatusCodes.Status409Conflict, ApiErrorCodes.ConcurrencyConflict);
         }
@@ -222,7 +224,7 @@ public sealed class ScoringService : IScoringService
             .Where(item => item.Id == record.RegistrationId)
             .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.PointsEarned, legacyPoints));
         await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
+        if (transaction != null) await transaction.CommitAsync();
 
         var decidedByName = await _context.Users.AsNoTracking()
             .Where(item => item.Id == staffId).Select(item => item.FullName).FirstOrDefaultAsync();

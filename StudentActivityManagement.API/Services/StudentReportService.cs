@@ -78,6 +78,13 @@ public sealed class StudentReportService : IStudentReportService
         var records = await _context.PointRecords.AsNoTracking()
             .Where(item => item.StudentId == studentId && item.PeriodId == period.Id && registrationIds.Contains(item.RegistrationId))
             .ToDictionaryAsync(item => item.RegistrationId);
+        var recordIds = records.Values.Select(item => item.Id).ToList();
+        var appeals = await _context.PointAppeals.AsNoTracking()
+            .Where(item => item.StudentId == studentId && recordIds.Contains(item.PointRecordId))
+            .OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id)
+            .ToListAsync();
+        var latestAppealByRecord = appeals.GroupBy(item => item.PointRecordId)
+            .ToDictionary(group => group.Key, group => group.First().Status);
         var checkIns = await _context.ActivityCheckIns.AsNoTracking()
             .Include(item => item.Session)
             .Where(item => registrationIds.Contains(item.RegistrationId) && item.Session!.StartTime <= period.EndDate && item.Session.EndTime >= period.StartDate)
@@ -88,6 +95,8 @@ public sealed class StudentReportService : IStudentReportService
         var history = registrations.Select(registration =>
         {
             records.TryGetValue(registration.Id, out var pointRecord);
+            var appealStatus = pointRecord != null && latestAppealByRecord.TryGetValue(pointRecord.Id, out var status)
+                ? status : null;
             checkInsByRegistration.TryGetValue(registration.Id, out var attendance);
             var sessions = registration.Activity!.Sessions
                 .Where(session => session.StartTime <= period.EndDate && session.EndTime >= period.StartDate)
@@ -117,6 +126,8 @@ public sealed class StudentReportService : IStudentReportService
                 RegisteredAt = registration.RegisteredAt,
                 TrainingPoints = registration.Activity.TrainingPoints,
                 PointStatus = pointRecord?.Status,
+                PointRecordId = pointRecord?.Id,
+                AppealStatus = appealStatus,
                 PointsAwarded = pointRecord?.Points,
                 PointReason = pointRecord?.Reason,
                 PointDecidedAt = pointRecord?.DecidedAt,
