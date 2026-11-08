@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using StudentActivityManagement.API.Authorization;
@@ -23,12 +24,30 @@ namespace StudentActivityManagement.API.Controllers;
 public sealed class ReportsController : ApiControllerBase
 {
     private readonly IReportService _reportService;
+    private readonly IReportExportService _exportService;
     private readonly IStaffAiService _staffAi;
+    private readonly ILogger<ReportsController> _logger;
 
-    public ReportsController(IReportService reportService, IStaffAiService staffAi)
+    public ReportsController(IReportService reportService, IReportExportService exportService,
+        IStaffAiService staffAi, ILogger<ReportsController> logger)
     {
         _reportService = reportService;
+        _exportService = exportService;
         _staffAi = staffAi;
+        _logger = logger;
+    }
+
+    [HttpGet("export")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Export([FromQuery] ReportQueryDto query)
+    {
+        var result = await _exportService.ExportAsync(query);
+        if (!result.Success || result.Data == null) return ProblemFrom(result);
+
+        _logger.LogInformation("Report exported by user {UserId} for period {PeriodId}: {AtRiskRows} at-risk rows",
+            User.FindFirst(ClaimTypes.NameIdentifier)?.Value, result.Data.PeriodId, result.Data.AtRiskRowCount);
+        return File(result.Data.Content,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", result.Data.FileName);
     }
 
     /// <summary>
