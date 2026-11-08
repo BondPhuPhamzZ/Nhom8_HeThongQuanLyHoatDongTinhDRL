@@ -207,6 +207,8 @@ Quy tắc:
 
 `GET /api/v1/admin/reports/overview | activities | at-risk-students`, chỉ HSSV và SystemAdmin.
 
+`GET /api/v1/admin/reports/export` (US-38) tải file `.xlsx` gồm ba sheet **Tổng quan**, **Hoạt động**, **Sinh viên nguy cơ** với cùng bộ lọc bên dưới. File chứa dữ liệu cá nhân nên chỉ vai trò BusinessAdmin được truy cập; mỗi lần xuất được ghi log người xuất, kỳ và số dòng. API dùng ClosedXML 0.105.1 để tạo file, ngày giờ hiển thị theo UTC+7.
+
 Tham số lọc:
 
 | Tham số | Ý nghĩa |

@@ -43,6 +43,7 @@ Tài khoản demo (seed Development): `SV210002` sinh viên, `SV210001` lớp tr
 | SystemAdmin | "Tài khoản": danh sách mọi tài khoản lọc theo vai trò/trạng thái; tạo tài khoản cán bộ; đổi HSSV ↔ SystemAdmin; khóa/mở khóa (US-25) | `/admin/accounts` |
 | Phòng QL HSSV, SystemAdmin | "Kỳ đánh giá": tạo kỳ theo ngày Việt Nam, khóa/mở lại kỳ. Bảng ghi điểm trên hoạt động đã kết thúc: xem điều kiện từng sinh viên, ghi điểm người đã chọn hoặc tất cả, chuyển quyết định hợp lệ kèm lý do và xem lịch sử (US-22/23) | `/admin/evaluation-periods`, `/admin/activities/{id}/scoring`, `/admin/point-records/{id}/transition`, `/admin/point-records/{id}/history` |
 | Phòng QL HSSV, SystemAdmin | "Báo cáo": lọc theo kỳ/cơ sở/khóa/lớp; chỉ số tổng hợp; chia theo lớp, khóa hoặc cơ sở; hoạt động trong kỳ; danh sách sinh viên nguy cơ thiếu điểm (US-24) | `/admin/reports/overview`, `/admin/reports/activities`, `/admin/reports/at-risk-students` |
+| Phòng QL HSSV, SystemAdmin | Nút "Xuất Excel" trên trang Báo cáo tải ba sheet theo đúng bộ lọc hiện tại (US-38) | `/admin/reports/export` |
 
 ## Phạm vi tích hợp US-29
 
