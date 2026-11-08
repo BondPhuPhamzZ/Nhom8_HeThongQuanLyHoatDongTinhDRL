@@ -34,6 +34,7 @@ public sealed class StudentEvaluationHistoryPageViewModel
     public StudentEvaluationHistoryDto? History { get; set; }
     public int? PeriodId { get; set; }
     public string? RegistrationStatus { get; set; }
+    public Dictionary<int, PointAppealDto> LatestAppeals { get; set; } = [];
 }
 
 public sealed class StudentPointsPageViewModel
