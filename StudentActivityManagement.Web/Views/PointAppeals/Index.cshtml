@@ -1,0 +1,85 @@
+@model PagedResult<PointAppealDto>
+@{
+    ViewData["Title"] = "Khiếu nại điểm";
+    var status = ViewBag.Status as string;
+    var periodId = (int?)ViewBag.PeriodId;
+    var periods = ViewBag.Periods as List<EvaluationPeriod> ?? [];
+}
+<h1 class="h3">Khiếu nại điểm</h1>
+<p class="text-muted">Xem quyết định điểm bị từ chối, đối chiếu minh chứng và phản hồi sinh viên.</p>
+
+<form asp-action="Index" method="get" class="row g-2 align-items-end mb-4">
+    <div class="col-md-4">
+        <label class="form-label" for="status">Trạng thái</label>
+        <select id="status" name="status" class="form-select">
+            <option value="" selected="@(string.IsNullOrEmpty(status))">Tất cả</option>
+            <option value="Pending" selected="@(status == "Pending")">Đang chờ</option>
+            <option value="Accepted" selected="@(status == "Accepted")">Đã chấp nhận</option>
+            <option value="Rejected" selected="@(status == "Rejected")">Đã từ chối</option>
+            <option value="Withdrawn" selected="@(status == "Withdrawn")">Đã rút</option>
+        </select>
+    </div>
+    <div class="col-md-5">
+        <label class="form-label" for="periodId">Kỳ đánh giá</label>
+        <select id="periodId" name="periodId" class="form-select">
+            <option value="">Tất cả kỳ</option>
+            @foreach (var period in periods)
+            {
+                <option value="@period.Id" selected="@(periodId == period.Id)">@period.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3"><button class="btn btn-primary w-100" type="submit">Lọc</button></div>
+</form>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="empty-state">Chưa có khiếu nại theo bộ lọc này.</div>
+}
+else
+{
+    <div class="list-group mb-3">
+        @foreach (var item in Model.Items)
+        {
+            <section class="list-group-item py-3">
+                <div class="d-flex flex-wrap justify-content-between gap-2">
+                    <div>
+                        <strong>@item.StudentName</strong> (@item.StudentCode) · @(item.ClassCode ?? "Chưa có lớp")
+                        <div><a asp-controller="Scoring" asp-action="Index" asp-route-id="@item.ActivityId">@item.ActivityName</a> · @item.Points điểm</div>
+                    </div>
+                    <div class="small text-muted">@item.Status · <vn-time value="@item.CreatedAt" /></div>
+                </div>
+                <p class="pre-line mt-2 mb-2">@item.Reason</p>
+                @if (item.Status == "Pending")
+                {
+                    <form asp-action="Resolve" asp-route-id="@item.Id" method="post">
+                        <input type="hidden" name="status" value="@status" />
+                        <input type="hidden" name="periodId" value="@periodId" />
+                        <input type="hidden" name="page" value="@Model.PageIndex" />
+                        <label for="response-@item.Id" class="form-label">Phản hồi cho sinh viên</label>
+                        <textarea id="response-@item.Id" name="response" class="form-control mb-2" rows="3" minlength="10" maxlength="1000" required></textarea>
+                        <div class="d-flex gap-2">
+                            <button type="submit" name="accept" value="true" class="btn btn-primary btn-sm">Chấp nhận</button>
+                            <button type="submit" name="accept" value="false" class="btn btn-outline-danger btn-sm">Từ chối</button>
+                        </div>
+                    </form>
+                }
+                else if (!string.IsNullOrWhiteSpace(item.StaffResponse))
+                {
+                    <div class="alert alert-light border mb-0 pre-line">@item.StaffResponse</div>
+                }
+            </section>
+        }
+    </div>
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Phân trang"><ul class="pagination justify-content-center">
+            @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
+            {
+                <li class="page-item @(pageNumber == Model.PageIndex ? "active" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-status="@status" asp-route-periodId="@periodId" asp-route-page="@pageNumber">@pageNumber</a>
+                </li>
+            }
+        </ul></nav>
+    }
+}
