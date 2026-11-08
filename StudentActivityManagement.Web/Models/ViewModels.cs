@@ -269,6 +269,8 @@ public sealed class AssistantPageViewModel
     public bool Enabled { get; set; }
     public string? Model { get; set; }
     public string? StatusMessage { get; set; }
+    public int DailyQuestionLimit { get; set; }
+    public int RemainingToday { get; set; }
 }
 
 public sealed class AssistantChatInput

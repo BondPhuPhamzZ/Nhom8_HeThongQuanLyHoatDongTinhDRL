@@ -33,6 +33,7 @@ public sealed class GeminiClient
             throw new GeminiException(GeminiFailure.Configuration, "Gemini:ApiKey is not set.");
         }
 
+        ApplySafetyDefaults(body, options);
         var baseUrl = options.BaseUrl.EndsWith('/') ? options.BaseUrl : options.BaseUrl + "/";
         var url = new Uri(new Uri(baseUrl), $"models/{Uri.EscapeDataString(options.Model)}:generateContent");
         using var request = new HttpRequestMessage(HttpMethod.Post, url)
@@ -92,6 +93,39 @@ public sealed class GeminiClient
                 (int)Stopwatch.GetElapsedTime(started).TotalMilliseconds);
             return parsed;
         }
+    }
+
+    private static readonly string[] HarmCategories =
+    [
+        "HARM_CATEGORY_HARASSMENT",
+        "HARM_CATEGORY_HATE_SPEECH",
+        "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+        "HARM_CATEGORY_DANGEROUS_CONTENT"
+    ];
+
+    /// <summary>
+    /// Every call gets explicit safety settings and an output cap (US-32), unless the caller set its own.
+    /// Explicit settings keep the behaviour stable when Google changes its defaults.
+    /// </summary>
+    private static void ApplySafetyDefaults(JsonObject body, GeminiOptions options)
+    {
+        if (body["safetySettings"] == null)
+        {
+            body["safetySettings"] = new JsonArray(HarmCategories.Select(category => (JsonNode?)new JsonObject
+            {
+                ["category"] = category,
+                ["threshold"] = options.SafetyThreshold
+            }).ToArray());
+        }
+
+        var generation = body["generationConfig"] as JsonObject;
+        if (generation == null)
+        {
+            generation = new JsonObject();
+            body["generationConfig"] = generation;
+        }
+
+        if (generation["maxOutputTokens"] == null) generation["maxOutputTokens"] = Math.Max(64, options.MaxOutputTokens);
     }
 
     private static string ReadErrorMessage(string text)

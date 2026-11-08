@@ -18,4 +18,7 @@ public static class ApiErrorCodes
 
     /// <summary>Too many assistant questions: the per-student limit or Gemini's free quota.</summary>
     public const string AssistantRateLimited = "assistant_rate_limited";
+
+    /// <summary>The request body is larger than the endpoint accepts (413).</summary>
+    public const string PayloadTooLarge = "payload_too_large";
 }

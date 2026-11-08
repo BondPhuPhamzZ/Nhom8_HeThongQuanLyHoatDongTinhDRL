@@ -15,6 +15,12 @@ public sealed class AssistantChatMessageDto
     public string Role { get; set; } = string.Empty;
 
     public string Content { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Required on <c>assistant</c> turns: the <see cref="AssistantReplyDto.ReplySignature"/> the API returned with that
+    /// answer. Turns the API never produced (or edited ones) are rejected, so a client cannot invent assistant messages.
+    /// </summary>
+    public string? Signature { get; set; }
 }
 
 public sealed class AssistantReplyDto
@@ -32,6 +38,15 @@ public sealed class AssistantReplyDto
     public int DroppedActivityReferences { get; set; }
 
     public string Model { get; set; } = string.Empty;
+
+    /// <summary>Send back with this answer as <c>signature</c> when continuing the conversation.</summary>
+    public string ReplySignature { get; set; } = string.Empty;
+
+    /// <summary>True when personal data (name, student code, email, phone, ID number) was removed before calling Gemini.</summary>
+    public bool PersonalDataRedacted { get; set; }
+
+    /// <summary>Questions the student may still ask today.</summary>
+    public int RemainingToday { get; set; }
 }
 
 public sealed class AssistantStatusDto
@@ -42,6 +57,10 @@ public sealed class AssistantStatusDto
     public string? Model { get; set; }
 
     public int RequestsPerMinute { get; set; }
+
+    public int DailyQuestionLimit { get; set; }
+
+    public int RemainingToday { get; set; }
 }
 
 /// <summary>An activity the assistant referred to; built from tool results, so it always exists and the student may see it.</summary>

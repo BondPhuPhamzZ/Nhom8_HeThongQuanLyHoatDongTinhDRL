@@ -38,7 +38,9 @@ public sealed class AssistantController : WebControllerBase
         {
             Enabled = status.Success && status.Data?.Enabled == true,
             Model = status.Data?.Model,
-            StatusMessage = status.Success ? null : status.Message
+            StatusMessage = status.Success ? null : status.Message,
+            DailyQuestionLimit = status.Data?.DailyQuestionLimit ?? 0,
+            RemainingToday = status.Data?.RemainingToday ?? 0
         });
     }
 
@@ -56,6 +58,10 @@ public sealed class AssistantController : WebControllerBase
         {
             success = true,
             reply = data.Reply,
+            // Sent back with this answer on the next question; the API rejects unsigned assistant turns (US-32).
+            replySignature = data.ReplySignature,
+            personalDataRedacted = data.PersonalDataRedacted,
+            remainingToday = data.RemainingToday,
             toolsUsed = data.ToolsUsed.Select(tool => ToolLabels.GetValueOrDefault(tool, tool)),
             activities = data.Activities.Select(activity => new
             {

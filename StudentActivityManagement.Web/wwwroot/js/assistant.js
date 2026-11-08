@@ -80,8 +80,15 @@
                 return;
             }
 
-            history = messages.concat([{ role: 'assistant', content: data.reply }]);
+            // The API signs each answer; it only accepts assistant turns sent back with that signature.
+            history = messages.concat([{ role: 'assistant', content: data.reply, signature: data.replySignature }]);
+            const remaining = document.getElementById('assistant-remaining');
+            if (remaining) remaining.textContent = data.remainingToday;
             const row = addMessage('bot', data.reply);
+            if (data.personalDataRedacted) {
+                row.append(element('div', 'assistant-tools small text-muted',
+                    'Mình đã ẩn thông tin cá nhân (họ tên, mã sinh viên, email, số điện thoại) trước khi gửi tới Gemini.'));
+            }
             if (data.activities.length > 0) {
                 const list = element('div', 'assistant-activities');
                 data.activities.forEach(activity => list.append(activityCard(activity)));

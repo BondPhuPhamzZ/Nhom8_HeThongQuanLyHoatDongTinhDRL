@@ -35,6 +35,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
   AssistantStatus? _status;
   String? _statusError;
   bool _busy = false;
+  int? _remainingToday;
 
   @override
   void initState() {
@@ -53,7 +54,12 @@ class _AssistantScreenState extends State<AssistantScreen> {
     setState(() => _statusError = null);
     try {
       final status = await _service.status();
-      if (mounted) setState(() => _status = status);
+      if (mounted) {
+        setState(() {
+          _status = status;
+          _remainingToday = status.remainingToday;
+        });
+      }
     } on ApiException catch (error) {
       if (mounted) setState(() => _statusError = error.message);
     }
@@ -71,7 +77,12 @@ class _AssistantScreenState extends State<AssistantScreen> {
 
     try {
       final reply = await _service.chat(_messages);
-      if (mounted) setState(() => _messages.add(ChatMessage.assistant(reply)));
+      if (mounted) {
+        setState(() {
+          _messages.add(ChatMessage.assistant(reply));
+          _remainingToday = reply.remainingToday ?? _remainingToday;
+        });
+      }
     } on ApiException catch (error) {
       if (mounted) {
         setState(() {
@@ -138,6 +149,12 @@ class _AssistantScreenState extends State<AssistantScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               const _PrivacyNotice(),
+              if (_remainingToday != null && status.dailyQuestionLimit > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text('Còn $_remainingToday/${status.dailyQuestionLimit} câu hỏi hôm nay',
+                      style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                ),
               const SizedBox(height: 12),
               const ChatBubble(
                 message: ChatMessage(
@@ -215,6 +232,12 @@ class ChatBubble extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 6),
                     child: Text('Đã tra cứu: ${message.toolLabels.join(', ')}',
                         style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                  ),
+                if (message.personalDataRedacted)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6),
+                    child: Text('Mình đã ẩn thông tin cá nhân (họ tên, mã sinh viên, email, số điện thoại) trước khi gửi tới Gemini.',
+                        style: TextStyle(color: AppColors.muted, fontSize: 12)),
                   ),
               ],
             ),
