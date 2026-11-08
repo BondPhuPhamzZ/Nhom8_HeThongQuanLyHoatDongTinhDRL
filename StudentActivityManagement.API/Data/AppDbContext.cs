@@ -22,6 +22,7 @@ namespace StudentActivityManagement.API.Data
         public DbSet<EvaluationPeriod> EvaluationPeriods { get; set; } = null!;
         public DbSet<PointRecord> PointRecords { get; set; } = null!;
         public DbSet<PointRecordHistory> PointRecordHistories { get; set; } = null!;
+        public DbSet<PointAppeal> PointAppeals { get; set; } = null!;
         public DbSet<ClassThread> ClassThreads { get; set; } = null!;
         public DbSet<ClassThreadReply> ClassThreadReplies { get; set; } = null!;
         public DbSet<ThreadEscalation> ThreadEscalations { get; set; } = null!;
@@ -305,6 +306,18 @@ namespace StudentActivityManagement.API.Data
                       .WithMany()
                       .HasForeignKey(history => history.ChangedById)
                       .OnDelete(DeleteBehavior.SetNull);
+            });
+            modelBuilder.Entity<PointAppeal>(entity =>
+            {
+                entity.HasIndex(appeal => appeal.PointRecordId).IsUnique()
+                    .HasFilter($"\"Status\" = '{PointAppealStatus.Pending}'");
+                entity.HasIndex(appeal => new { appeal.Status, appeal.CreatedAt });
+                entity.HasOne(appeal => appeal.PointRecord).WithMany()
+                    .HasForeignKey(appeal => appeal.PointRecordId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(appeal => appeal.Student).WithMany()
+                    .HasForeignKey(appeal => appeal.StudentId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(appeal => appeal.ResolvedBy).WithMany()
+                    .HasForeignKey(appeal => appeal.ResolvedById).OnDelete(DeleteBehavior.SetNull);
             });
         }
     }

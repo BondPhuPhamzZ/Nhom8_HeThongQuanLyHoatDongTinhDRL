@@ -546,6 +546,56 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.ToTable("EvaluationPeriods");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.PointAppeal", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PointRecordId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ResolvedById")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("StaffResponse")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PointRecordId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'Pending'");
+
+                    b.HasIndex("ResolvedById");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("PointAppeals");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.PointRecord", b =>
                 {
                     b.Property<int>("Id")
@@ -1011,6 +1061,32 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Navigation("Author");
 
                     b.Navigation("Thread");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.PointAppeal", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.PointRecord", "PointRecord")
+                        .WithMany()
+                        .HasForeignKey("PointRecordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudentActivityManagement.API.Models.User", "ResolvedBy")
+                        .WithMany()
+                        .HasForeignKey("ResolvedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("StudentActivityManagement.API.Models.User", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PointRecord");
+
+                    b.Navigation("ResolvedBy");
+
+                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.PointRecord", b =>
