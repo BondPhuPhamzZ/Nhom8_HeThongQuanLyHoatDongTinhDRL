@@ -1,0 +1,26 @@
+@model CheckInQrScreenViewModel
+@{
+    ViewData["Title"] = "QR check-in";
+    var imageUrl = Url.Action("CheckInQr", new { id = Model.ActivityId, sessionId = Model.Session.SessionId, size = 16 });
+}
+<div class="qr-screen text-center">
+    <p class="mb-1"><a asp-action="Details" asp-route-id="@Model.ActivityId">← Quay lại hoạt động</a></p>
+    <h1 class="h3 mb-1">@Model.ActivityName</h1>
+    <p class="text-muted mb-3">
+        @Model.Session.SessionName · check-in từ <vn-time value="@Model.Session.OpensAt" /> đến <vn-time value="@Model.Session.ClosesAt" />
+    </p>
+    <img class="qr-screen-image" id="qr-image" src="@imageUrl" data-src="@imageUrl" alt="Mã QR check-in của @Model.Session.SessionName" />
+    <p class="mt-3 mb-1">Mở ứng dụng Rèn luyện SV → <strong>Quét QR check-in</strong>, hoặc nhập mã:</p>
+    <p class="checkin-code qr-screen-code">@Model.Session.Code</p>
+    <p class="small text-muted">Ảnh QR tự tải lại mỗi 30 giây, nên khi đổi mã trên trang hoạt động, QR mới hiện ngay.</p>
+</div>
+
+@section Scripts {
+    <script>
+        // Reload the image (not the page) so the QR follows a regenerated code.
+        (() => {
+            const image = document.getElementById('qr-image');
+            setInterval(() => { image.src = `${image.dataset.src}&t=${Date.now()}`; }, 30000);
+        })();
+    </script>
+}

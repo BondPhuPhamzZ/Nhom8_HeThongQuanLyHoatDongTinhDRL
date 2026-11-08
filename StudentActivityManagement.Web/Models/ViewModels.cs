@@ -275,3 +275,11 @@ public sealed class AssistantChatInput
 {
     public List<AssistantChatMessage>? Messages { get; set; }
 }
+
+/// <summary>US-35: projected QR page for one session's check-in code.</summary>
+public sealed class CheckInQrScreenViewModel
+{
+    public int ActivityId { get; set; }
+    public string ActivityName { get; set; } = string.Empty;
+    public SessionCheckInCode Session { get; set; } = new();
+}

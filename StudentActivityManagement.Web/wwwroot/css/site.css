@@ -141,3 +141,9 @@ a { color: var(--app-primary); }
 @media (prefers-reduced-motion: no-preference) {
   .assistant-msg { animation: app-enter 300ms ease-out both; }
 }
+
+/* US-35 QR check-in: thumbnail next to the code, large projected page. */
+.qr-thumb { width: 64px; height: 64px; border: 1px solid var(--app-border); border-radius: var(--app-radius); background: var(--app-white); image-rendering: pixelated; }
+.qr-screen { max-width: 40rem; margin: 0 auto; }
+.qr-screen-image { width: min(80vw, 28rem); height: auto; border: 1px solid var(--app-border); border-radius: var(--app-radius); background: var(--app-white); padding: .75rem; box-shadow: var(--app-shadow); image-rendering: pixelated; }
+.qr-screen-code { font-size: 2.5rem; }
