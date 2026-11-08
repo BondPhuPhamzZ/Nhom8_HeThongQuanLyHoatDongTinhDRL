@@ -125,6 +125,25 @@ public sealed class PointAppealTests : IClassFixture<CustomWebApplicationFactory
         Assert.Equal(1, inbox.GetProperty("totalCount").GetInt32());
     }
 
+    [Fact]
+    public async Task ReasonAndStaffResponseMustRemainLongEnoughAfterTrimming()
+    {
+        var setup = await SetupAsync();
+        await AccountTestClient.AssertProblemAsync(await _api.SendAsync(HttpMethod.Post,
+            "/api/v1/student/point-appeals", setup.Student,
+            new { pointRecordId = setup.RecordId, reason = "          a          " }),
+            HttpStatusCode.BadRequest, "validation_failed");
+        var appealId = (await DataAsync(await CreateAsync(setup))).GetProperty("id").GetInt32();
+        await AccountTestClient.AssertProblemAsync(await _api.SendAsync(HttpMethod.Post,
+            $"/api/v1/admin/point-appeals/{appealId}/resolve", setup.Staff,
+            new { accept = true, response = "          a          " }),
+            HttpStatusCode.BadRequest, "validation_failed");
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(PointAppealStatus.Pending, (await db.PointAppeals.AsNoTracking()
+            .SingleAsync(item => item.Id == appealId)).Status);
+    }
+
     private sealed record Setup(string Staff, string Student, int StudentId, int RecordId, int PeriodId);
 
     private async Task<Setup> SetupAsync()
