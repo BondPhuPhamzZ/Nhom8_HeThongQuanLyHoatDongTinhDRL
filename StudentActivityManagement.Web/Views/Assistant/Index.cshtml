@@ -54,7 +54,9 @@ else
                 <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg> Gửi
             </button>
         </form>
-        <p class="assistant-model small text-muted mb-0">Mô hình: @Model.Model</p>
+        <p class="assistant-model small text-muted mb-0">
+            Mô hình: @Model.Model · Còn <span id="assistant-remaining">@Model.RemainingToday</span>/@Model.DailyQuestionLimit câu hỏi hôm nay
+        </p>
     </section>
 }
 

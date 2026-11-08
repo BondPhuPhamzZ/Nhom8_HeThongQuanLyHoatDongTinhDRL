@@ -372,6 +372,15 @@ public sealed class ApiClient
         SendAsync<PagedResult<AtRiskStudent>>(HttpMethod.Get,
             $"api/v1/admin/reports/at-risk-students?{ReportQuery(filter, ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
 
+    // ---- AI tools for Phòng QL HSSV (US-33, US-34): one Gemini call each, so they use the long-timeout client.
+    public Task<ApiResult<ReportInsights>> GetReportInsightsAsync(ReportFilter filter) =>
+        SendAsync<ReportInsights>(HttpMethod.Post, $"api/v1/admin/reports/ai-insights?{ReportQuery(filter, ("groupBy", filter.GroupBy))}",
+            client: _httpClientFactory.CreateClient(AssistantHttpClient));
+
+    public Task<ApiResult<EscalationDraft>> DraftEscalationAnswerAsync(int escalationId) =>
+        SendAsync<EscalationDraft>(HttpMethod.Post, $"api/v1/admin/class-escalations/{escalationId}/ai-draft",
+            client: _httpClientFactory.CreateClient(AssistantHttpClient));
+
     private static string ReportQuery(ReportFilter filter, params (string Key, string? Value)[] extra) => Query(
         [("periodId", filter.PeriodId?.ToString()), ("campus", filter.Campus), ("academicYear", filter.AcademicYear),
          ("classId", filter.ClassId?.ToString()), .. extra]);

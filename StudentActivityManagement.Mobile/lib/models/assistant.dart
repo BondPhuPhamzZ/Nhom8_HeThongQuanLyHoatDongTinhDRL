@@ -2,13 +2,19 @@ import '../utils/vn_time.dart';
 
 /// `GET /api/v1/assistant/status`: the chat is shown only when the server has the assistant enabled.
 class AssistantStatus {
-  const AssistantStatus({required this.enabled, this.model});
+  const AssistantStatus({required this.enabled, this.model, this.dailyQuestionLimit = 0, this.remainingToday = 0});
 
   final bool enabled;
   final String? model;
+  final int dailyQuestionLimit;
+  final int remainingToday;
 
-  factory AssistantStatus.fromJson(Map<String, dynamic> json) =>
-      AssistantStatus(enabled: json['enabled'] as bool? ?? false, model: json['model'] as String?);
+  factory AssistantStatus.fromJson(Map<String, dynamic> json) => AssistantStatus(
+        enabled: json['enabled'] as bool? ?? false,
+        model: json['model'] as String?,
+        dailyQuestionLimit: json['dailyQuestionLimit'] as int? ?? 0,
+        remainingToday: json['remainingToday'] as int? ?? 0,
+      );
 }
 
 /// An activity the answer refers to. The API builds it from tool results, so it exists and the student may open it.
@@ -47,12 +53,27 @@ class AssistantActivity {
 
 /// `POST /api/v1/assistant/chat` answer.
 class AssistantReply {
-  const AssistantReply({required this.reply, required this.activities, required this.toolsUsed, required this.droppedActivityReferences});
+  const AssistantReply({
+    required this.reply,
+    required this.activities,
+    required this.toolsUsed,
+    required this.droppedActivityReferences,
+    this.replySignature = '',
+    this.personalDataRedacted = false,
+    this.remainingToday,
+  });
 
   final String reply;
   final List<AssistantActivity> activities;
   final List<String> toolsUsed;
   final int droppedActivityReferences;
+
+  /// API signature of this answer (US-32); sent back with it, or the API rejects the conversation.
+  final String replySignature;
+
+  /// True when the API hid personal data (name, student code, email, phone) before calling Gemini.
+  final bool personalDataRedacted;
+  final int? remainingToday;
 
   factory AssistantReply.fromJson(Map<String, dynamic> json) => AssistantReply(
         reply: json['reply'] as String? ?? '',
@@ -61,6 +82,9 @@ class AssistantReply {
             .toList(),
         toolsUsed: ((json['toolsUsed'] as List?) ?? const []).map((item) => item.toString()).toList(),
         droppedActivityReferences: json['droppedActivityReferences'] as int? ?? 0,
+        replySignature: json['replySignature'] as String? ?? '',
+        personalDataRedacted: json['personalDataRedacted'] as bool? ?? false,
+        remainingToday: json['remainingToday'] as int?,
       );
 }
 
@@ -76,12 +100,21 @@ class ChatMessage {
     this.toolsUsed = const [],
     this.isError = false,
     this.inHistory = true,
+    this.signature,
+    this.personalDataRedacted = false,
   });
 
   ChatMessage.user(String text) : this(role: ChatRole.user, text: text);
 
   ChatMessage.assistant(AssistantReply reply)
-      : this(role: ChatRole.assistant, text: reply.reply, activities: reply.activities, toolsUsed: reply.toolsUsed);
+      : this(
+          role: ChatRole.assistant,
+          text: reply.reply,
+          activities: reply.activities,
+          toolsUsed: reply.toolsUsed,
+          signature: reply.replySignature,
+          personalDataRedacted: reply.personalDataRedacted,
+        );
 
   /// An error shown to the user; never sent back to the assistant.
   ChatMessage.error(String text) : this(role: ChatRole.assistant, text: text, isError: true, inHistory: false);
@@ -95,10 +128,26 @@ class ChatMessage {
   /// False for errors and for a question that got no answer, so the next request stays user/assistant alternating.
   final bool inHistory;
 
-  ChatMessage withoutHistory() =>
-      ChatMessage(role: role, text: text, activities: activities, toolsUsed: toolsUsed, isError: isError, inHistory: false);
+  /// API signature of an assistant answer; the API only accepts assistant turns that carry it.
+  final String? signature;
+  final bool personalDataRedacted;
 
-  Map<String, String> toJson() => {'role': role == ChatRole.user ? 'user' : 'assistant', 'content': text};
+  ChatMessage withoutHistory() => ChatMessage(
+        role: role,
+        text: text,
+        activities: activities,
+        toolsUsed: toolsUsed,
+        isError: isError,
+        inHistory: false,
+        signature: signature,
+        personalDataRedacted: personalDataRedacted,
+      );
+
+  Map<String, String> toJson() => {
+        'role': role == ChatRole.user ? 'user' : 'assistant',
+        'content': text,
+        if (role == ChatRole.assistant && signature != null) 'signature': signature!,
+      };
 
   static const _toolLabels = {
     'get_points_summary': 'điểm và mục tiêu của kỳ',

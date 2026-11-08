@@ -674,6 +674,8 @@ public sealed class AssistantStatusDto
     public bool Enabled { get; set; }
     public string? Model { get; set; }
     public int RequestsPerMinute { get; set; }
+    public int DailyQuestionLimit { get; set; }
+    public int RemainingToday { get; set; }
 }
 
 /// <summary>One turn of the conversation the browser keeps: <c>user</c> or <c>assistant</c>.</summary>
@@ -681,6 +683,9 @@ public sealed class AssistantChatMessage
 {
     public string Role { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
+
+    /// <summary>API signature of an assistant turn (US-32); the API rejects assistant turns without it.</summary>
+    public string? Signature { get; set; }
 }
 
 public sealed class AssistantReplyDto
@@ -690,6 +695,9 @@ public sealed class AssistantReplyDto
     public List<string> ToolsUsed { get; set; } = [];
     public int DroppedActivityReferences { get; set; }
     public string Model { get; set; } = string.Empty;
+    public string ReplySignature { get; set; } = string.Empty;
+    public bool PersonalDataRedacted { get; set; }
+    public int RemainingToday { get; set; }
 }
 
 public sealed class AssistantActivityDto
@@ -702,4 +710,25 @@ public sealed class AssistantActivityDto
     public DateTime? RegistrationCloseTime { get; set; }
     public bool? IsRegistrationOpen { get; set; }
     public string? MyRegistrationStatus { get; set; }
+}
+
+// ---- AI tools for Phòng QL HSSV (US-33, US-34)
+public sealed class ReportInsights
+{
+    public string PeriodName { get; set; } = string.Empty;
+    public List<string> Highlights { get; set; } = [];
+    public List<string> Concerns { get; set; } = [];
+    public List<string> Suggestions { get; set; } = [];
+    public int RemovedStatements { get; set; }
+    public string Model { get; set; } = string.Empty;
+}
+
+public sealed class EscalationDraft
+{
+    public int EscalationId { get; set; }
+    public string Draft { get; set; } = string.Empty;
+    public string Confidence { get; set; } = "low";
+    public List<string> MissingInformation { get; set; } = [];
+    public bool PersonalDataRedacted { get; set; }
+    public string Model { get; set; } = string.Empty;
 }

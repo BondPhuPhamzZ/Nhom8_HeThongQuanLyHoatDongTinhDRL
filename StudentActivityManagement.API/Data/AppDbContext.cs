@@ -26,6 +26,7 @@ namespace StudentActivityManagement.API.Data
         public DbSet<ClassThreadReply> ClassThreadReplies { get; set; } = null!;
         public DbSet<ThreadEscalation> ThreadEscalations { get; set; } = null!;
         public DbSet<UserNotification> UserNotifications { get; set; } = null!;
+        public DbSet<AssistantDailyUsage> AssistantDailyUsages { get; set; } = null!;
 
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
@@ -146,6 +147,16 @@ namespace StudentActivityManagement.API.Data
                 entity.HasOne(offset => offset.Activity)
                       .WithMany()
                       .HasForeignKey(offset => offset.ActivityId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<AssistantDailyUsage>(entity =>
+            {
+                // One counter per student and day; the unique index makes concurrent first questions safe.
+                entity.HasIndex(usage => new { usage.StudentId, usage.UsageDate }).IsUnique();
+                entity.HasOne(usage => usage.Student)
+                      .WithMany()
+                      .HasForeignKey(usage => usage.StudentId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 

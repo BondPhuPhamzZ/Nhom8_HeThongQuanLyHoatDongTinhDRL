@@ -371,6 +371,29 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.ToTable("ActivitySessions");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.AssistantDailyUsage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("QuestionCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("UsageDate")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId", "UsageDate")
+                        .IsUnique();
+
+                    b.ToTable("AssistantDailyUsages");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.Class", b =>
                 {
                     b.Property<int>("Id")
@@ -929,6 +952,17 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Activity");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.AssistantDailyUsage", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.User", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.Class", b =>

@@ -24,13 +24,23 @@ public sealed class AssistantController : ApiControllerBase
     /// <summary>Whether the assistant can answer (switched on and the server has a Gemini key).</summary>
     [HttpGet("status")]
     [ProducesResponseType(typeof(ApiResponseDto<AssistantStatusDto>), StatusCodes.Status200OK)]
-    public IActionResult GetStatus() => Ok(ApiResponseDto<AssistantStatusDto>.Ok(_assistant.GetStatus()));
+    public async Task<IActionResult> GetStatus()
+    {
+        if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var studentId))
+        {
+            return ApiProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.AuthenticationRequired, "Không xác định được sinh viên.");
+        }
+
+        return Ok(ApiResponseDto<AssistantStatusDto>.Ok(await _assistant.GetStatusAsync(studentId)));
+    }
 
     /// <summary>Answers the last user message of the conversation from the signed-in student's own data.</summary>
     [HttpPost("chat")]
     [EnableRateLimiting(AssistantService.RateLimitPolicy)]
+    [RequestBodyLimit(AssistantOptions.MaxRequestBytes)]
     [ProducesResponseType(typeof(ApiResponseDto<AssistantReplyDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status413PayloadTooLarge)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> Chat([FromBody] AssistantChatRequestDto request)

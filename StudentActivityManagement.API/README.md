@@ -365,6 +365,30 @@ Lỗi và quyền riêng tư:
 - **Kiểm thử:** `AssistantTests` thay Gemini bằng một HTTP handler trả JSON soạn sẵn, nên CI không cần key. `CustomWebApplicationFactory` xóa `Gemini:ApiKey` để test không bao giờ dùng key thật của máy.
 - **Đánh giá với Gemini thật:** chạy `scripts/assistant-eval.ps1` khi API đang chạy và đã có key. Script lấy đáp án đúng từ chính API, hỏi một bộ câu hỏi cố định, rồi in tỉ lệ đạt, số mã hoạt động bị bỏ và thời gian trả lời.
 
+### Gia cố bảo mật trợ lý (US-32)
+
+| Lớp bảo vệ | Cách làm |
+|---|---|
+| Chống giả lịch sử | Mỗi câu trả lời có `replySignature` (HMAC-SHA256, gắn với sinh viên). Tin `assistant` gửi lại phải có đúng chữ ký, nếu không API trả 400 trước khi gọi Gemini. Tin tự viết, sửa nội dung hoặc lấy từ sinh viên khác đều bị chặn. Khóa lấy từ `Assistant:HistorySigningKey`, nếu không có thì dẫn xuất từ JWT secret. |
+| Ẩn dữ liệu cá nhân | `PersonalDataRedactor` thay họ tên, MSSV, email, số điện thoại của chính người hỏi và các mẫu MSSV, email, SĐT, CCCD bằng `[đã ẩn]` trước khi gửi Gemini. Câu trả lời có cờ `personalDataRedacted`. |
+| Thiết lập an toàn của Gemini | Mọi lần gọi đều gửi `safetySettings` cho 4 nhóm (quấy rối, thù ghét, tình dục, nguy hiểm), ngưỡng `Gemini:SafetyThreshold`, và `generationConfig.maxOutputTokens` (`Gemini:MaxOutputTokens`). Câu trả lời bị cắt được ghi chú rõ. |
+| Giới hạn dung lượng | `POST /assistant/chat` từ chối body lớn hơn 64 KB với `413 payload_too_large`, trước khi đọc body. |
+| Hạn mức theo ngày | Bảng `AssistantDailyUsages` đếm số câu hỏi mỗi sinh viên mỗi ngày (giờ Việt Nam), mặc định `Assistant:DailyQuestionLimit = 40`; vượt thì trả 429. Lần gọi Gemini thất bại được hoàn lại lượt. `status` và mỗi câu trả lời có `remainingToday`. |
+| Prompt | Cố định xưng hô; cấm tiết lộ quy tắc, viết mã, HTML hay link. |
+| Kiểm tra | `scripts/assistant-eval.ps1 -Suite Security` chạy 10 kiểu tấn công với Gemini thật. |
+
+### AI cho Phòng QL HSSV (US-33, US-34)
+
+| Endpoint | Quyền | Nội dung |
+|---|---|---|
+| `POST /api/v1/admin/reports/ai-insights?periodId=&campus=&academicYear=&classId=&groupBy=` | BusinessAdmin | Nhận xét báo cáo kỳ: `highlights`, `concerns`, `suggestions`. |
+| `POST /api/v1/admin/class-escalations/{id}/ai-draft` | BusinessAdmin | Bản nháp phản hồi cho câu hỏi lớp đang chờ: `draft`, `confidence` (high/medium/low), `missingInformation`. Không lưu, không gửi; cán bộ sửa rồi tự gửi qua `.../answer`. |
+
+- **JSON Schema:** cả hai dùng structured output của Gemini (`responseMimeType: application/json` kèm `responseSchema`). Server vẫn kiểm tra lại kiểu dữ liệu, độ dài và số lượng ý.
+- **Kiểm tra số liệu:** mỗi ý trong nhận xét báo cáo chỉ được dùng các số có trong dữ liệu báo cáo (cho phép làm tròn); ý có số lạ bị loại và đếm vào `removedStatements`. Dữ liệu gửi lên chỉ là số tổng hợp theo nhóm và hoạt động, không có tên hay MSSV.
+- **Chống prompt injection:** câu hỏi của sinh viên được ẩn dữ liệu cá nhân và đặt trong `<chu_de>` / `<cau_hoi>`. Dấu `<` `>` trong nội dung bị thay, để sinh viên không tự đóng thẻ được.
+- **Dùng chung với trợ lý:** cùng `GeminiClient`, cùng giới hạn tần suất `assistant` (theo người dùng), cùng mã lỗi `assistant_unavailable` và `assistant_rate_limited`.
+
 ## Cấu trúc project
 
 - `Controllers`, `Services`, `DTOs`, `Models`, `Data`: các lớp chính của RESTful API.
