@@ -8,8 +8,10 @@ import '../../models/activity.dart';
 import '../../models/participation.dart';
 import '../../services/api_client.dart';
 import '../../services/participation_service.dart';
+import '../../utils/checkin_qr.dart';
 import '../../utils/vn_time.dart';
 import '../widgets/activity_card.dart';
+import 'qr_scan_screen.dart';
 import '../widgets/feedback_views.dart';
 import '../widgets/status_badge.dart';
 
@@ -45,9 +47,11 @@ class _CheckInSectionState extends State<CheckInSection> {
     }
   }
 
+  static const _scanRequest = '\u0000scan';
+
   Future<void> _checkIn(SessionCheckIn session) async {
     final controller = TextEditingController();
-    final code = await showDialog<String>(
+    var code = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.radius)),
@@ -62,11 +66,27 @@ class _CheckInSectionState extends State<CheckInSection> {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, _scanRequest),
+            icon: const Icon(LucideIcons.scanQrCode, size: 18),
+            label: const Text('Quét QR'),
+          ),
           FilledButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Check-in')),
         ],
       ),
     );
     controller.dispose();
+    if (code == _scanRequest) {
+      // US-35: the QR only supplies the code; it must belong to this activity and this session.
+      if (!mounted) return;
+      final qr = await Navigator.push<CheckInQr>(context, MaterialPageRoute(builder: (_) => const QrScanScreen()));
+      if (qr == null || !mounted) return;
+      if (qr.activityId != widget.activity.id || qr.sessionId != session.sessionId) {
+        showMessage(context, 'Mã QR này thuộc buổi hoặc hoạt động khác. Hãy quét đúng mã của ${session.sessionName}.', error: true);
+        return;
+      }
+      code = qr.code;
+    }
     if (code == null || code.trim().isEmpty) return;
 
     setState(() => _busySession = session.sessionId);

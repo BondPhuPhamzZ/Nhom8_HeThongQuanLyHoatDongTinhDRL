@@ -27,7 +27,14 @@
                     <td>
                         @if (session.Code is string code)
                         {
-                            <span class="checkin-code">@code</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="checkin-code">@code</span>
+                                <a asp-controller="ManageActivities" asp-action="CheckInQrScreen" asp-route-id="@Model.ActivityId" asp-route-sessionId="@session.SessionId"
+                                   target="_blank" rel="noopener" title="Trình chiếu QR cho sinh viên quét">
+                                    <img class="qr-thumb" src="@Url.Action("CheckInQr", "ManageActivities", new { id = Model.ActivityId, sessionId = session.SessionId, size = 4 })"
+                                         alt="QR check-in @session.SessionName" width="64" height="64" loading="lazy" />
+                                </a>
+                            </div>
                         }
                         else
                         {

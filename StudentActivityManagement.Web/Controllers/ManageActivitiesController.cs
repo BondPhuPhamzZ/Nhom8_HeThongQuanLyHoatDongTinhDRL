@@ -128,6 +128,33 @@ public sealed class ManageActivitiesController : WebControllerBase
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    /// <summary>US-35: PNG QR of a session's current check-in code; never cached, so a changed code shows at once.</summary>
+    [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> CheckInQr(int id, int sessionId, int size = 10)
+    {
+        var codes = await _api.GetCheckInCodesAsync(id);
+        var code = codes.Data?.Sessions.FirstOrDefault(session => session.SessionId == sessionId)?.Code;
+        if (!codes.Success || code == null) return NotFound();
+        return File(Infrastructure.CheckInQr.Png(Infrastructure.CheckInQr.Payload(id, sessionId, code), Math.Clamp(size, 4, 20)), "image/png");
+    }
+
+    /// <summary>US-35: full-screen QR to project in the room; the page reloads the image so a new code appears by itself.</summary>
+    [HttpGet]
+    public async Task<IActionResult> CheckInQrScreen(int id, int sessionId)
+    {
+        var activity = await _api.GetActivityAsync(id);
+        var codes = await _api.GetCheckInCodesAsync(id);
+        var session = codes.Data?.Sessions.FirstOrDefault(item => item.SessionId == sessionId);
+        if (!activity.Success || activity.Data == null || session?.Code == null)
+        {
+            FlashError("Buổi này chưa có mã check-in. Hãy phát mã trước khi trình chiếu QR.");
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        return View(new CheckInQrScreenViewModel { ActivityId = id, ActivityName = activity.Data.ActivityName, Session = session });
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveCheckInConfig(int id, CheckInSettingsForm form)
     {

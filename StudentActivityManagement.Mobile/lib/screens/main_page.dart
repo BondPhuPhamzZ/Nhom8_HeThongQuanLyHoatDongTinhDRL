@@ -5,6 +5,11 @@ import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
+import '../services/api_client.dart';
+import '../services/participation_service.dart';
+import '../utils/checkin_qr.dart';
+import 'activity/activity_detail_screen.dart';
+import 'activity/qr_scan_screen.dart';
 import 'assistant/assistant_screen.dart';
 import 'auth/splash_screen.dart';
 import 'tabs/activities_tab.dart';
@@ -12,6 +17,7 @@ import 'tabs/class_tab.dart';
 import 'tabs/notifications_tab.dart';
 import 'tabs/points_tab.dart';
 import 'tabs/profile_tab.dart';
+import 'widgets/feedback_views.dart';
 
 /// Signed-in shell: one bottom navigation tab per student flow.
 class MainPage extends StatefulWidget {
@@ -43,6 +49,20 @@ class _MainPageState extends State<MainPage> {
     context.read<NotificationProvider>().refresh();
   }
 
+  /// US-35: scan the QR the organisers project, check in to that session, then open the activity to show the result.
+  Future<void> _quickCheckIn() async {
+    final qr = await Navigator.push<CheckInQr>(context, MaterialPageRoute(builder: (_) => const QrScanScreen()));
+    if (qr == null || !mounted) return;
+    try {
+      final message = await ParticipationService().checkIn(qr.activityId, qr.sessionId, qr.code);
+      if (!mounted) return;
+      showMessage(context, message.isEmpty ? 'Check-in thành công.' : message);
+      await Navigator.push(context, MaterialPageRoute(builder: (_) => ActivityDetailScreen(activityId: qr.activityId)));
+    } on ApiException catch (error) {
+      if (mounted) showMessage(context, error.fullMessage, error: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
@@ -59,6 +79,11 @@ class _MainPageState extends State<MainPage> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Quét QR check-in',
+            icon: const Icon(LucideIcons.scanQrCode),
+            onPressed: _quickCheckIn,
+          ),
           IconButton(
             tooltip: 'Trợ lý điểm rèn luyện',
             icon: const Icon(LucideIcons.sparkles),
