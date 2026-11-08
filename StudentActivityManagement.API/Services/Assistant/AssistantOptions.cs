@@ -18,6 +18,12 @@ public sealed class GeminiOptions
     /// <summary>Timeout of one generateContent call.</summary>
     public int TimeoutSeconds { get; set; } = 30;
 
+    /// <summary>Upper bound of one answer (generationConfig.maxOutputTokens); a cut answer is marked as such.</summary>
+    public int MaxOutputTokens { get; set; } = 2048;
+
+    /// <summary>Gemini safety threshold applied to harassment, hate speech, sexual and dangerous content.</summary>
+    public string SafetyThreshold { get; set; } = "BLOCK_LOW_AND_ABOVE";
+
     public bool IsConfigured => !string.IsNullOrWhiteSpace(ApiKey);
 }
 
@@ -38,4 +44,10 @@ public sealed class AssistantOptions
 
     /// <summary>Questions one student may ask per minute; protects the shared free Gemini quota.</summary>
     public int RequestsPerMinute { get; set; } = 6;
+
+    /// <summary>Questions one student may ask per Vietnam calendar day (US-32).</summary>
+    public int DailyQuestionLimit { get; set; } = 40;
+
+    /// <summary>Largest chat request body accepted (bytes): 12 messages of 1000 characters plus signatures fit easily.</summary>
+    public const int MaxRequestBytes = 64 * 1024;
 }
