@@ -74,6 +74,7 @@ builder.Services.AddHttpClient<GeminiClient>(client => client.Timeout = Timeout.
 builder.Services.AddScoped<AssistantTools>();
 builder.Services.AddSingleton<AssistantHistorySigner>();
 builder.Services.AddScoped<AssistantDailyQuota>();
+builder.Services.AddScoped<IStaffAiService, StaffAiService>();
 builder.Services.AddScoped<IAssistantService, AssistantService>();
 builder.Services.AddRateLimiter(options =>
 {
