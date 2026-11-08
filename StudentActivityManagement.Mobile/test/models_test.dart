@@ -178,5 +178,20 @@ void main() {
       expect(error.inHistory, isFalse);
       expect(const ChatMessage(role: ChatRole.assistant, text: 'Chào bạn').toJson()['role'], 'assistant');
     });
+
+    test('sends the API signature back with assistant answers only (US-32)', () {
+      final reply = AssistantReply.fromJson({
+        'reply': 'Bạn còn thiếu 50 điểm.',
+        'replySignature': 'sig-abc',
+        'personalDataRedacted': true,
+        'remainingToday': 38,
+      });
+      final answer = ChatMessage.assistant(reply);
+      expect(answer.toJson(), {'role': 'assistant', 'content': 'Bạn còn thiếu 50 điểm.', 'signature': 'sig-abc'});
+      expect(answer.personalDataRedacted, isTrue);
+      expect(reply.remainingToday, 38);
+      expect(ChatMessage.user('Xin chào').toJson().containsKey('signature'), isFalse);
+      expect(AssistantStatus.fromJson({'enabled': true, 'dailyQuestionLimit': 40, 'remainingToday': 12}).remainingToday, 12);
+    });
   });
 }
