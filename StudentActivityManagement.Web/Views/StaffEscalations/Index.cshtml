@@ -43,7 +43,15 @@ else
                         <input type="hidden" name="page" value="@Model.PageIndex" />
                         <label for="answer-@item.Id" class="form-label">Phản hồi chính thức</label>
                         <textarea id="answer-@item.Id" name="answer" class="form-control mb-2" rows="3" minlength="5" maxlength="4000" required></textarea>
-                        <button type="submit" class="btn btn-primary btn-sm">Gửi phản hồi</button>
+                        <div class="ai-note small mb-2" id="ai-note-@item.Id" hidden></div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="submit" class="btn btn-primary btn-sm">Gửi phản hồi</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-ai-draft="@Url.Action("Draft", new { id = item.Id })"
+                                    data-ai-target="answer-@item.Id" data-ai-note="ai-note-@item.Id">
+                                <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+                                Gợi ý bằng AI
+                            </button>
+                        </div>
                     </form>
                 }
                 else if (item.Answer != null)
@@ -67,4 +75,9 @@ else
             }
         </ul></nav>
     }
+}
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script src="~/js/staff-ai.js" asp-append-version="true"></script>
 }

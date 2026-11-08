@@ -14,6 +14,29 @@ public sealed class ReportsController : WebControllerBase
 
     public ReportsController(ApiClient api) => _api = api;
 
+    /// <summary>US-33: AI commentary for the report as currently filtered; rendered by staff-ai.js.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Insights([FromQuery] ReportFilter filter)
+    {
+        var result = await _api.GetReportInsightsAsync(filter);
+        if (!result.Success || result.Data is not { } data)
+        {
+            Response.StatusCode = (int)result.StatusCode;
+            return Json(new { success = false, message = result.Message });
+        }
+
+        return Json(new
+        {
+            success = true,
+            periodName = data.PeriodName,
+            highlights = data.Highlights,
+            concerns = data.Concerns,
+            suggestions = data.Suggestions,
+            removedStatements = data.RemovedStatements,
+            model = data.Model
+        });
+    }
+
     public async Task<IActionResult> Index([FromQuery] ReportFilter filter, int page = 1)
     {
         var model = new ReportViewModel
