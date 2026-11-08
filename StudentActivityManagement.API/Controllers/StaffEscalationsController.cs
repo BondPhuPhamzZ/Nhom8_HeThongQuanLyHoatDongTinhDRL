@@ -1,10 +1,13 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using StudentActivityManagement.API.Authorization;
+using StudentActivityManagement.API.DTOs.Assistant;
 using StudentActivityManagement.API.DTOs.ClassSpace;
 using StudentActivityManagement.API.DTOs.Common;
 using StudentActivityManagement.API.Services;
+using StudentActivityManagement.API.Services.Assistant;
 
 namespace StudentActivityManagement.API.Controllers;
 
@@ -17,8 +20,30 @@ namespace StudentActivityManagement.API.Controllers;
 public sealed class StaffEscalationsController : ApiControllerBase
 {
     private readonly IStaffEscalationService _service;
+    private readonly IStaffAiService _staffAi;
 
-    public StaffEscalationsController(IStaffEscalationService service) => _service = service;
+    public StaffEscalationsController(IStaffEscalationService service, IStaffAiService staffAi)
+    {
+        _service = service;
+        _staffAi = staffAi;
+    }
+
+    /// <summary>
+    /// US-34: bản nháp phản hồi bằng AI cho câu hỏi đang chờ, dựa trên quy tắc của hệ thống. Không lưu và không gửi gì:
+    /// cán bộ đọc, sửa rồi tự gửi qua endpoint answer.
+    /// </summary>
+    [HttpPost("{id:int}/ai-draft")]
+    [EnableRateLimiting(AssistantService.RateLimitPolicy)]
+    [ProducesResponseType(typeof(ApiResponseDto<EscalationDraftDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> DraftAnswer(int id)
+    {
+        var result = await _staffAi.DraftEscalationAnswerAsync(id, HttpContext.RequestAborted);
+        return result.Success ? Ok(result) : ProblemFrom(result);
+    }
 
     /// <summary>Inbox, newest first; optionally filter Pending, Answered or Withdrawn.</summary>
     [HttpGet]

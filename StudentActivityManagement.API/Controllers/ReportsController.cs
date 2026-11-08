@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using StudentActivityManagement.API.Authorization;
+using StudentActivityManagement.API.DTOs.Assistant;
 using StudentActivityManagement.API.DTOs.Common;
 using StudentActivityManagement.API.DTOs.Reports;
 using StudentActivityManagement.API.Services;
+using StudentActivityManagement.API.Services.Assistant;
 
 namespace StudentActivityManagement.API.Controllers;
 
@@ -20,10 +23,27 @@ namespace StudentActivityManagement.API.Controllers;
 public sealed class ReportsController : ApiControllerBase
 {
     private readonly IReportService _reportService;
+    private readonly IStaffAiService _staffAi;
 
-    public ReportsController(IReportService reportService)
+    public ReportsController(IReportService reportService, IStaffAiService staffAi)
     {
         _reportService = reportService;
+        _staffAi = staffAi;
+    }
+
+    /// <summary>
+    /// US-33: nhận xét bằng AI cho báo cáo đang lọc (điểm nổi bật, vấn đề, đề xuất). Mỗi ý chỉ được dùng số liệu có trong
+    /// báo cáo; ý có số lạ bị loại và đếm vào removedStatements. Không gửi tên hay mã sinh viên lên Gemini.
+    /// </summary>
+    [HttpPost("ai-insights")]
+    [EnableRateLimiting(AssistantService.RateLimitPolicy)]
+    [ProducesResponseType(typeof(ApiResponseDto<ReportInsightsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> GetAiInsights([FromQuery] ReportQueryDto query)
+    {
+        var result = await _staffAi.GetReportInsightsAsync(query, HttpContext.RequestAborted);
+        return result.Success ? Ok(result) : ProblemFrom(result);
     }
 
     /// <summary>

@@ -13,6 +13,27 @@ public sealed class StaffEscalationsController : WebControllerBase
 
     public StaffEscalationsController(ApiClient api) => _api = api;
 
+    /// <summary>US-34: AI draft for a pending question. Nothing is saved; the page puts the draft in the answer box.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Draft(int id)
+    {
+        var result = await _api.DraftEscalationAnswerAsync(id);
+        if (!result.Success || result.Data is not { } data)
+        {
+            Response.StatusCode = (int)result.StatusCode;
+            return Json(new { success = false, message = result.Message });
+        }
+
+        return Json(new
+        {
+            success = true,
+            draft = data.Draft,
+            confidence = data.Confidence switch { "high" => "cao", "medium" => "trung bình", _ => "thấp" },
+            missingInformation = data.MissingInformation,
+            personalDataRedacted = data.PersonalDataRedacted
+        });
+    }
+
     public async Task<IActionResult> Index(string? status = "Pending", int page = 1)
     {
         var result = await _api.GetStaffEscalationsAsync(status, Math.Max(page, 1));

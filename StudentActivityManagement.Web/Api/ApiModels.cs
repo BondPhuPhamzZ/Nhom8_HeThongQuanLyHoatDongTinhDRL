@@ -711,3 +711,24 @@ public sealed class AssistantActivityDto
     public bool? IsRegistrationOpen { get; set; }
     public string? MyRegistrationStatus { get; set; }
 }
+
+// ---- AI tools for Phòng QL HSSV (US-33, US-34)
+public sealed class ReportInsights
+{
+    public string PeriodName { get; set; } = string.Empty;
+    public List<string> Highlights { get; set; } = [];
+    public List<string> Concerns { get; set; } = [];
+    public List<string> Suggestions { get; set; } = [];
+    public int RemovedStatements { get; set; }
+    public string Model { get; set; } = string.Empty;
+}
+
+public sealed class EscalationDraft
+{
+    public int EscalationId { get; set; }
+    public string Draft { get; set; } = string.Empty;
+    public string Confidence { get; set; } = "low";
+    public List<string> MissingInformation { get; set; } = [];
+    public bool PersonalDataRedacted { get; set; }
+    public string Model { get; set; } = string.Empty;
+}
