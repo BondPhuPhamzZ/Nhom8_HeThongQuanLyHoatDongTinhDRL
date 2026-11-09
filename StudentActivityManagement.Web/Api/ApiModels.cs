@@ -42,6 +42,10 @@ public sealed class StudentActivityHistoryDto
     public DateTime RegisteredAt { get; set; }
     public int TrainingPoints { get; set; }
     public string? PointStatus { get; set; }
+    public int? PointRecordId { get; set; }
+    public string? AppealStatus { get; set; }
+    /// <summary>US-37: the API decides whether this decision can be appealed now.</summary>
+    public bool CanAppeal { get; set; }
     public int? PointsAwarded { get; set; }
     public string? PointReason { get; set; }
     public DateTime? PointDecidedAt { get; set; }
@@ -53,6 +57,24 @@ public sealed class StudentEvaluationHistoryDto
 {
     public StudentEvaluationPeriodDto Period { get; set; } = new();
     public List<StudentActivityHistoryDto> Activities { get; set; } = [];
+}
+
+public sealed class PointAppealDto
+{
+    public int Id { get; set; }
+    public int PointRecordId { get; set; }
+    public string StudentCode { get; set; } = string.Empty;
+    public string StudentName { get; set; } = string.Empty;
+    public string? ClassCode { get; set; }
+    public int ActivityId { get; set; }
+    public string ActivityName { get; set; } = string.Empty;
+    public int PeriodId { get; set; }
+    public int Points { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string? StaffResponse { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? ResolvedAt { get; set; }
 }
 
 public sealed class AuthResponse

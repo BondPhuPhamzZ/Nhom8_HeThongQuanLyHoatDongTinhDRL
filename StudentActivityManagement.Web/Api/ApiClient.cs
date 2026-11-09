@@ -78,6 +78,22 @@ public sealed class ApiClient
     public Task<ApiResult<StudentEvaluationHistoryDto>> GetStudentActivityHistoryAsync(int? periodId, string? registrationStatus) =>
         SendAsync<StudentEvaluationHistoryDto>(HttpMethod.Get, $"api/v1/student/reports/activity-history?{Query(("periodId", periodId?.ToString()), ("registrationStatus", registrationStatus))}");
 
+    public Task<ApiResult<PointAppealDto>> CreatePointAppealAsync(int pointRecordId, string reason) =>
+        SendAsync<PointAppealDto>(HttpMethod.Post, "api/v1/student/point-appeals", new { pointRecordId, reason });
+
+    public Task<ApiResult<List<PointAppealDto>>> GetMyPointAppealsAsync() =>
+        SendAsync<List<PointAppealDto>>(HttpMethod.Get, "api/v1/student/point-appeals");
+
+    public Task<ApiResult<PointAppealDto>> WithdrawPointAppealAsync(int id) =>
+        SendAsync<PointAppealDto>(HttpMethod.Post, $"api/v1/student/point-appeals/{id}/withdraw");
+
+    public Task<ApiResult<PagedResult<PointAppealDto>>> GetPointAppealsInboxAsync(string? status, int? periodId, int page) =>
+        SendAsync<PagedResult<PointAppealDto>>(HttpMethod.Get,
+            $"api/v1/admin/point-appeals?{Query(("status", status), ("periodId", periodId?.ToString()), ("pageIndex", page.ToString()), ("pageSize", "20"))}");
+
+    public Task<ApiResult<PointAppealDto>> ResolvePointAppealAsync(int id, bool accept, string response) =>
+        SendAsync<PointAppealDto>(HttpMethod.Post, $"api/v1/admin/point-appeals/{id}/resolve", new { accept, response });
+
     public Task<ApiResult<StudentPointsRecommendationDto>> GetStudentPointsRecommendationsAsync(int? periodId = null) =>
         SendAsync<StudentPointsRecommendationDto>(HttpMethod.Get,
             $"api/v1/student/reports/points-and-recommendations?{Query(("periodId", periodId?.ToString()))}");

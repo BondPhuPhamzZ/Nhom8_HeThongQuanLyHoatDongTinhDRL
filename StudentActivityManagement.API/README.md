@@ -254,6 +254,18 @@ Student/Monitor xem các kỳ và lịch sử của chính tài khoản đang đ
 
 Bỏ `periodId` để chọn kỳ hiện tại; nếu không có kỳ hiện tại thì dùng kỳ gần nhất. `registrationStatus` nhận `Registered`, `Attended`, `Absent` hoặc `Cancelled`. Điểm cộng và tổng kỳ chỉ tính bản ghi `Approved`; mỗi truy vấn luôn lấy student ID từ JWT, không nhận ID người dùng từ client.
 
+### Khiếu nại quyết định điểm (US-37)
+
+Sinh viên hoặc lớp trưởng chỉ được khiếu nại bản ghi điểm `Rejected` của chính mình trong `PointAppeals:WindowDays` (mặc định 14 ngày) khi kỳ còn `Open`. Lý do và phản hồi dài 10–1000 ký tự; mỗi bản ghi chỉ có một khiếu nại `Pending` tại một thời điểm. Lịch sử hoạt động trả thêm `pointRecordId` và `appealStatus`.
+
+| Endpoint | Vai trò | Nội dung |
+|---|---|---|
+| `POST /api/v1/student/point-appeals` | StudentOrMonitor | Gửi `{ pointRecordId, reason }`, trả 201 |
+| `GET /api/v1/student/point-appeals` | StudentOrMonitor | Khiếu nại của mình, mới nhất trước |
+| `POST /api/v1/student/point-appeals/{id}/withdraw` | StudentOrMonitor | Rút đơn đang chờ |
+| `GET /api/v1/admin/point-appeals?status=&periodId=&pageIndex=&pageSize=` | BusinessAdmin | Hộp thư có lọc và phân trang |
+| `POST /api/v1/admin/point-appeals/{id}/resolve` | BusinessAdmin | `{ accept, response }`; chấp nhận chuyển điểm `Rejected → Pending → Approved` trong một giao dịch, lưu lịch sử và gửi thông báo |
+
 ### Không gian trao đổi của lớp (US-09)
 
 `/api/v1/class-space`, chỉ `Student`/`Monitor`. Lớp lấy theo tài khoản đang đăng nhập (route không có mã lớp), nên không ai đọc được không gian của lớp khác.

@@ -103,7 +103,7 @@ public sealed class ReportExportService : IReportExportService
             sheet.Cell(row, 1).Value = activity.ActivityId;
             sheet.Cell(row, 2).Value = activity.ActivityName;
             sheet.Cell(row, 3).Value = activity.OrganizerName;
-            sheet.Cell(row, 4).Value = activity.Status;
+            sheet.Cell(row, 4).Value = StatusLabel(activity.Status);
             SetVnDate(sheet.Cell(row, 5), activity.EndTime);
             sheet.Cell(row, 6).Value = activity.TrainingPoints;
             sheet.Cell(row, 7).Value = activity.RegistrationCount;
@@ -136,6 +136,17 @@ public sealed class ReportExportService : IReportExportService
         }
         Finish(sheet);
     }
+
+    /// <summary>Same wording as the Web status badges, so the workbook reads like the report page.</summary>
+    private static string StatusLabel(string status) => status switch
+    {
+        "Draft" => "Nháp",
+        "Published" => "Đang mở",
+        "Ongoing" => "Đang diễn ra",
+        "Completed" => "Đã kết thúc",
+        "Cancelled" => "Đã hủy",
+        _ => status
+    };
 
     private static void StyleHeader(IXLWorksheet sheet, int row, int columns)
     {

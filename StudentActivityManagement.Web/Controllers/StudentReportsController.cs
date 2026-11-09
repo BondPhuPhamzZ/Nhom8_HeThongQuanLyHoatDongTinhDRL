@@ -33,7 +33,33 @@ public sealed class StudentReportsController : WebControllerBase
         {
             var result = await _api.GetStudentActivityHistoryAsync(model.PeriodId, registrationStatus);
             if (result.Success) model.History = result.Data; else FlashError(result.Message);
+            var appeals = await _api.GetMyPointAppealsAsync();
+            if (appeals.Success && appeals.Data != null)
+                model.LatestAppeals = appeals.Data.GroupBy(item => item.PointRecordId)
+                    .ToDictionary(group => group.Key, group => group.First());
         }
         return View(model);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Appeal(int pointRecordId, string? reason, int? periodId, string? registrationStatus)
+    {
+        var trimmed = reason?.Trim() ?? string.Empty;
+        if (trimmed.Length is < 10 or > 1000)
+            FlashError("Lý do khiếu nại phải dài từ 10 đến 1000 ký tự.");
+        else
+        {
+            var result = await _api.CreatePointAppealAsync(pointRecordId, trimmed);
+            if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        }
+        return RedirectToAction(nameof(History), new { periodId, registrationStatus });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> WithdrawAppeal(int id, int? periodId, string? registrationStatus)
+    {
+        var result = await _api.WithdrawPointAppealAsync(id);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(History), new { periodId, registrationStatus });
     }
 }

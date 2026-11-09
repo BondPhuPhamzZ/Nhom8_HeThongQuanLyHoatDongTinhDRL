@@ -25,9 +25,9 @@ else
             <label class="form-label" for="registrationStatus">Trạng thái đăng ký</label>
             <select class="form-select" id="registrationStatus" name="registrationStatus">
                 <option value="">Tất cả</option>
-                @foreach (var status in new[] { "Registered", "Attended", "Absent", "Cancelled" })
+                @foreach (var (status, label) in new[] { ("Registered", "Đã đăng ký"), ("Attended", "Đã tham gia"), ("Absent", "Vắng mặt"), ("Cancelled", "Đã hủy") })
                 {
-                    <option value="@status" selected="@(Model.RegistrationStatus == status ? "selected" : null)">@status</option>
+                    <option value="@status" selected="@(Model.RegistrationStatus == status ? "selected" : null)">@label</option>
                 }
             </select>
         </div>
@@ -64,7 +64,7 @@ else
                             }
                             else if (activity.PointStatus != null)
                             {
-                                <span>@activity.PointStatus</span>
+                                <status-badge value="@activity.PointStatus" />
                             }
                             else
                             {
@@ -73,6 +73,46 @@ else
                             @if (!string.IsNullOrWhiteSpace(activity.PointReason))
                             {
                                 <div class="small text-muted">@activity.PointReason</div>
+                            }
+                            @if (activity.PointRecordId is int recordId)
+                            {
+                                var appeal = Model.LatestAppeals.GetValueOrDefault(recordId);
+                                var appealLabel = activity.AppealStatus switch
+                                {
+                                    "Pending" => "Đang chờ xử lý",
+                                    "Accepted" => "Được chấp nhận",
+                                    "Rejected" => "Khiếu nại bị từ chối",
+                                    "Withdrawn" => "Đã rút khiếu nại",
+                                    _ => null
+                                };
+                                if (appealLabel != null)
+                                {
+                                    <div class="small mt-1">Khiếu nại: <strong>@appealLabel</strong></div>
+                                    if (!string.IsNullOrWhiteSpace(appeal?.StaffResponse))
+                                    {
+                                        <div class="small text-muted pre-line">@appeal.StaffResponse</div>
+                                    }
+                                }
+                                if (activity.AppealStatus == "Pending" && appeal != null)
+                                {
+                                    <form asp-action="WithdrawAppeal" asp-route-id="@appeal.Id" method="post" class="mt-2">
+                                        <input type="hidden" name="periodId" value="@Model.PeriodId" />
+                                        <input type="hidden" name="registrationStatus" value="@Model.RegistrationStatus" />
+                                        <button class="btn btn-outline-secondary btn-sm" type="submit">Rút khiếu nại</button>
+                                    </form>
+                                }
+                                @* The API decides (rejected, period open, no pending appeal, within PointAppeals:WindowDays). *@
+                                if (activity.CanAppeal)
+                                {
+                                    <form asp-action="Appeal" method="post" class="mt-2">
+                                        <input type="hidden" name="pointRecordId" value="@recordId" />
+                                        <input type="hidden" name="periodId" value="@Model.PeriodId" />
+                                        <input type="hidden" name="registrationStatus" value="@Model.RegistrationStatus" />
+                                        <label for="appeal-@recordId" class="form-label small">Lý do khiếu nại</label>
+                                        <textarea id="appeal-@recordId" name="reason" class="form-control form-control-sm mb-2" rows="3" minlength="10" maxlength="1000" required></textarea>
+                                        <button class="btn btn-outline-primary btn-sm" type="submit">Gửi khiếu nại</button>
+                                    </form>
+                                }
                             }
                         </td>
                     </tr>
