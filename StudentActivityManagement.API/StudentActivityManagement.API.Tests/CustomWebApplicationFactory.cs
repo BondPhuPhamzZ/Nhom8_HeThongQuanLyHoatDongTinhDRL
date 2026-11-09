@@ -2,7 +2,6 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -31,14 +30,17 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:DefaultConnection"] = $"Data Source={_databasePath}",
+                // No pooling: each closed connection releases the file, so Dispose can delete it without
+                // SqliteConnection.ClearAllPools(), which also closed the connections of test classes still running.
+                ["ConnectionStrings:DefaultConnection"] = $"Data Source={_databasePath};Pooling=False",
                 ["JwtSettings:Secret"] = JwtSecret,
                 ["JwtSettings:Issuer"] = JwtIssuer,
                 ["JwtSettings:Audience"] = JwtAudience,
                 ["EvidenceStorage:RootPath"] = EvidenceRootPath,
                 // A developer's real Gemini key in user-secrets must never be used by tests (US-31);
                 // AssistantTests sets a fake key together with a scripted Gemini handler.
-                ["Gemini:ApiKey"] = string.Empty
+                ["Gemini:ApiKey"] = string.Empty,
+                ["LoginSecurity:RequestsPerMinutePerIp"] = "100000"
             });
         });
         builder.ConfigureServices(services =>
@@ -61,8 +63,6 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return;
         }
 
-        // Pooled SQLite connections keep the file open on Windows until the pool is cleared.
-        SqliteConnection.ClearAllPools();
         DeleteIfExists(_databasePath);
         DeleteIfExists($"{_databasePath}-shm");
         DeleteIfExists($"{_databasePath}-wal");

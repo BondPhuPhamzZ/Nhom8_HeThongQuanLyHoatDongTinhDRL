@@ -75,6 +75,7 @@ public sealed class AccountService : IAccountService
                 Phone = user.Phone,
                 Role = user.Role,
                 IsActive = user.IsActive,
+                LockoutEndUtc = user.LockoutEndUtc,
                 Campus = user.Campus,
                 AcademicYear = user.AcademicYear,
                 ClassId = user.ClassId,
@@ -264,6 +265,20 @@ public sealed class AccountService : IAccountService
             isActive ? "Đã mở khóa tài khoản." : "Đã khóa tài khoản.");
     }
 
+    public async Task<ApiResponseDto<AccountResponseDto>> UnlockAsync(
+        int targetId, CancellationToken cancellationToken = default)
+    {
+        var target = await _context.Users.Include(user => user.Class)
+            .FirstOrDefaultAsync(user => user.Id == targetId, cancellationToken);
+        if (target == null) return NotFound();
+
+        target.FailedLoginCount = 0;
+        target.LockoutEndUtc = null;
+        target.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+        return ApiResponseDto<AccountResponseDto>.Ok(Map(target), "Đã mở khóa đăng nhập tạm thời.");
+    }
+
     private Task<bool> IsActiveSystemAdminAsync(int userId, CancellationToken cancellationToken) =>
         _context.Users.AnyAsync(
             user => user.Id == userId && user.IsActive && user.Role == Role.SystemAdmin,
@@ -283,6 +298,7 @@ public sealed class AccountService : IAccountService
         Phone = user.Phone,
         Role = user.Role,
         IsActive = user.IsActive,
+        LockoutEndUtc = user.LockoutEndUtc,
         Campus = user.Campus,
         AcademicYear = user.AcademicYear,
         ClassId = user.ClassId,
