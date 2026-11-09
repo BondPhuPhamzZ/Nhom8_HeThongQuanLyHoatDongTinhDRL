@@ -44,6 +44,16 @@
     <button class="btn btn-primary" type="submit">Xem báo cáo</button>
 </form>
 
+@if (overview != null)
+{
+    <a asp-action="Export" asp-route-periodId="@overview.Period.Id" asp-route-campus="@filter.Campus"
+       asp-route-academicYear="@filter.AcademicYear" asp-route-classId="@filter.ClassId"
+       asp-route-groupBy="@filter.GroupBy" class="btn btn-outline-primary mb-3">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3"/></svg>
+        Xuất Excel
+    </a>
+}
+
 @if (overview == null)
 {
     <div class="empty-state">
