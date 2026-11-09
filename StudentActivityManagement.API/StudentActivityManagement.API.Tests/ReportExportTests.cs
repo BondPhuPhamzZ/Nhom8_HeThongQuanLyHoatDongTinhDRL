@@ -44,6 +44,7 @@ public sealed class ReportExportTests : IClassFixture<CustomWebApplicationFactor
         Assert.Equal(overview.GetProperty("studentCount").GetInt32(), summary.Cell(7, 3).GetValue<int>());
         Assert.Equal(overview.GetProperty("atRiskCount").GetInt32(), summary.Cell(7, 10).GetValue<int>());
         Assert.Equal("Hoạt động kiểm thử", activities.Cell(2, 2).GetString());
+        Assert.Equal("Đã kết thúc", activities.Cell(2, 4).GetString());
         Assert.Equal(activityEnd.AddHours(7).ToString("dd/MM/yyyy HH:mm"),
             activities.Cell(2, 5).GetDateTime().ToString("dd/MM/yyyy HH:mm"));
         Assert.Equal("0.0%", activities.Cell(2, 9).Style.NumberFormat.Format);

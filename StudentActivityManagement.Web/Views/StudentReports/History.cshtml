@@ -25,9 +25,9 @@ else
             <label class="form-label" for="registrationStatus">Trạng thái đăng ký</label>
             <select class="form-select" id="registrationStatus" name="registrationStatus">
                 <option value="">Tất cả</option>
-                @foreach (var status in new[] { "Registered", "Attended", "Absent", "Cancelled" })
+                @foreach (var (status, label) in new[] { ("Registered", "Đã đăng ký"), ("Attended", "Đã tham gia"), ("Absent", "Vắng mặt"), ("Cancelled", "Đã hủy") })
                 {
-                    <option value="@status" selected="@(Model.RegistrationStatus == status ? "selected" : null)">@status</option>
+                    <option value="@status" selected="@(Model.RegistrationStatus == status ? "selected" : null)">@label</option>
                 }
             </select>
         </div>
@@ -64,7 +64,7 @@ else
                             }
                             else if (activity.PointStatus != null)
                             {
-                                <span>@activity.PointStatus</span>
+                                <status-badge value="@activity.PointStatus" />
                             }
                             else
                             {
