@@ -110,6 +110,15 @@ public sealed class AccountsController : ApiControllerBase
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
 
+    [HttpPost("{id:int}/unlock")]
+    [ProducesResponseType(typeof(ApiResponseDto<AccountResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Unlock(int id)
+    {
+        var result = await _accountService.UnlockAsync(id, HttpContext.RequestAborted);
+        return result.Success ? Ok(result) : ProblemFrom(result);
+    }
+
     private bool TryGetActorId(out int actorId) =>
         int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out actorId);
 

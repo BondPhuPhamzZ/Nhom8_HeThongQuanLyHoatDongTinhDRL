@@ -3,7 +3,9 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
+using System.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
@@ -54,6 +56,7 @@ builder.Services.AddScoped<IEvaluationPeriodService, EvaluationPeriodService>();
 builder.Services.AddScoped<IScoringService, ScoringService>();
 builder.Services.AddScoped<IPointAppealService, PointAppealService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IReportExportService, ReportExportService>();
 builder.Services.AddScoped<IStudentReportService, StudentReportService>();
 builder.Services.AddScoped<IStudentPointsService, StudentPointsService>();
 builder.Services.AddScoped<IClassSpaceService, ClassSpaceService>();
@@ -71,6 +74,7 @@ builder.Services.AddSingleton<IEvidenceFileValidator, EvidenceFileValidator>();
 // without it the assistant reports itself disabled and every other feature works as before.
 builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection(GeminiOptions.SectionName));
 builder.Services.Configure<AssistantOptions>(builder.Configuration.GetSection(AssistantOptions.SectionName));
+builder.Services.Configure<LoginSecurityOptions>(builder.Configuration.GetSection(LoginSecurityOptions.SectionName));
 builder.Services.AddHttpClient<GeminiClient>(client => client.Timeout = Timeout.InfiniteTimeSpan); // GeminiClient applies Gemini:TimeoutSeconds
 builder.Services.AddScoped<AssistantTools>();
 builder.Services.AddSingleton<AssistantHistorySigner>();
@@ -79,6 +83,18 @@ builder.Services.AddScoped<IStaffAiService, StaffAiService>();
 builder.Services.AddScoped<IAssistantService, AssistantService>();
 builder.Services.AddRateLimiter(options =>
 {
+    options.AddPolicy("login", httpContext =>
+    {
+        var perMinute = httpContext.RequestServices.GetRequiredService<IOptions<LoginSecurityOptions>>()
+            .Value.RequestsPerMinutePerIp;
+        var partition = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(partition, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = Math.Max(1, perMinute),
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        });
+    });
     // One window per student; the limit is read per request so configuration (and tests) can change it.
     options.AddPolicy(AssistantService.RateLimitPolicy, httpContext =>
     {
@@ -96,6 +112,7 @@ builder.Services.AddRateLimiter(options =>
     options.OnRejected = async (context, cancellationToken) =>
     {
         var httpContext = context.HttpContext;
+        var isLogin = httpContext.Request.Path.Equals("/api/v1/auth/login", StringComparison.OrdinalIgnoreCase);
         httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
         if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
         {
@@ -106,11 +123,15 @@ builder.Services.AddRateLimiter(options =>
         {
             Status = StatusCodes.Status429TooManyRequests,
             Title = "Quá nhiều yêu cầu",
-            Detail = "Bạn đã hỏi trợ lý quá nhiều lần trong một phút. Vui lòng đợi một chút rồi hỏi tiếp.",
+            Detail = isLogin
+                ? "Có quá nhiều lần thử đăng nhập từ địa chỉ này. Vui lòng đợi một phút rồi thử lại."
+                : "Bạn đã hỏi trợ lý quá nhiều lần trong một phút. Vui lòng đợi một chút rồi hỏi tiếp.",
             Type = "https://httpstatuses.com/429",
             Instance = httpContext.Request.Path
         };
-        problem.Extensions["errorCode"] = ApiErrorCodes.AssistantRateLimited;
+        problem.Extensions["errorCode"] = isLogin
+            ? ApiErrorCodes.TooManyLoginAttempts
+            : ApiErrorCodes.AssistantRateLimited;
         problem.Extensions["traceId"] = httpContext.TraceIdentifier;
         await httpContext.Response.WriteAsJsonAsync(problem, (JsonSerializerOptions?)null, "application/problem+json", cancellationToken);
     };
@@ -262,7 +283,24 @@ using (var scope = app.Services.CreateScope())
 }
 
 // 8. Configure HTTP Request Pipeline
+// US-39: the Web app calls the API from its own server and sends the browser's address in X-Forwarded-For.
+// The header is honoured only from known proxies (loopback by default, plus ForwardedHeaders:KnownProxies),
+// so a client calling the API directly cannot pick its own address to escape the per-IP login limit.
+var forwardedHeaders = new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor, ForwardLimit = 1 };
+foreach (var proxy in builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? [])
+{
+    if (IPAddress.TryParse(proxy, out var address)) forwardedHeaders.KnownProxies.Add(address);
+}
+app.UseForwardedHeaders(forwardedHeaders);
 app.UseExceptionHandler();
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["X-Frame-Options"] = "DENY";
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    await next();
+});
 app.UseStatusCodePages(async statusCodeContext =>
 {
     var response = statusCodeContext.HttpContext.Response;

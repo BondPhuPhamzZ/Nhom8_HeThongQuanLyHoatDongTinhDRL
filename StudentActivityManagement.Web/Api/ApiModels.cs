@@ -415,6 +415,7 @@ public sealed class AccountDto
     public string Phone { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public DateTime? LockoutEndUtc { get; set; }
     public string Campus { get; set; } = string.Empty;
     public string? ClassCode { get; set; }
     public DateTime CreatedAt { get; set; }

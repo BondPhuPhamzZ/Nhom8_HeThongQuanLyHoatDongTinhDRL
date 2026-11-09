@@ -64,4 +64,18 @@ public sealed class ReportsController : WebControllerBase
         model.AtRisk = (await _api.GetAtRiskStudentsAsync(filter, Math.Max(page, 1))).Data ?? new();
         return View(model);
     }
+
+    [HttpGet]
+    public async Task<IActionResult> Export([FromQuery] ReportFilter filter)
+    {
+        var result = await _api.ExportReportAsync(filter);
+        if (result.Success && result.Data is { } file)
+            return File(file.Content, file.ContentType, file.FileName);
+
+        FlashError(result.Message);
+        return RedirectToAction(nameof(Index), new
+        {
+            filter.PeriodId, filter.Campus, filter.AcademicYear, filter.ClassId, filter.GroupBy
+        });
+    }
 }

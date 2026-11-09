@@ -779,6 +779,9 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("FailedLoginCount")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -789,6 +792,9 @@ namespace StudentActivityManagement.API.Data.Migrations
 
                     b.Property<bool>("IsClassMonitor")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LockoutEndUtc")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()

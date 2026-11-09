@@ -388,6 +388,37 @@ public sealed class ApiClient
         SendAsync<PagedResult<AtRiskStudent>>(HttpMethod.Get,
             $"api/v1/admin/reports/at-risk-students?{ReportQuery(filter, ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
 
+    public async Task<ApiResult<ApiFile>> ExportReportAsync(ReportFilter filter)
+    {
+        HttpResponseMessage raw;
+        try
+        {
+            raw = await _http.GetAsync($"api/v1/admin/reports/export?{ReportQuery(filter, ("groupBy", filter.GroupBy))}");
+        }
+        catch (HttpRequestException)
+        {
+            return new ApiResult<ApiFile> { StatusCode = HttpStatusCode.ServiceUnavailable, Message = "Không kết nối được API." };
+        }
+
+        using var response = raw;
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            throw new ApiUnauthorizedException("Phiên đăng nhập đã hết hạn hoặc tài khoản đã thay đổi quyền. Vui lòng đăng nhập lại.");
+        if (!response.IsSuccessStatusCode)
+            return ReadProblem<ApiFile>(response.StatusCode, await response.Content.ReadAsStringAsync());
+
+        return new ApiResult<ApiFile>
+        {
+            Success = true,
+            StatusCode = response.StatusCode,
+            Data = new ApiFile(
+                await response.Content.ReadAsByteArrayAsync(),
+                response.Content.Headers.ContentType?.ToString() ?? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                response.Content.Headers.ContentDisposition?.FileNameStar
+                    ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+                    ?? "BaoCao.xlsx")
+        };
+    }
+
     // ---- AI tools for Phòng QL HSSV (US-33, US-34): one Gemini call each, so they use the long-timeout client.
     public Task<ApiResult<ReportInsights>> GetReportInsightsAsync(ReportFilter filter) =>
         SendAsync<ReportInsights>(HttpMethod.Post, $"api/v1/admin/reports/ai-insights?{ReportQuery(filter, ("groupBy", filter.GroupBy))}",
@@ -449,6 +480,9 @@ public sealed class ApiClient
 
     public Task<ApiResult<AccountDto>> UpdateAccountActiveAsync(int id, bool isActive) =>
         SendAsync<AccountDto>(HttpMethod.Patch, $"api/v1/admin/accounts/{id}/active-status", new { isActive });
+
+    public Task<ApiResult<AccountDto>> UnlockAccountAsync(int id) =>
+        SendAsync<AccountDto>(HttpMethod.Post, $"api/v1/admin/accounts/{id}/unlock");
 
     private async Task<ApiResult<T>> SendAsync<T>(
         HttpMethod method, string url, object? body = null, bool throwOn401 = true, HttpClient? client = null)
