@@ -2,7 +2,6 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -31,7 +30,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:DefaultConnection"] = $"Data Source={_databasePath}",
+                // No pooling: each closed connection releases the file, so Dispose can delete it without
+                // SqliteConnection.ClearAllPools(), which also closed the connections of test classes still running.
+                ["ConnectionStrings:DefaultConnection"] = $"Data Source={_databasePath};Pooling=False",
                 ["JwtSettings:Secret"] = JwtSecret,
                 ["JwtSettings:Issuer"] = JwtIssuer,
                 ["JwtSettings:Audience"] = JwtAudience,
@@ -62,8 +63,6 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return;
         }
 
-        // Pooled SQLite connections keep the file open on Windows until the pool is cleared.
-        SqliteConnection.ClearAllPools();
         DeleteIfExists(_databasePath);
         DeleteIfExists($"{_databasePath}-shm");
         DeleteIfExists($"{_databasePath}-wal");
