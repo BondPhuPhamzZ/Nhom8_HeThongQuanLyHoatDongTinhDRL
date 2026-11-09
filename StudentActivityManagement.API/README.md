@@ -70,6 +70,10 @@ Tài khoản dữ liệu mẫu:
 - Một tài khoản nhập sai mật khẩu 5 lần liên tiếp sẽ bị khóa đăng nhập tạm thời trong 15 phút. Lần sai thứ 5 vẫn nhận `401 invalid_credentials`; các lần thử tiếp theo trong thời gian khóa nhận `423 account_temporarily_locked`. Đăng nhập đúng sau khi hết hạn sẽ xóa bộ đếm sai và trạng thái khóa tạm.
 - `POST /api/v1/admin/accounts/{id}/unlock` chỉ dành cho SystemAdmin để xóa trạng thái khóa tạm. Khóa tài khoản thủ công (`IsActive = false`) là quy tắc riêng và không bị endpoint này thay đổi.
 - `POST /api/v1/auth/login` giới hạn mặc định 10 yêu cầu mỗi phút cho mỗi địa chỉ IP; vượt mức nhận `429 too_many_login_attempts`. Các ngưỡng nằm trong `LoginSecurity` của `appsettings.json` (`MaxFailedAttempts`, `LockoutMinutes`, `RequestsPerMinutePerIp`).
+- **Web gọi API từ server của mình**, nên gửi kèm IP thật của trình duyệt trong `X-Forwarded-For`. Nhờ vậy giới hạn trên được tính theo từng người dùng Web, không dồn chung vào IP của server Web.
+  - API chỉ tin header này khi request đến từ proxy đã biết: mặc định là loopback, thêm địa chỉ khác bằng `ForwardedHeaders:KnownProxies`.
+  - Client gọi thẳng API không tự chọn được IP để né giới hạn.
+  - Khi deploy Web và API trên hai máy khác nhau, thêm IP của máy Web vào `ForwardedHeaders:KnownProxies`.
 - API và Web gửi `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`.
 
 ## Quy ước dữ liệu hoạt động (Sprint 3)

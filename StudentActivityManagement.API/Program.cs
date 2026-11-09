@@ -3,7 +3,9 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
+using System.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
@@ -279,6 +281,15 @@ using (var scope = app.Services.CreateScope())
 }
 
 // 8. Configure HTTP Request Pipeline
+// US-39: the Web app calls the API from its own server and sends the browser's address in X-Forwarded-For.
+// The header is honoured only from known proxies (loopback by default, plus ForwardedHeaders:KnownProxies),
+// so a client calling the API directly cannot pick its own address to escape the per-IP login limit.
+var forwardedHeaders = new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor, ForwardLimit = 1 };
+foreach (var proxy in builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? [])
+{
+    if (IPAddress.TryParse(proxy, out var address)) forwardedHeaders.KnownProxies.Add(address);
+}
+app.UseForwardedHeaders(forwardedHeaders);
 app.UseExceptionHandler();
 app.Use(async (context, next) =>
 {

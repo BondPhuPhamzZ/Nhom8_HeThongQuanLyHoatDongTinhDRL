@@ -1,4 +1,9 @@
 using System.Net;
+using System.Net.Http.Json;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -105,6 +110,57 @@ public sealed class LoginLockoutTests : IClassFixture<CustomWebApplicationFactor
         await AccountTestClient.AssertProblemAsync(
             await api.LoginResponseAsync("unknown-account", "wrong-password"),
             HttpStatusCode.TooManyRequests, "too_many_login_attempts");
+    }
+
+    [Fact]
+    public async Task LoginLimitCountsTheForwardedClientIpFromTheWebProxyOnly()
+    {
+        // The Web app calls the API from loopback and forwards each browser's address; the limit must follow that
+        // address, while a forwarded header from an untrusted caller is ignored.
+        static WebApplicationFactory<Program> Create(CustomWebApplicationFactory factory, string remoteIp) =>
+            factory.WithWebHostBuilder(builder =>
+            {
+                builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
+                    new Dictionary<string, string?> { ["LoginSecurity:RequestsPerMinutePerIp"] = "2" }));
+                builder.ConfigureTestServices(services => services.AddSingleton<IStartupFilter>(new RemoteIpStartupFilter(IPAddress.Parse(remoteIp))));
+            });
+
+        using var viaWeb = Create(_factory, "127.0.0.1");
+        var web = viaWeb.CreateClient();
+        Task<HttpResponseMessage> Login(HttpClient client, string forwardedFor)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/login")
+            {
+                Content = JsonContent.Create(new { usernameOrEmail = "unknown-account", password = "wrong-password" })
+            };
+            request.Headers.Add("X-Forwarded-For", forwardedFor);
+            return client.SendAsync(request);
+        }
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Login(web, "10.0.0.1")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Login(web, "10.0.0.1")).StatusCode);
+        await AccountTestClient.AssertProblemAsync(await Login(web, "10.0.0.1"), HttpStatusCode.TooManyRequests, "too_many_login_attempts");
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Login(web, "10.0.0.2")).StatusCode); // another Web user
+
+        using var direct = Create(_factory, "203.0.113.9");
+        var attacker = direct.CreateClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Login(attacker, "10.0.0.50")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Login(attacker, "10.0.0.51")).StatusCode);
+        await AccountTestClient.AssertProblemAsync(await Login(attacker, "10.0.0.52"), HttpStatusCode.TooManyRequests, "too_many_login_attempts");
+    }
+
+    /// <summary>TestServer has no client address; this gives every request the address of a chosen caller.</summary>
+    private sealed class RemoteIpStartupFilter(IPAddress address) : IStartupFilter
+    {
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
+        {
+            app.Use((context, nextMiddleware) =>
+            {
+                context.Connection.RemoteIpAddress = address;
+                return nextMiddleware();
+            });
+            next(app);
+        };
     }
 
     [Fact]
