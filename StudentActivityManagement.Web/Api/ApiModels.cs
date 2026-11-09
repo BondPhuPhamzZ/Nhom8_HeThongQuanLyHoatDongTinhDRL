@@ -44,6 +44,8 @@ public sealed class StudentActivityHistoryDto
     public string? PointStatus { get; set; }
     public int? PointRecordId { get; set; }
     public string? AppealStatus { get; set; }
+    /// <summary>US-37: the API decides whether this decision can be appealed now.</summary>
+    public bool CanAppeal { get; set; }
     public int? PointsAwarded { get; set; }
     public string? PointReason { get; set; }
     public DateTime? PointDecidedAt { get; set; }

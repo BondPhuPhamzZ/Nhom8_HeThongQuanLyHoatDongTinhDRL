@@ -35,6 +35,29 @@ public sealed class PointAppealTests : IClassFixture<CustomWebApplicationFactory
     }
 
     [Fact]
+    public async Task HistoryReportsCanAppealWithTheSameRulesAsTheAppealEndpoint()
+    {
+        var setup = await SetupAsync();
+        async Task<bool> CanAppealAsync() => (await AccountTestClient.ReadJsonAsync(await _api.GetAsync(
+                $"/api/v1/student/reports/activity-history?periodId={setup.PeriodId}", setup.Student)))
+            .GetProperty("data").GetProperty("activities").EnumerateArray()
+            .Single(item => item.GetProperty("pointRecordId").ValueKind == System.Text.Json.JsonValueKind.Number
+                && item.GetProperty("pointRecordId").GetInt32() == setup.RecordId)
+            .GetProperty("canAppeal").GetBoolean();
+
+        Assert.True(await CanAppealAsync());
+        var appealId = (await DataAsync(await CreateAsync(setup))).GetProperty("id").GetInt32();
+        Assert.False(await CanAppealAsync()); // an appeal is pending
+        await _api.SendAsync(HttpMethod.Post, $"/api/v1/student/point-appeals/{appealId}/withdraw", setup.Student, null);
+        Assert.True(await CanAppealAsync());
+        await SetRecordAsync(setup.RecordId, decidedAt: DateTime.UtcNow.AddDays(-15));
+        Assert.False(await CanAppealAsync()); // outside PointAppeals:WindowDays
+        await SetRecordAsync(setup.RecordId, decidedAt: DateTime.UtcNow);
+        await SetPeriodStatusAsync(setup.PeriodId, EvaluationPeriodStatus.Closed);
+        Assert.False(await CanAppealAsync()); // period locked
+    }
+
+    [Fact]
     public async Task CreateChecksOwnershipDecisionWindowAndPeriod()
     {
         var setup = await SetupAsync();

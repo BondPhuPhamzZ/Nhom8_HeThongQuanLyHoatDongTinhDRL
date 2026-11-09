@@ -17,8 +17,20 @@ public sealed class PointAppealService : IPointAppealService
     {
         _context = context;
         _scoring = scoring;
-        _windowDays = Math.Max(1, configuration.GetValue("PointAppeals:WindowDays", 14));
+        _windowDays = WindowDays(configuration);
     }
+
+    /// <summary>Days after a rejection during which it may be appealed; shared with the history's CanAppeal flag.</summary>
+    public static int WindowDays(IConfiguration configuration) =>
+        Math.Max(1, configuration.GetValue("PointAppeals:WindowDays", 14));
+
+    /// <summary>The one rule clients use to offer an appeal (Web and Mobile read <c>CanAppeal</c> instead of repeating it).</summary>
+    public static bool CanAppeal(PointRecord? record, string periodStatus, string? latestAppealStatus, DateTime utcNow, int windowDays) =>
+        record != null &&
+        record.Status == PointRecordStatus.Rejected &&
+        periodStatus == EvaluationPeriodStatus.Open &&
+        latestAppealStatus != PointAppealStatus.Pending &&
+        utcNow <= record.DecidedAt.AddDays(windowDays);
 
     public async Task<ApiResponseDto<PointAppealDto>> CreateAsync(int studentId, int pointRecordId, string reason)
     {

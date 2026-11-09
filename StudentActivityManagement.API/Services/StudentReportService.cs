@@ -12,8 +12,13 @@ public sealed class StudentReportService : IStudentReportService
         [RegistrationStatus.Registered, RegistrationStatus.Attended, RegistrationStatus.Cancelled, RegistrationStatus.Absent];
 
     private readonly AppDbContext _context;
+    private readonly int _appealWindowDays;
 
-    public StudentReportService(AppDbContext context) => _context = context;
+    public StudentReportService(AppDbContext context, IConfiguration configuration)
+    {
+        _context = context;
+        _appealWindowDays = PointAppealService.WindowDays(configuration);
+    }
 
     public async Task<ApiResponseDto<List<StudentEvaluationPeriodDto>>> GetPeriodsAsync(int studentId)
     {
@@ -128,6 +133,7 @@ public sealed class StudentReportService : IStudentReportService
                 PointStatus = pointRecord?.Status,
                 PointRecordId = pointRecord?.Id,
                 AppealStatus = appealStatus,
+                CanAppeal = PointAppealService.CanAppeal(pointRecord, period.Status, appealStatus, now, _appealWindowDays),
                 PointsAwarded = pointRecord?.Points,
                 PointReason = pointRecord?.Reason,
                 PointDecidedAt = pointRecord?.DecidedAt,

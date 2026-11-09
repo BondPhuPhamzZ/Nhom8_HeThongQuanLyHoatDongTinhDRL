@@ -4,6 +4,14 @@
     var status = ViewBag.Status as string;
     var periodId = (int?)ViewBag.PeriodId;
     var periods = ViewBag.Periods as List<EvaluationPeriod> ?? [];
+    string StatusLabel(string value) => value switch
+    {
+        "Pending" => "Đang chờ",
+        "Accepted" => "Đã chấp nhận",
+        "Rejected" => "Đã từ chối",
+        "Withdrawn" => "Sinh viên đã rút",
+        _ => value
+    };
 }
 <h1 class="h3">Khiếu nại điểm</h1>
 <p class="text-muted">Xem quyết định điểm bị từ chối, đối chiếu minh chứng và phản hồi sinh viên.</p>
@@ -47,7 +55,7 @@ else
                         <strong>@item.StudentName</strong> (@item.StudentCode) · @(item.ClassCode ?? "Chưa có lớp")
                         <div><a asp-controller="Scoring" asp-action="Index" asp-route-id="@item.ActivityId">@item.ActivityName</a> · @item.Points điểm</div>
                     </div>
-                    <div class="small text-muted">@item.Status · <vn-time value="@item.CreatedAt" /></div>
+                    <div class="small text-muted">@StatusLabel(item.Status) · <vn-time value="@item.CreatedAt" /></div>
                 </div>
                 <p class="pre-line mt-2 mb-2">@item.Reason</p>
                 @if (item.Status == "Pending")

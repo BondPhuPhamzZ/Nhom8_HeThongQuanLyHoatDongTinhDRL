@@ -101,9 +101,8 @@ else
                                         <button class="btn btn-outline-secondary btn-sm" type="submit">Rút khiếu nại</button>
                                     </form>
                                 }
-                                if (activity.PointStatus == "Rejected" && activity.AppealStatus != "Pending"
-                                    && history.Period.Status == "Open" && activity.PointDecidedAt is DateTime decidedAt
-                                    && DateTime.UtcNow <= decidedAt.AddDays(14))
+                                @* The API decides (rejected, period open, no pending appeal, within PointAppeals:WindowDays). *@
+                                if (activity.CanAppeal)
                                 {
                                     <form asp-action="Appeal" method="post" class="mt-2">
                                         <input type="hidden" name="pointRecordId" value="@recordId" />
