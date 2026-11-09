@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using StudentActivityManagement.API.DTOs.Auth;
 using StudentActivityManagement.API.DTOs.Common;
 using StudentActivityManagement.API.Services;
@@ -22,10 +23,13 @@ namespace StudentActivityManagement.API.Controllers
         /// Đăng nhập hệ thống và nhận JWT Token
         /// </summary>
         [HttpPost("login")]
+        [EnableRateLimiting("login")]
         [ProducesResponseType(typeof(ApiResponseDto<AuthResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status423Locked)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> Login([FromBody] LoginDto request)
         {
             var result = await _authService.LoginAsync(request);

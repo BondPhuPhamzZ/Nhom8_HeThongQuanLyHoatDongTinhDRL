@@ -19,4 +19,6 @@ public interface IAccountService
 
     Task<ApiResponseDto<AccountResponseDto>> UpdateActiveStatusAsync(
         int actorId, int targetId, bool isActive, CancellationToken cancellationToken = default);
+
+    Task<ApiResponseDto<AccountResponseDto>> UnlockAsync(int targetId, CancellationToken cancellationToken = default);
 }

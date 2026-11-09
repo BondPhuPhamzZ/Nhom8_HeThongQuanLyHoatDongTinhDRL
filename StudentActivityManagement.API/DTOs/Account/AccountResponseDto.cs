@@ -15,6 +15,7 @@ public sealed class AccountResponseDto
     public string Phone { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public DateTime? LockoutEndUtc { get; set; }
     public string Campus { get; set; } = string.Empty;
     public string AcademicYear { get; set; } = string.Empty;
     public int? ClassId { get; set; }

@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using StudentActivityManagement.API.Data;
 using StudentActivityManagement.API.DTOs.Auth;
 using StudentActivityManagement.API.DTOs.Common;
 using StudentActivityManagement.API.Models;
+using StudentActivityManagement.API.Services.Settings;
 
 namespace StudentActivityManagement.API.Services
 {
@@ -10,11 +12,14 @@ namespace StudentActivityManagement.API.Services
     {
         private readonly AppDbContext _context;
         private readonly IJwtTokenGenerator _jwtTokenGenerator;
+        private readonly IOptions<LoginSecurityOptions> _loginSecurity;
 
-        public AuthService(AppDbContext context, IJwtTokenGenerator jwtTokenGenerator)
+        public AuthService(AppDbContext context, IJwtTokenGenerator jwtTokenGenerator,
+            IOptions<LoginSecurityOptions> loginSecurity)
         {
             _context = context;
             _jwtTokenGenerator = jwtTokenGenerator;
+            _loginSecurity = loginSecurity;
         }
 
         public async Task<ApiResponseDto<AuthResponseDto>> LoginAsync(LoginDto request)
@@ -31,17 +36,42 @@ namespace StudentActivityManagement.API.Services
                     ApiErrorCodes.InvalidCredentials);
             }
 
+            var now = DateTime.UtcNow;
+            if (user.LockoutEndUtc > now)
+            {
+                var minutes = Math.Max(1, (int)Math.Ceiling((user.LockoutEndUtc.Value - now).TotalMinutes));
+                return ApiResponseDto<AuthResponseDto>.Fail(
+                    $"Tài khoản tạm khóa do đăng nhập sai nhiều lần. Thử lại sau {minutes} phút.",
+                    StatusCodes.Status423Locked,
+                    ApiErrorCodes.AccountTemporarilyLocked);
+            }
+
             if (!PasswordHasher.VerifyPassword(request.Password, user.PasswordHash))
             {
+                var security = _loginSecurity.Value;
+                user.FailedLoginCount++;
+                if (user.FailedLoginCount >= Math.Max(1, security.MaxFailedAttempts))
+                {
+                    user.FailedLoginCount = 0;
+                    user.LockoutEndUtc = now.AddMinutes(Math.Max(1, security.LockoutMinutes));
+                }
+                user.UpdatedAt = now;
+                await _context.SaveChangesAsync();
                 return ApiResponseDto<AuthResponseDto>.Fail(
                     "Tên đăng nhập / Mã sinh viên hoặc mật khẩu không chính xác.",
                     StatusCodes.Status401Unauthorized,
                     ApiErrorCodes.InvalidCredentials);
             }
 
+            // A valid password clears the temporary lock and the previous failure streak.
+            var accountChanged = user.FailedLoginCount != 0 || user.LockoutEndUtc.HasValue;
+            user.FailedLoginCount = 0;
+            user.LockoutEndUtc = null;
+
             // Kiểm tra sau mật khẩu để không tiết lộ trạng thái tài khoản cho người không biết mật khẩu.
             if (!user.IsActive)
             {
+                if (accountChanged) await _context.SaveChangesAsync();
                 return ApiResponseDto<AuthResponseDto>.Fail(
                     "Tài khoản đã bị khóa. Vui lòng liên hệ Phòng Quản lý HSSV.",
                     StatusCodes.Status403Forbidden,
@@ -51,7 +81,11 @@ namespace StudentActivityManagement.API.Services
             if (PasswordHasher.NeedsRehash(user.PasswordHash))
             {
                 user.PasswordHash = PasswordHasher.HashPassword(request.Password);
-                user.UpdatedAt = DateTime.UtcNow;
+                accountChanged = true;
+            }
+            if (accountChanged)
+            {
+                user.UpdatedAt = now;
                 await _context.SaveChangesAsync();
             }
 

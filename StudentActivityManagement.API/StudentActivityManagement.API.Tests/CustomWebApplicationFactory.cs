@@ -38,7 +38,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["EvidenceStorage:RootPath"] = EvidenceRootPath,
                 // A developer's real Gemini key in user-secrets must never be used by tests (US-31);
                 // AssistantTests sets a fake key together with a scripted Gemini handler.
-                ["Gemini:ApiKey"] = string.Empty
+                ["Gemini:ApiKey"] = string.Empty,
+                ["LoginSecurity:RequestsPerMinutePerIp"] = "100000"
             });
         });
         builder.ConfigureServices(services =>
