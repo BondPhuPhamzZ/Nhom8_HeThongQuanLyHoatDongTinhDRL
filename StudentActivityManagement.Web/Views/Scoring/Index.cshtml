@@ -6,7 +6,7 @@
         "Approved" => "Đã ghi điểm", "Pending" => "Chờ kiểm tra", "Rejected" => "Từ chối", "Revoked" => "Thu hồi điểm", _ => status
     };
 }
-<a asp-controller="ManageActivities" asp-action="Details" asp-route-id="@Model.ActivityId" class="small">&larr; @Model.ActivityName</a>
+<a asp-controller="ManageActivities" asp-action="Details" asp-route-id="@Model.ActivityId" class="btn-back">&larr; @Model.ActivityName</a>
 <div class="mt-2 mb-3">
     <div>
         <h1 class="h3 mb-1">Điểm của hoạt động</h1>

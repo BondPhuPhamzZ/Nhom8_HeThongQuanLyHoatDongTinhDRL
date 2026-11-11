@@ -4,7 +4,7 @@
     var activity = Model.Activity;
     ViewData["Title"] = $"{participant.FullName} – {activity.ActivityName}";
 }
-<a asp-action="Index" asp-route-id="@activity.Id" class="small">&larr; Người tham gia: @activity.ActivityName</a>
+<a asp-action="Index" asp-route-id="@activity.Id" class="btn-back">&larr; Người tham gia: @activity.ActivityName</a>
 <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
     <status-badge value="@participant.RegistrationStatus" />
     <span class="text-muted small">Đăng ký lúc <vn-time value="@participant.RegisteredAt" /></span>

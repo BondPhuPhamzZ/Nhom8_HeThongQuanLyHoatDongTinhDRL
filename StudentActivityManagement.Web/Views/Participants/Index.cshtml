@@ -6,7 +6,7 @@
     var returnTo = Context.Request.Path + Context.Request.QueryString;
     var paged = data.Participants;
 }
-<a asp-controller="ManageActivities" asp-action="Details" asp-route-id="@data.ActivityId" class="small">&larr; @data.ActivityName</a>
+<a asp-controller="ManageActivities" asp-action="Details" asp-route-id="@data.ActivityId" class="btn-back">&larr; @data.ActivityName</a>
 <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-2 mb-3">
     <div>
         <status-badge value="@data.ActivityStatus" />

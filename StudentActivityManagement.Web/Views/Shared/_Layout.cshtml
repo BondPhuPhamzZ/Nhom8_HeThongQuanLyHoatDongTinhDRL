@@ -14,16 +14,16 @@
     <title>@ViewData["Title"] – Rèn luyện SV</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body class="d-flex flex-column min-vh-100">
     <header>
-        <nav class="navbar navbar-expand-md navbar-dark app-navbar mb-4">
+        <nav class="navbar navbar-expand-xl navbar-light app-navbar">
             <div class="container">
-                <a class="navbar-brand fw-semibold" asp-controller="Home" asp-action="Index">
-                    <span class="brand-mark">RL</span> Hoạt động &amp; Điểm rèn luyện
+                <a class="navbar-brand" asp-controller="Home" asp-action="Index" title="Hoạt động &amp; Điểm rèn luyện" aria-label="Trang chủ – Hoạt động và điểm rèn luyện">
+                    <span class="brand-mark">RL</span>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
                         aria-controls="mainNav" aria-expanded="false" aria-label="Mở menu">
@@ -49,7 +49,7 @@
                             }
                             else
                             {
-                                <li class="nav-item"><a class="nav-link @NavActive("StudentActivities")" asp-controller="StudentActivities" asp-action="Index">Hoạt động dành cho tôi</a></li>
+                                <li class="nav-item"><a class="nav-link @NavActive("StudentActivities")" asp-controller="StudentActivities" asp-action="Index">Hoạt động</a></li>
                                 <li class="nav-item"><a class="nav-link @ReportsActive(false)" asp-controller="StudentReports" asp-action="History">Lịch sử &amp; điểm</a></li>
                                 <li class="nav-item"><a class="nav-link @NavActive("StudentPoints")" asp-controller="StudentPoints" asp-action="Index">Điểm &amp; gợi ý</a></li>
                                 <li class="nav-item"><a class="nav-link @ReportsActive(true)" asp-controller="StudentReports" asp-action="Appeals">Khiếu nại điểm</a></li>
@@ -65,12 +65,12 @@
         </nav>
     </header>
 
-    <main role="main" class="container flex-grow-1 pb-4">
+    <main role="main" class="container flex-grow-1">
         <partial name="_Flash" />
         @RenderBody()
     </main>
 
-    <footer class="border-top py-3 text-muted small">
+    <footer class="app-footer">
         <div class="container d-flex justify-content-between flex-wrap gap-2">
             <span>Nhóm 8 – Hệ thống quản lý hoạt động và tính điểm rèn luyện</span>
             <span>Giờ hiển thị: Việt Nam (UTC+7)</span>

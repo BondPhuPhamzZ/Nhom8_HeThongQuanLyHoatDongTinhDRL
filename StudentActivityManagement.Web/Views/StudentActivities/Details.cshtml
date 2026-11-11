@@ -9,7 +9,7 @@
     var canRegister = !registered && !attended && Model.Status == "Published" && inWindow && Model.RemainingSlots > 0;
     var canCancel = registered && now <= Model.RegistrationCloseTime;
 }
-<a asp-action="Index" class="small">&larr; Danh sách hoạt động</a>
+<a asp-action="Index" class="btn-back">&larr; Danh sách hoạt động</a>
 <div class="row g-4 mt-1">
     <div class="col-lg-8">
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
