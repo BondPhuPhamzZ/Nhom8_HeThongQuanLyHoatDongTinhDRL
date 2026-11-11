@@ -58,6 +58,40 @@ public sealed class CheckInTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
+    public async Task CheckIn_WithCode_RecordsTheActivityPointsInTheOpenPeriod()
+    {
+        var staff = await StaffAsync();
+        var student = await _api.LoginAsync(MonitorCode, StudentPassword);
+        var (activityId, sessionId) = await CreateRegisteredActivityAsync(staff, student);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            if (!await context.EvaluationPeriods.AnyAsync())
+            {
+                context.EvaluationPeriods.Add(new EvaluationPeriod
+                {
+                    Name = "Kỳ check-in", StartDate = DateTime.UtcNow.AddDays(-30), EndDate = DateTime.UtcNow.AddDays(30),
+                    TargetPoints = 20, Status = EvaluationPeriodStatus.Open, CreatedAt = DateTime.UtcNow
+                });
+                await context.SaveChangesAsync();
+            }
+        }
+
+        var code = await IssueCodeAsync(staff, activityId, sessionId);
+        Assert.Equal(HttpStatusCode.OK, (await CheckInAsync(student, activityId, sessionId, code)).StatusCode);
+
+        using var verify = _factory.Services.CreateScope();
+        var db = verify.ServiceProvider.GetRequiredService<AppDbContext>();
+        var record = await db.PointRecords.AsNoTracking().Include(item => item.History)
+            .SingleAsync(item => item.ActivityId == activityId);
+        Assert.Equal(PointRecordStatus.Approved, record.Status);
+        Assert.Equal(5, record.Points);
+        Assert.Null(record.DecidedById);
+        Assert.Single(record.History);
+        Assert.Equal(5, (await db.ActivityRegistrations.AsNoTracking().SingleAsync(item => item.Id == record.RegistrationId)).PointsEarned);
+    }
+
+    [Fact]
     public async Task CheckIn_WrongCode_Returns400_AndRotatedCodeReplacesOldOne()
     {
         var staff = await StaffAsync();

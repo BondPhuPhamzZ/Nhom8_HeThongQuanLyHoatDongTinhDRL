@@ -167,6 +167,8 @@ public sealed class ParticipantService : IParticipantService
                 registration.Status = RegistrationStatus.Attended;
                 registration.CheckInTime ??= now;
             }
+            var activity = await _context.Activities.AsNoTracking().FirstAsync(item => item.Id == activityId);
+            await AttendancePoints.AwardAsync(_context, registration, activity, staffId, now);
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -203,6 +205,7 @@ public sealed class ParticipantService : IParticipantService
         {
             registration.Status = RegistrationStatus.Registered;
             registration.CheckInTime = null;
+            await AttendancePoints.RevokeAsync(_context, registration);
         }
 
         await _context.SaveChangesAsync();
@@ -300,7 +303,8 @@ public sealed class ParticipantService : IParticipantService
         {
             return (Conflict<T>("Chỉ điểm danh cho hoạt động đang mở, đang diễn ra hoặc vừa kết thúc."), null);
         }
-        if (await HasScoreDecisionAsync(registrationId))
+        // The automatic award follows attendance; only a decision made by staff freezes it.
+        if (await AttendancePoints.IsDecidedByStaffAsync(_context, registrationId))
         {
             return (Conflict<T>(ScoredMessage), null);
         }
