@@ -83,6 +83,22 @@ void main() {
     expect(status.sessions.single.checkedInAt, isNull);
   });
 
+  test('ThreadDetail carries the monitor escalation with the official answer', () {
+    Map<String, dynamic> thread(Object? escalation) => {
+          'id': 3, 'kind': 'Question', 'title': 'Lịch đăng kí môn', 'preview': 'Hỏi', 'status': 'Open', 'isPinned': false,
+          'author': {'id': 2, 'studentCode': 'SV210001', 'fullName': 'Lớp trưởng', 'isMonitor': true, 'isMe': true},
+          'replyCount': 0, 'createdAt': '2026-11-11T12:48:00Z', 'lastActivityAt': '2026-11-11T12:48:00Z',
+          'escalationStatus': 'Answered', 'body': 'Hỏi', 'replies': [], 'escalation': escalation,
+        };
+    final answered = ThreadDetail.fromJson(thread({
+      'id': 7, 'threadId': 3, 'question': 'Hỏi lịch', 'status': 'Answered', 'createdAt': '2026-11-11T12:48:00Z',
+      'answer': 'Xem thông báo Phòng Đào tạo', 'answeredAt': '2026-11-11T13:00:00Z', 'canRelay': true,
+    }));
+    expect(answered.escalation?.answer, 'Xem thông báo Phòng Đào tạo');
+    expect(answered.escalation?.canRelay, isTrue);
+    expect(ThreadDetail.fromJson(thread(null)).escalation, isNull);
+  });
+
   test('History items and appeals carry the US-37 appeal fields', () {
     final item = ActivityHistoryItem.fromJson({
       'activityId': 4, 'activityName': 'Hội thảo', 'organizerName': 'VNG', 'registrationStatus': 'Attended',

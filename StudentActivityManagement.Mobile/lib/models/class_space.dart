@@ -91,6 +91,7 @@ class ThreadDetail {
     required this.canPin,
     required this.canManageAnswers,
     required this.replies,
+    this.escalation,
   });
 
   final ThreadSummary summary;
@@ -100,6 +101,9 @@ class ThreadDetail {
   final bool canPin;
   final bool canManageAnswers;
   final List<ThreadReply> replies;
+
+  /// Monitor only: the latest question raised to Phòng QL HSSV, with its official answer once given.
+  final Escalation? escalation;
 
   factory ThreadDetail.fromJson(Map<String, dynamic> json) => ThreadDetail(
         summary: ThreadSummary.fromJson(json),
@@ -111,6 +115,7 @@ class ThreadDetail {
         replies: ((json['replies'] as List?) ?? const [])
             .map((raw) => ThreadReply.fromJson((raw as Map).cast<String, dynamic>()))
             .toList(),
+        escalation: json['escalation'] is Map ? Escalation.fromJson((json['escalation'] as Map).cast<String, dynamic>()) : null,
       );
 }
 
