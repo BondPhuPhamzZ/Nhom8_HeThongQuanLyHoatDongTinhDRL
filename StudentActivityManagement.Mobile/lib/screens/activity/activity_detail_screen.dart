@@ -136,7 +136,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
         _sessions(activity),
         if (activity.holdsPlace) ...[
           CheckInSection(key: ValueKey('checkin-${activity.myRegistrationStatus}'), activity: activity, onChanged: _load),
-          EvidenceSection(key: ValueKey('evidence-${activity.status}'), activity: activity),
         ],
       ];
 

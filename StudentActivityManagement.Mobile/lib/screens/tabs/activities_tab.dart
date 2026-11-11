@@ -145,7 +145,7 @@ class _ActivitiesTabState extends State<ActivitiesTab> {
           const SizedBox(height: 4),
           Text(
             _mine
-                ? 'Hoạt động bạn đã đăng ký, kể cả đã kết thúc: xem check-in và nộp minh chứng.'
+                ? 'Hoạt động bạn đã đăng ký, kể cả đã kết thúc: xem check-in và điểm đã ghi.'
                 : 'Chỉ hiện hoạt động bạn thuộc đối tượng tham gia, sắp diễn ra hoặc đang diễn ra.',
             style: const TextStyle(color: AppColors.muted, fontSize: 13),
           ),

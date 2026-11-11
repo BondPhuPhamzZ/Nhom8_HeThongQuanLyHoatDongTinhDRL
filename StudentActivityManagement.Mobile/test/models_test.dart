@@ -69,7 +69,7 @@ void main() {
     expect(AppUser.fromJson(user('SystemAdmin')).isStudentRole, isFalse);
   });
 
-  test('CheckInStatus and Evidence parse the participation payloads', () {
+  test('CheckInStatus parses the participation payload', () {
     final status = CheckInStatus.fromJson({
       'activityStatus': 'Ongoing',
       'method': 'Code',
@@ -81,10 +81,6 @@ void main() {
     expect(status.usesCode, isTrue);
     expect(status.sessions.single.canCheckIn, isTrue);
     expect(status.sessions.single.checkedInAt, isNull);
-
-    final evidence = Evidence.fromJson({'id': 1, 'evidenceType': 'ConfirmationCode', 'confirmationCode': 'XN-1', 'reviewStatus': 'Pending', 'uploadedAt': '2026-11-10T03:00:00Z', 'canDelete': true});
-    expect(evidence.typeLabel, 'Mã xác nhận');
-    expect(evidence.canDelete, isTrue);
   });
 
   test('PointsSummary reports the gap to the period target', () {

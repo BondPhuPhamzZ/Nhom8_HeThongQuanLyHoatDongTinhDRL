@@ -248,7 +248,7 @@ class ChatBubble extends StatelessWidget {
   }
 }
 
-/// Activity card inside an answer; opens the activity detail (register, check-in, evidence happen there).
+/// Activity card inside an answer; opens the activity detail (register and check-in happen there).
 class AssistantActivityTile extends StatelessWidget {
   const AssistantActivityTile({super.key, required this.activity, this.onTap});
 

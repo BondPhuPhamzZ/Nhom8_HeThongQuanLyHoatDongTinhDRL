@@ -6,7 +6,7 @@ import 'api_client.dart';
 class ActivityService {
   final _api = ApiClient.instance;
 
-  /// [registered] lists the student's own registrations, ended activities included (to submit evidence).
+  /// [registered] lists the student's own registrations, ended activities included (to see attendance and points).
   Future<PagedResult<Activity>> list({String? search, String? campus, int page = 1, int pageSize = 10, bool registered = false}) async {
     final result = await _api.get('/api/v1/student-activities', {
       'search': search,

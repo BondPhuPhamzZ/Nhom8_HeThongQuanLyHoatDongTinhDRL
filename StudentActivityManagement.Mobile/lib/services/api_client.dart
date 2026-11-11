@@ -75,19 +75,6 @@ class ApiClient {
 
   Future<ApiResult> delete(String path) => _send(() => _http.delete(uri(path), headers: _headers()));
 
-  /// Multipart POST (evidence upload). [files] maps the form field name to the picked file.
-  Future<ApiResult> postMultipart(String path, Map<String, String> fields, {String? fileField, List<int>? fileBytes, String? fileName}) {
-    return _send(() async {
-      final request = http.MultipartRequest('POST', uri(path))
-        ..headers.addAll(_headers(json: false))
-        ..fields.addAll(fields);
-      if (fileField != null && fileBytes != null && fileName != null) {
-        request.files.add(http.MultipartFile.fromBytes(fileField, fileBytes, filename: fileName));
-      }
-      return http.Response.fromStream(await _http.send(request));
-    });
-  }
-
   Future<ApiResult> _send(Future<http.Response> Function() call, {Duration? timeout}) async {
     final http.Response response;
     try {
