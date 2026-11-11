@@ -44,6 +44,9 @@ class ActivityHistoryItem {
     required this.pointStatus,
     required this.pointsAwarded,
     required this.pointReason,
+    this.pointRecordId,
+    this.appealStatus,
+    this.canAppeal = false,
     required this.checkInCount,
     required this.sessions,
   });
@@ -57,6 +60,10 @@ class ActivityHistoryItem {
   final String? pointStatus;
   final int? pointsAwarded;
   final String? pointReason;
+  /// US-37: the decision to appeal, the latest appeal status and whether the API allows an appeal now.
+  final int? pointRecordId;
+  final String? appealStatus;
+  final bool canAppeal;
   final int checkInCount;
   final List<SessionHistory> sessions;
 
@@ -70,6 +77,9 @@ class ActivityHistoryItem {
         pointStatus: json['pointStatus'] as String?,
         pointsAwarded: json['pointsAwarded'] as int?,
         pointReason: json['pointReason'] as String?,
+        pointRecordId: json['pointRecordId'] as int?,
+        appealStatus: json['appealStatus'] as String?,
+        canAppeal: json['canAppeal'] as bool? ?? false,
         checkInCount: json['checkInCount'] as int? ?? 0,
         sessions: ((json['sessions'] as List?) ?? const [])
             .map((raw) => SessionHistory.fromJson((raw as Map).cast<String, dynamic>()))
@@ -124,4 +134,55 @@ class PointsSummary {
           .toList(),
     );
   }
+}
+
+/// US-37 `PointAppealDto`: a student's appeal against a rejected point decision.
+class PointAppeal {
+  PointAppeal({
+    required this.id,
+    required this.pointRecordId,
+    required this.activityId,
+    required this.activityName,
+    required this.points,
+    required this.reason,
+    required this.status,
+    required this.staffResponse,
+    required this.createdAt,
+    required this.resolvedAt,
+  });
+
+  final int id;
+  final int pointRecordId;
+  final int activityId;
+  final String activityName;
+  final int points;
+  final String reason;
+  final String status;
+  final String? staffResponse;
+  final DateTime createdAt;
+  final DateTime? resolvedAt;
+
+  bool get isPending => status == 'Pending';
+
+  /// Same wording as the Web's "Khiếu nại điểm" page.
+  static String labelOf(String status) => switch (status) {
+        'Pending' => 'Đang chờ xử lý',
+        'Accepted' => 'Được chấp nhận',
+        'Rejected' => 'Bị từ chối',
+        'Withdrawn' => 'Đã rút',
+        _ => status,
+      };
+
+  factory PointAppeal.fromJson(Map<String, dynamic> json) => PointAppeal(
+        id: json['id'] as int,
+        pointRecordId: json['pointRecordId'] as int? ?? 0,
+        activityId: json['activityId'] as int? ?? 0,
+        activityName: json['activityName'] as String? ?? '',
+        points: json['points'] as int? ?? 0,
+        reason: json['reason'] as String? ?? '',
+        status: json['status'] as String? ?? '',
+        staffResponse: json['staffResponse'] as String?,
+        createdAt: VnTime.parse(json['createdAt']),
+        resolvedAt: VnTime.parseOrNull(json['resolvedAt']),
+      );
 }

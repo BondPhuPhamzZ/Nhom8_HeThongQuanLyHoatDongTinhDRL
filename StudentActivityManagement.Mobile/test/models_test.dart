@@ -83,6 +83,25 @@ void main() {
     expect(status.sessions.single.checkedInAt, isNull);
   });
 
+  test('History items and appeals carry the US-37 appeal fields', () {
+    final item = ActivityHistoryItem.fromJson({
+      'activityId': 4, 'activityName': 'Hội thảo', 'organizerName': 'VNG', 'registrationStatus': 'Attended',
+      'registeredAt': '2026-11-10T01:00:00Z', 'trainingPoints': 3, 'pointStatus': 'Rejected', 'pointRecordId': 9,
+      'appealStatus': null, 'canAppeal': true, 'checkInCount': 1, 'sessions': [],
+    });
+    expect(item.canAppeal, isTrue);
+    expect(item.pointRecordId, 9);
+    expect(ActivityHistoryItem.fromJson({'activityId': 1, 'registeredAt': '2026-11-10T01:00:00Z'}).canAppeal, isFalse);
+
+    final appeal = PointAppeal.fromJson({
+      'id': 2, 'pointRecordId': 9, 'activityId': 4, 'activityName': 'Hội thảo', 'points': 3, 'reason': 'Em có mặt cả buổi',
+      'status': 'Pending', 'staffResponse': null, 'createdAt': '2026-11-11T02:00:00Z', 'resolvedAt': null,
+    });
+    expect(appeal.isPending, isTrue);
+    expect(appeal.resolvedAt, isNull);
+    expect(PointAppeal.labelOf('Accepted'), 'Được chấp nhận');
+  });
+
   test('PointsSummary reports the gap to the period target', () {
     final summary = PointsSummary.fromJson({
       'period': {'id': 1, 'name': 'HK1', 'startDate': '2026-09-01T00:00:00Z', 'endDate': '2027-01-15T00:00:00Z', 'targetPoints': 10, 'status': 'Open'},
