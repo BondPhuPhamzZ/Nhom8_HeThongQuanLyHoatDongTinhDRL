@@ -1,7 +1,10 @@
 ﻿@{
     // Design system: the active navigation item carries the accent indicator.
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
     string NavActive(string controller) => string.Equals(controller, currentController, StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty;
+    // StudentReports holds two menu entries, so those two are told apart by action.
+    string ReportsActive(bool appeals) => NavActive("StudentReports") == "active" && (currentAction == "Appeals") == appeals ? "active" : string.Empty;
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -47,8 +50,9 @@
                             else
                             {
                                 <li class="nav-item"><a class="nav-link @NavActive("StudentActivities")" asp-controller="StudentActivities" asp-action="Index">Hoạt động dành cho tôi</a></li>
-                                <li class="nav-item"><a class="nav-link @NavActive("StudentReports")" asp-controller="StudentReports" asp-action="History">Lịch sử &amp; điểm</a></li>
+                                <li class="nav-item"><a class="nav-link @ReportsActive(false)" asp-controller="StudentReports" asp-action="History">Lịch sử &amp; điểm</a></li>
                                 <li class="nav-item"><a class="nav-link @NavActive("StudentPoints")" asp-controller="StudentPoints" asp-action="Index">Điểm &amp; gợi ý</a></li>
+                                <li class="nav-item"><a class="nav-link @ReportsActive(true)" asp-controller="StudentReports" asp-action="Appeals">Khiếu nại điểm</a></li>
                                 <li class="nav-item"><a class="nav-link @NavActive("Assistant")" asp-controller="Assistant" asp-action="Index">Trợ lý AI</a></li>
                                 <li class="nav-item"><a class="nav-link @NavActive("ClassSpace")" asp-controller="ClassSpace" asp-action="Index">Trao đổi lớp</a></li>
                                 <li class="nav-item"><a class="nav-link @NavActive("Notifications")" asp-controller="Notifications" asp-action="Index">Thông báo</a></li>

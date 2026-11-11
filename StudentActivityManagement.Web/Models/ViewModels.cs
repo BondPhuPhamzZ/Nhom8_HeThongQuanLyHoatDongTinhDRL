@@ -37,6 +37,15 @@ public sealed class StudentEvaluationHistoryPageViewModel
     public Dictionary<int, PointAppealDto> LatestAppeals { get; set; } = [];
 }
 
+/// <summary>Student "Khiếu nại điểm" page: decisions that can be appealed now and the student's own appeals.</summary>
+public sealed class StudentAppealsPageViewModel
+{
+    public List<StudentEvaluationPeriodDto> Periods { get; set; } = [];
+    public int? PeriodId { get; set; }
+    public List<StudentActivityHistoryDto> Appealable { get; set; } = [];
+    public List<PointAppealDto> Appeals { get; set; } = [];
+}
+
 public sealed class StudentPointsPageViewModel
 {
     public StudentPointsRecommendationDto? Summary { get; set; }

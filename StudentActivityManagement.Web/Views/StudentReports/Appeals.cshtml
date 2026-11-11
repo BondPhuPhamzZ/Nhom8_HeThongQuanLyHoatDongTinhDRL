@@ -1,0 +1,118 @@
+@model StudentAppealsPageViewModel
+@{
+    ViewData["Title"] = "Khiếu nại điểm";
+    string AppealLabel(string status) => status switch
+    {
+        "Pending" => "Đang chờ xử lý",
+        "Accepted" => "Được chấp nhận",
+        "Rejected" => "Bị từ chối",
+        "Withdrawn" => "Đã rút",
+        _ => status
+    };
+    string AppealCss(string status) => status switch
+    {
+        "Pending" => "text-bg-warning",
+        "Accepted" => "text-bg-success",
+        "Rejected" => "text-bg-danger",
+        _ => "text-bg-secondary"
+    };
+}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+    <div>
+        <h1 class="h3 mb-1">Khiếu nại điểm</h1>
+        <p class="text-muted mb-0">Quyết định điểm bị từ chối được khiếu nại trong 14 ngày khi kỳ còn mở.</p>
+    </div>
+    @if (Model.Periods.Count > 0)
+    {
+        <form method="get" class="d-flex gap-2">
+            <select class="form-select w-auto" name="periodId" aria-label="Kỳ đánh giá">
+                @foreach (var period in Model.Periods)
+                {
+                    <option value="@period.Id" selected="@(Model.PeriodId == period.Id ? "selected" : null)">@period.Name</option>
+                }
+            </select>
+            <button class="btn btn-primary" type="submit">Xem</button>
+        </form>
+    }
+</div>
+
+<h2 class="h5 mt-4">Có thể khiếu nại</h2>
+@if (Model.Appealable.Count == 0)
+{
+    <div class="empty-state mb-4">Không có quyết định điểm nào cần khiếu nại trong kỳ này.</div>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        @foreach (var activity in Model.Appealable)
+        {
+            <div class="col-12 col-lg-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between gap-2 mb-1">
+                            <a class="fw-semibold" asp-controller="StudentActivities" asp-action="Details" asp-route-id="@activity.ActivityId">@activity.ActivityName</a>
+                            <status-badge value="@activity.PointStatus" />
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(activity.PointReason))
+                        {
+                            <p class="small text-muted mb-2">Lý do: @activity.PointReason</p>
+                        }
+                        <form asp-action="Appeal" method="post">
+                            <input type="hidden" name="pointRecordId" value="@activity.PointRecordId" />
+                            <input type="hidden" name="periodId" value="@Model.PeriodId" />
+                            <input type="hidden" name="from" value="appeals" />
+                            <label for="appeal-@activity.PointRecordId" class="form-label small">Lý do khiếu nại (10–1000 ký tự)</label>
+                            <textarea id="appeal-@activity.PointRecordId" name="reason" class="form-control mb-2" rows="3" minlength="10" maxlength="1000" required></textarea>
+                            <button class="btn btn-primary btn-sm" type="submit">Gửi khiếu nại</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<h2 class="h5">Khiếu nại đã gửi</h2>
+@if (Model.Appeals.Count == 0)
+{
+    <div class="empty-state">Bạn chưa gửi khiếu nại nào.</div>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var appeal in Model.Appeals)
+        {
+            <div class="list-group-item py-3">
+                <div class="d-flex flex-wrap justify-content-between gap-2 mb-1">
+                    <span>
+                        <span class="badge @AppealCss(appeal.Status)">@AppealLabel(appeal.Status)</span>
+                        <a class="fw-semibold ms-1" asp-controller="StudentActivities" asp-action="Details" asp-route-id="@appeal.ActivityId">@appeal.ActivityName</a>
+                    </span>
+                    <span class="small text-muted">Gửi lúc <vn-time value="@appeal.CreatedAt" /></span>
+                </div>
+                <p class="pre-line mb-2">@appeal.Reason</p>
+                @if (!string.IsNullOrWhiteSpace(appeal.StaffResponse))
+                {
+                    <div class="alert @(appeal.Status == "Accepted" ? "alert-success" : "alert-secondary") py-2 mb-0">
+                        <div class="small fw-semibold">
+                            Phản hồi của Phòng QL HSSV
+                            @if (appeal.ResolvedAt.HasValue)
+                            {
+                                <span>· <vn-time value="@appeal.ResolvedAt.Value" /></span>
+                            }
+                        </div>
+                        <div class="pre-line">@appeal.StaffResponse</div>
+                    </div>
+                }
+                @if (appeal.Status == "Pending")
+                {
+                    <form asp-action="WithdrawAppeal" asp-route-id="@appeal.Id" method="post" class="mt-2" onsubmit="return confirm('Rút khiếu nại này?');">
+                        <input type="hidden" name="periodId" value="@Model.PeriodId" />
+                        <input type="hidden" name="from" value="appeals" />
+                        <button class="btn btn-outline-secondary btn-sm" type="submit">Rút khiếu nại</button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+}
