@@ -8,7 +8,7 @@
         .ToArray();
     var participation = new[] { ("Required", "Bắt buộc"), ("Recommended", "Khuyến khích"), ("Optional", "Tự chọn") };
 }
-<a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@Model.Id" class="small">&larr; Quay lại</a>
+<a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@Model.Id" class="btn-back">&larr; Quay lại</a>
 <h1 class="h3 mt-2 mb-3">@ViewData["Title"]</h1>
 
 <form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" id="activityForm" novalidate>

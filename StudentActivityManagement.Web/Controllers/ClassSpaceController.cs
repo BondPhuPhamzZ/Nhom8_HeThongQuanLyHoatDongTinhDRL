@@ -178,11 +178,14 @@ public sealed class ClassSpaceController : WebControllerBase
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Relay(int escalationId, string? status)
+    public async Task<IActionResult> Relay(int escalationId, string? status, int? threadId)
     {
         var result = await _api.RelayClassEscalationAsync(escalationId);
         if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
-        return RedirectToAction(nameof(Escalations), new { status });
+        // Relayed from the thread page: go back to the thread, where the answer now shows as a reply.
+        return threadId.HasValue
+            ? RedirectToAction(nameof(Thread), new { id = threadId })
+            : RedirectToAction(nameof(Escalations), new { status });
     }
 
     private async Task<ClassSpaceViewModel> LoadIndexAsync(string? kind, string? search, int page, ClassThreadForm form)

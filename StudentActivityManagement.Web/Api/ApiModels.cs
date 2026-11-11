@@ -293,7 +293,7 @@ public sealed class CheckInResult
     public string RegistrationStatus { get; set; } = string.Empty;
 }
 
-// ---- Participants and evidence review (US-21)
+// ---- Participants and attendance (US-21)
 
 public sealed class ActivityParticipants
 {
@@ -311,7 +311,6 @@ public sealed class ParticipantSummary
     public int Registered { get; set; }
     public int Attended { get; set; }
     public int Cancelled { get; set; }
-    public int PendingEvidence { get; set; }
 }
 
 public sealed class SessionAttendance
@@ -334,14 +333,10 @@ public class Participant
     public string RegistrationStatus { get; set; } = string.Empty;
     public DateTime RegisteredAt { get; set; }
     public List<ParticipantCheckIn> CheckIns { get; set; } = [];
-    public int PendingEvidenceCount { get; set; }
-    public int AcceptedEvidenceCount { get; set; }
-    public int RejectedEvidenceCount { get; set; }
 }
 
 public sealed class ParticipantDetail : Participant
 {
-    public List<StaffEvidence> Evidences { get; set; } = [];
 }
 
 public sealed class ParticipantCheckIn
@@ -352,26 +347,7 @@ public sealed class ParticipantCheckIn
     public string? RecordedByName { get; set; }
 }
 
-public sealed class StaffEvidence
-{
-    public int Id { get; set; }
-    public int? SessionId { get; set; }
-    public string? SessionName { get; set; }
-    public string EvidenceType { get; set; } = string.Empty;
-    public string? ConfirmationCode { get; set; }
-    public string? Note { get; set; }
-    public string? OriginalFileName { get; set; }
-    public string? ContentType { get; set; }
-    public long? SizeBytes { get; set; }
-    public string? FileUrl { get; set; }
-    public string ReviewStatus { get; set; } = string.Empty;
-    public string? ReviewNote { get; set; }
-    public string? ReviewedByName { get; set; }
-    public DateTime? ReviewedAt { get; set; }
-    public DateTime UploadedAt { get; set; }
-}
-
-/// <summary>A file downloaded from the API (evidence), passed through to the browser.</summary>
+/// <summary>A file downloaded from the API (report export), passed through to the browser.</summary>
 public sealed record ApiFile(byte[] Content, string ContentType, string FileName);
 
 // ---- Students (US-17)
@@ -435,27 +411,6 @@ public sealed class AccountCreateRequest
     public string Campus { get; set; } = "Cơ sở 1";
 }
 
-// ---- Student Evidences (US-08)
-
-public sealed class StudentEvidence
-{
-    public int Id { get; set; }
-    public int ActivityId { get; set; }
-    public int? SessionId { get; set; }
-    public string? SessionName { get; set; }
-    public string EvidenceType { get; set; } = string.Empty;
-    public string? ConfirmationCode { get; set; }
-    public string? Note { get; set; }
-    public string? OriginalFileName { get; set; }
-    public string? ContentType { get; set; }
-    public long? SizeBytes { get; set; }
-    public string? FileUrl { get; set; }
-    public string ReviewStatus { get; set; } = string.Empty;
-    public string? ReviewNote { get; set; }
-    public DateTime UploadedAt { get; set; }
-    public bool CanDelete { get; set; }
-}
-
 // ---- Evaluation periods and scoring (US-22)
 
 public sealed class EvaluationPeriod
@@ -491,8 +446,6 @@ public sealed class ScoringCandidate
     public string? ClassCode { get; set; }
     public string RegistrationStatus { get; set; } = string.Empty;
     public int CheckInCount { get; set; }
-    public int AcceptedEvidenceCount { get; set; }
-    public int PendingEvidenceCount { get; set; }
     public bool Eligible { get; set; }
     public string? IneligibleReason { get; set; }
     public PointRecordInfo? PointRecord { get; set; }
@@ -636,6 +589,7 @@ public sealed class ClassThreadDetail : ClassThreadSummary
     public bool CanEscalate { get; set; }
     public bool CanPin { get; set; }
     public bool CanManageAnswers { get; set; }
+    public ThreadEscalation? Escalation { get; set; }
     public List<ClassThreadReply> Replies { get; set; } = [];
 }
 

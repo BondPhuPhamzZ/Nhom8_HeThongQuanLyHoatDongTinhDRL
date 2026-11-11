@@ -18,7 +18,7 @@
     // The API also refuses drafts that only have cancelled registrations; this hides the obvious cases.
     var canDelete = Model.Status == "Draft" && Model.CurrentParticipantsCount == 0;
 }
-<a asp-action="Index" class="small">&larr; Danh sách hoạt động</a>
+<a asp-action="Index" class="btn-back">&larr; Danh sách hoạt động</a>
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mt-2 mb-3">
     <div>
         <status-badge value="@Model.Status" />

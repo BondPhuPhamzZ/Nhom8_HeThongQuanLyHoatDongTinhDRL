@@ -300,7 +300,7 @@ public sealed class ScoringService : IScoringService
             string? ineligible = record != null
                 ? "Đã có quyết định điểm."
                 : registration.Status != RegistrationStatus.Attended && accepted == 0
-                    ? "Chưa có check-in hoặc minh chứng được duyệt."
+                    ? "Chưa điểm danh."
                     : null;
 
             return new ScoringCandidateDto

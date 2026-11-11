@@ -69,7 +69,7 @@ void main() {
     expect(AppUser.fromJson(user('SystemAdmin')).isStudentRole, isFalse);
   });
 
-  test('CheckInStatus and Evidence parse the participation payloads', () {
+  test('CheckInStatus parses the participation payload', () {
     final status = CheckInStatus.fromJson({
       'activityStatus': 'Ongoing',
       'method': 'Code',
@@ -81,10 +81,41 @@ void main() {
     expect(status.usesCode, isTrue);
     expect(status.sessions.single.canCheckIn, isTrue);
     expect(status.sessions.single.checkedInAt, isNull);
+  });
 
-    final evidence = Evidence.fromJson({'id': 1, 'evidenceType': 'ConfirmationCode', 'confirmationCode': 'XN-1', 'reviewStatus': 'Pending', 'uploadedAt': '2026-11-10T03:00:00Z', 'canDelete': true});
-    expect(evidence.typeLabel, 'Mã xác nhận');
-    expect(evidence.canDelete, isTrue);
+  test('ThreadDetail carries the monitor escalation with the official answer', () {
+    Map<String, dynamic> thread(Object? escalation) => {
+          'id': 3, 'kind': 'Question', 'title': 'Lịch đăng kí môn', 'preview': 'Hỏi', 'status': 'Open', 'isPinned': false,
+          'author': {'id': 2, 'studentCode': 'SV210001', 'fullName': 'Lớp trưởng', 'isMonitor': true, 'isMe': true},
+          'replyCount': 0, 'createdAt': '2026-11-11T12:48:00Z', 'lastActivityAt': '2026-11-11T12:48:00Z',
+          'escalationStatus': 'Answered', 'body': 'Hỏi', 'replies': [], 'escalation': escalation,
+        };
+    final answered = ThreadDetail.fromJson(thread({
+      'id': 7, 'threadId': 3, 'question': 'Hỏi lịch', 'status': 'Answered', 'createdAt': '2026-11-11T12:48:00Z',
+      'answer': 'Xem thông báo Phòng Đào tạo', 'answeredAt': '2026-11-11T13:00:00Z', 'canRelay': true,
+    }));
+    expect(answered.escalation?.answer, 'Xem thông báo Phòng Đào tạo');
+    expect(answered.escalation?.canRelay, isTrue);
+    expect(ThreadDetail.fromJson(thread(null)).escalation, isNull);
+  });
+
+  test('History items and appeals carry the US-37 appeal fields', () {
+    final item = ActivityHistoryItem.fromJson({
+      'activityId': 4, 'activityName': 'Hội thảo', 'organizerName': 'VNG', 'registrationStatus': 'Attended',
+      'registeredAt': '2026-11-10T01:00:00Z', 'trainingPoints': 3, 'pointStatus': 'Rejected', 'pointRecordId': 9,
+      'appealStatus': null, 'canAppeal': true, 'checkInCount': 1, 'sessions': [],
+    });
+    expect(item.canAppeal, isTrue);
+    expect(item.pointRecordId, 9);
+    expect(ActivityHistoryItem.fromJson({'activityId': 1, 'registeredAt': '2026-11-10T01:00:00Z'}).canAppeal, isFalse);
+
+    final appeal = PointAppeal.fromJson({
+      'id': 2, 'pointRecordId': 9, 'activityId': 4, 'activityName': 'Hội thảo', 'points': 3, 'reason': 'Em có mặt cả buổi',
+      'status': 'Pending', 'staffResponse': null, 'createdAt': '2026-11-11T02:00:00Z', 'resolvedAt': null,
+    });
+    expect(appeal.isPending, isTrue);
+    expect(appeal.resolvedAt, isNull);
+    expect(PointAppeal.labelOf('Accepted'), 'Được chấp nhận');
   });
 
   test('PointsSummary reports the gap to the period target', () {

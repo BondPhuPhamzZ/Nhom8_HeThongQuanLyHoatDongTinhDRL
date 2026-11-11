@@ -76,7 +76,12 @@ public sealed class ScoringController : WebControllerBase
         }
         else
         {
-            FlashSuccess($"Đã chuyển quyết định điểm sang {result.Data?.Status} và lưu lý do vào lịch sử.");
+            var label = result.Data?.Status switch
+            {
+                "Approved" => "Đã ghi điểm", "Pending" => "Chờ kiểm tra", "Rejected" => "Từ chối", "Revoked" => "Thu hồi điểm",
+                var other => other
+            };
+            FlashSuccess($"Đã chuyển quyết định điểm sang \"{label}\" và lưu lý do vào lịch sử.");
         }
 
         return RedirectToAction(nameof(Index), new { id });

@@ -184,7 +184,7 @@ Ràng buộc:
 - Chỉ điểm danh hoặc hủy điểm danh khi hoạt động `Published`, `Ongoing` hoặc `Completed`; trường hợp khác trả `409`.
 - Đăng ký đã hủy không điểm danh và không duyệt minh chứng được (`409`).
 - Mã đăng ký, buổi hoặc minh chứng không thuộc hoạt động trả `404`.
-- Khi đăng ký đã có quyết định điểm (US-22), điểm danh và duyệt minh chứng của đăng ký đó trả `409`. Muốn sửa phải đi qua chuyển trạng thái bản ghi điểm (US-23).
+- Khi đăng ký đã có quyết định điểm do cán bộ đưa ra (US-22, US-23), điểm danh và duyệt minh chứng của đăng ký đó trả `409`. Muốn sửa phải đi qua chuyển trạng thái bản ghi điểm. Điểm tự ghi khi điểm danh (bên dưới) không chặn việc sửa điểm danh: hủy lần điểm danh cuối cùng sẽ xóa luôn điểm tự ghi đó.
 
 ### Kỳ đánh giá và sổ điểm (US-22)
 
@@ -204,7 +204,8 @@ Migration `Sprint4ScoreLedger` thêm 3 bảng:
 | `POST /api/v1/admin/point-records/{id}/transition` body `{ "status": "Pending", "reason": "..." }` | Chuyển theo state machine; bắt buộc ghi lý do, trả quyết định mới cùng `allowedNextStatuses` |
 
 Quy tắc:
-- **Đủ điều kiện:** đăng ký `Attended` (có check-in bằng mã hoặc điểm danh thủ công), hoặc có ít nhất một minh chứng `Accepted`; và chưa có quyết định điểm.
+- **Tự ghi điểm khi điểm danh:** lần check-in đầu tiên của một đăng ký (QR, nhập mã hoặc điểm danh thủ công) ghi ngay bản ghi `Approved` bằng `TrainingPoints` của hoạt động, lý do "Tự động ghi điểm khi điểm danh.", vào kỳ `Open` chứa thời điểm kết thúc của hoạt động. Nếu chưa có kỳ mở thì không ghi; cán bộ ghi sau bằng `scoring/approve`. Sinh viên không cần nộp minh chứng; Web và Mobile không còn màn nộp hay duyệt minh chứng, API minh chứng giữ lại cho dữ liệu cũ.
+- **Đủ điều kiện (cho `scoring/approve`):** đăng ký `Attended`, hoặc có ít nhất một minh chứng `Accepted`; và chưa có quyết định điểm.
 - **Điều kiện để ghi điểm:** hoạt động `Completed`, kỳ tìm được và đang `Open`; trường hợp khác trả `409`.
 - **Mỗi đăng ký chỉ ghi một lần:** unique index kết hợp transaction serializable.
 

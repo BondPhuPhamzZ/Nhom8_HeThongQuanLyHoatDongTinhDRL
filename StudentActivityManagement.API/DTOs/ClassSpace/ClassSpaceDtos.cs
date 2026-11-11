@@ -41,6 +41,8 @@ public sealed class ClassThreadDetailDto : ClassThreadSummaryDto
     public bool CanEscalate { get; set; }
     public bool CanPin { get; set; }
     public bool CanManageAnswers { get; set; }
+    /// <summary>Monitor only: the latest question raised to Phòng QL HSSV for this thread, with its official answer once given.</summary>
+    public ThreadEscalationDto? Escalation { get; set; }
     public List<ClassThreadReplyDto> Replies { get; set; } = [];
 }
 

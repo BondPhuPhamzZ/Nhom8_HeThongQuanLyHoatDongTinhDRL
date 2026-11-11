@@ -29,12 +29,12 @@ Future<void> main() async {
   );
 }
 
-/// Lato (design system font) is fetched by google_fonts; waiting for it before the first frame keeps text
+/// Inter (the free substitute for Linear's sans) is fetched by google_fonts; waiting for it before the first frame keeps text
 /// from being laid out with a fallback font and re-measured. Offline, the app starts with the fallback.
 Future<void> _loadFonts() async {
   try {
     await GoogleFonts.pendingFonts([
-      for (final weight in [FontWeight.w400, FontWeight.w500, FontWeight.w600, FontWeight.w700]) GoogleFonts.lato(fontWeight: weight),
+      for (final weight in [FontWeight.w400, FontWeight.w500, FontWeight.w600, FontWeight.w700]) GoogleFonts.inter(fontWeight: weight),
     ]).timeout(const Duration(seconds: 6));
   } on Object {
     // Font download failed or timed out: keep going with the platform font.

@@ -37,25 +37,30 @@ public sealed class ScoringTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task ApproveAll_RecordsAttendedAndAcceptedEvidence_OnceWithHistory()
+    public async Task Attendance_RecordsPointsAutomatically_AndApproveAllCoversTheRest_OnceWithHistory()
     {
         var setup = await SetupAsync(complete: true);
 
+        // The manual check-in in setup already recorded the attended student's points.
         var sheet = await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff));
         Assert.True(sheet.GetProperty("canApprove").GetBoolean());
-        Assert.Equal(2, sheet.GetProperty("eligibleCount").GetInt32());
+        var auto = Candidate(sheet, setup.AttendedRegistrationId).GetProperty("pointRecord");
+        Assert.Equal("Approved", auto.GetProperty("status").GetString());
+        Assert.Equal("Tự động ghi điểm khi điểm danh.", auto.GetProperty("reason").GetString());
+        Assert.Equal(1, sheet.GetProperty("eligibleCount").GetInt32());
         var absent = Candidate(sheet, setup.AbsentRegistrationId);
         Assert.False(absent.GetProperty("eligible").GetBoolean());
 
         var approved = await ApproveAsync(setup, null);
         Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
-        Assert.Equal(2, (await DataAsync(approved)).GetProperty("approvedCount").GetInt32());
+        Assert.Equal(1, (await DataAsync(approved)).GetProperty("approvedCount").GetInt32());
 
         var after = await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff));
         Assert.Equal(2, after.GetProperty("approvedCount").GetInt32());
         var record = Candidate(after, setup.AttendedRegistrationId).GetProperty("pointRecord");
         Assert.Equal("Approved", record.GetProperty("status").GetString());
         Assert.Equal(7, record.GetProperty("points").GetInt32());
+        Assert.Equal(7, await RegistrationPointsAsync(setup.AttendedRegistrationId));
         Assert.Equal("Approved", Candidate(after, setup.EvidenceRegistrationId).GetProperty("pointRecord").GetProperty("status").GetString());
         Assert.Equal(JsonValueKind.Null, Candidate(after, setup.AbsentRegistrationId).GetProperty("pointRecord").ValueKind);
 
@@ -72,13 +77,25 @@ public sealed class ScoringTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task ScoredRegistration_FreezesAttendanceAndEvidenceReview()
+    public async Task UndoingAttendance_RemovesTheAutomaticPoints_ButAStaffDecisionFreezesAttendance()
     {
         var setup = await SetupAsync(complete: true);
-        Assert.Equal(HttpStatusCode.OK, (await ApproveAsync(setup, [setup.AttendedRegistrationId])).StatusCode);
+        var checkInUrl = $"/api/v1/admin/activities/{setup.ActivityId}/sessions/{setup.SessionId}/check-ins";
 
-        var undo = await _api.SendAsync(HttpMethod.Delete,
-            $"/api/v1/admin/activities/{setup.ActivityId}/sessions/{setup.SessionId}/check-ins/{setup.AttendedRegistrationId}", setup.Staff, null);
+        // Only the automatic award exists, so the check-in can still be corrected and takes the points with it.
+        Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Delete,
+            $"{checkInUrl}/{setup.AttendedRegistrationId}", setup.Staff, null)).StatusCode);
+        var undone = await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff));
+        Assert.Equal(JsonValueKind.Null, Candidate(undone, setup.AttendedRegistrationId).GetProperty("pointRecord").ValueKind);
+        Assert.Equal(0, await RegistrationPointsAsync(setup.AttendedRegistrationId));
+
+        // Checking in again records the points again; once staff change that decision, attendance is frozen.
+        Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Post, checkInUrl, setup.Staff,
+            new { registrationId = setup.AttendedRegistrationId })).StatusCode);
+        var sheet = await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff));
+        var recordId = Candidate(sheet, setup.AttendedRegistrationId).GetProperty("pointRecord").GetProperty("id").GetInt32();
+        Assert.Equal(HttpStatusCode.OK, (await TransitionAsync(setup, recordId, "Pending", "Cần xác minh lại điểm danh")).StatusCode);
+        var undo = await _api.SendAsync(HttpMethod.Delete, $"{checkInUrl}/{setup.AttendedRegistrationId}", setup.Staff, null);
         Assert.Equal(HttpStatusCode.Conflict, undo.StatusCode);
 
         // The other registration is not scored yet, so its evidence can still be reviewed.

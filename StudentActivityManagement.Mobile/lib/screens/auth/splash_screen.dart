@@ -9,7 +9,7 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: AppColors.charcoal,
+        backgroundColor: AppColors.white,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -18,7 +18,7 @@ class SplashScreen extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'Hoạt động & Điểm rèn luyện',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.white),
+                style: Theme.of(context).textTheme.titleLarge,
               ),
             ],
           ),
@@ -26,7 +26,7 @@ class SplashScreen extends StatelessWidget {
       );
 }
 
-/// The yellow "RL" mark used on the Web navigation bar.
+/// The lavender "RL" mark, the only logo on the Web top bar.
 class BrandMark extends StatelessWidget {
   const BrandMark({super.key, this.size = 32});
 
@@ -37,7 +37,7 @@ class BrandMark extends StatelessWidget {
         width: size,
         height: size,
         alignment: Alignment.center,
-        decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(AppStyles.radius)),
-        child: Text('RL', style: TextStyle(color: AppColors.charcoal, fontWeight: FontWeight.w700, fontSize: size * 0.42)),
+        decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(AppStyles.radius)),
+        child: Text('RL', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: size * 0.4)),
       );
 }

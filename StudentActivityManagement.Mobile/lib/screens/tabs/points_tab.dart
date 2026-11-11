@@ -9,6 +9,7 @@ import '../../services/report_service.dart';
 import '../../utils/vn_time.dart';
 import '../activity/activity_detail_screen.dart';
 import '../assistant/assistant_screen.dart';
+import '../points/appeals_screen.dart';
 import '../widgets/activity_card.dart';
 import '../widgets/feedback_views.dart';
 import '../widgets/status_badge.dart';
@@ -64,6 +65,10 @@ class _PointsTabState extends State<PointsTab> {
     }
   }
 
+  int get _appealableCount => _history.where((item) => item.canAppeal).length;
+
+  void _openAppeals() => Navigator.push(context, MaterialPageRoute(builder: (_) => AppealsScreen(periodId: _periodId!))).then((_) => _load());
+
   void _openActivity(int id) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => ActivityDetailScreen(activityId: id))).then((_) => _load());
 
@@ -99,6 +104,19 @@ class _PointsTabState extends State<PointsTab> {
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AssistantScreen())),
             ),
           ),
+          if (_periodId != null)
+            Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: ListTile(
+                leading: const Icon(LucideIcons.messageSquareWarning, color: AppColors.primary),
+                title: const Text('Khiếu nại điểm'),
+                subtitle: Text(_appealableCount == 0
+                    ? 'Xem khiếu nại đã gửi và phản hồi của Phòng QL HSSV'
+                    : '$_appealableCount quyết định điểm có thể khiếu nại'),
+                trailing: const Icon(LucideIcons.chevronRight, size: 18),
+                onTap: _openAppeals,
+              ),
+            ),
           DropdownButtonFormField<int>(
             isExpanded: true,
             initialValue: _periodId,
@@ -218,6 +236,7 @@ class _HistoryCard extends StatelessWidget {
                 Wrap(spacing: 6, runSpacing: 4, children: [
                   StatusBadge(item.registrationStatus),
                   if (item.pointStatus != null) StatusBadge(item.pointStatus!),
+                  if (item.appealStatus != null) StatusBadge(item.appealStatus!, label: 'Khiếu nại: ${PointAppeal.labelOf(item.appealStatus!)}'),
                   PointsChip(item.pointsAwarded ?? item.trainingPoints),
                 ]),
                 const SizedBox(height: 6),

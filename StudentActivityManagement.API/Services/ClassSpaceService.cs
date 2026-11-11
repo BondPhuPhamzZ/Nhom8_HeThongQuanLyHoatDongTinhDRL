@@ -563,6 +563,12 @@ public sealed class ClassSpaceService : IClassSpaceService
             && ClassThreadKind.MemberKinds.Contains(thread.Kind)
             && escalationStatus != EscalationStatus.Pending;
         detail.CanPin = member.MonitorId == userId;
+        if (member.MonitorId == userId)
+        {
+            var escalation = await EscalationQuery().Where(item => item.ThreadId == threadId)
+                .OrderByDescending(item => item.Id).FirstOrDefaultAsync();
+            detail.Escalation = escalation == null ? null : MapEscalation(escalation);
+        }
         return detail;
     }
 

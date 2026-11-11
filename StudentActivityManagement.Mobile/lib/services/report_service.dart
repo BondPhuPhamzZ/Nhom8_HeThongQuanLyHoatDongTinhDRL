@@ -1,7 +1,7 @@
 import '../models/student_report.dart';
 import 'api_client.dart';
 
-/// US-10 history and US-11 points/recommendations, per evaluation period.
+/// US-10 history, US-11 points/recommendations per evaluation period, and US-37 point appeals.
 class ReportService {
   final _api = ApiClient.instance;
 
@@ -29,4 +29,15 @@ class ReportService {
       rethrow;
     }
   }
+
+  /// US-37: the student's appeals, newest first.
+  Future<List<PointAppeal>> appeals() async => (await _api.get('/api/v1/student/point-appeals'))
+      .list
+      .map((raw) => PointAppeal.fromJson((raw as Map).cast<String, dynamic>()))
+      .toList();
+
+  Future<String> appeal(int pointRecordId, String reason) async =>
+      (await _api.post('/api/v1/student/point-appeals', {'pointRecordId': pointRecordId, 'reason': reason.trim()})).message;
+
+  Future<String> withdrawAppeal(int id) async => (await _api.post('/api/v1/student/point-appeals/$id/withdraw')).message;
 }

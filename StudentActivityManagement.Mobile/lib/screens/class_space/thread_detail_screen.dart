@@ -149,6 +149,12 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
                     padding: const EdgeInsets.all(16),
                     children: [
                       EntryAnimation(child: _ThreadBody(thread: thread)),
+                      if (thread.escalation case final escalation?)
+                        _EscalationCard(
+                          escalation: escalation,
+                          busy: _busy,
+                          onRelay: () => _run(() => _service.relay(escalation.id)),
+                        ),
                       if (thread.canEscalate)
                         Padding(
                           padding: const EdgeInsets.only(top: 12),
@@ -275,4 +281,70 @@ class _ReplyCard extends StatelessWidget {
           ],
         ),
       );
+}
+
+/// The monitor's escalation on this thread: the question, its state and the official answer with the relay action.
+class _EscalationCard extends StatelessWidget {
+  const _EscalationCard({required this.escalation, required this.busy, required this.onRelay});
+
+  final Escalation escalation;
+  final bool busy;
+  final VoidCallback onRelay;
+
+  @override
+  Widget build(BuildContext context) {
+    final answer = escalation.answer;
+    return Card(
+      margin: const EdgeInsets.only(top: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Expanded(child: Text('Câu hỏi đã chuyển lên Phòng QL HSSV', style: TextStyle(fontWeight: FontWeight.w700))),
+              StatusBadge(escalation.status == 'Answered' ? 'Accepted' : escalation.status, label: escalationLabel(escalation.status) ?? escalation.status),
+            ]),
+            const SizedBox(height: 4),
+            Text(escalation.question, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+            if (answer != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF9F1),
+                  borderRadius: BorderRadius.circular(AppStyles.radius),
+                  border: Border.all(color: const Color(0xFFC3E8CD)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Phản hồi của ${escalation.answeredByName ?? 'Phòng QL HSSV'}${escalation.answeredAt == null ? '' : ' · ${VnTime.dateTime(escalation.answeredAt)}'}',
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(answer),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (escalation.canRelay)
+                FilledButton.icon(
+                  onPressed: busy ? null : onRelay,
+                  icon: const Icon(LucideIcons.share2, size: 18),
+                  label: const Text('Chuyển phản hồi vào lớp'),
+                )
+              else if (escalation.relayedAt != null)
+                Text('Đã chuyển vào lớp · ${VnTime.dateTime(escalation.relayedAt)}', style: const TextStyle(color: AppColors.success, fontSize: 12)),
+            ] else if (escalation.status == 'Pending') ...[
+              const SizedBox(height: 8),
+              const Text('Đang chờ Phòng QL HSSV trả lời. Bạn sẽ nhận thông báo khi có phản hồi.', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }

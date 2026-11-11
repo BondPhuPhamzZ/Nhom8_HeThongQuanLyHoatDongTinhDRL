@@ -3,7 +3,7 @@
     var isEdit = Model.Id.HasValue;
     ViewData["Title"] = isEdit ? "Sửa sinh viên" : "Thêm sinh viên";
 }
-<a asp-action="Index" class="small">&larr; Danh sách sinh viên</a>
+<a asp-action="Index" class="btn-back">&larr; Danh sách sinh viên</a>
 <h1 class="h3 mt-2 mb-3">@ViewData["Title"]</h1>
 
 <form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" novalidate>

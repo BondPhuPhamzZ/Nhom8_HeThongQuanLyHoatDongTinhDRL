@@ -98,120 +98,6 @@ public sealed class ApiClient
         SendAsync<StudentPointsRecommendationDto>(HttpMethod.Get,
             $"api/v1/student/reports/points-and-recommendations?{Query(("periodId", periodId?.ToString()))}");
 
-    // ---- Student Evidences (US-08)
-    public Task<ApiResult<List<StudentEvidence>>> GetStudentEvidencesAsync(int activityId) =>
-        SendAsync<List<StudentEvidence>>(HttpMethod.Get, $"api/v1/student-activities/{activityId}/evidences");
-
-    public async Task<ApiResult<StudentEvidence>> UploadEvidenceAsync(
-        int activityId, string evidenceType, Microsoft.AspNetCore.Http.IFormFile? file, string? confirmationCode, int? sessionId, string? note)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"api/v1/student-activities/{activityId}/evidences");
-        var content = new MultipartFormDataContent();
-        content.Add(new StringContent(evidenceType), "evidenceType");
-
-        if (file != null && file.Length > 0)
-        {
-            var streamContent = new StreamContent(file.OpenReadStream());
-            if (!string.IsNullOrWhiteSpace(file.ContentType))
-            {
-                streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
-            }
-            content.Add(streamContent, "file", file.FileName);
-        }
-
-        if (!string.IsNullOrWhiteSpace(confirmationCode))
-        {
-            content.Add(new StringContent(confirmationCode.Trim()), "confirmationCode");
-        }
-
-        if (sessionId.HasValue)
-        {
-            content.Add(new StringContent(sessionId.Value.ToString()), "sessionId");
-        }
-
-        if (!string.IsNullOrWhiteSpace(note))
-        {
-            content.Add(new StringContent(note.Trim()), "note");
-        }
-
-        request.Content = content;
-
-        HttpResponseMessage response;
-        try
-        {
-            response = await _http.SendAsync(request);
-        }
-        catch (HttpRequestException)
-        {
-            return new ApiResult<StudentEvidence>
-            {
-                StatusCode = HttpStatusCode.ServiceUnavailable,
-                Message = "Không kết nối được API. Hãy kiểm tra StudentActivityManagement.API đang chạy."
-            };
-        }
-
-        using (response)
-        {
-            var text = await response.Content.ReadAsStringAsync();
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
-            {
-                throw new ApiUnauthorizedException("Phiên đăng nhập đã hết hạn hoặc tài khoản đã thay đổi quyền. Vui lòng đăng nhập lại.");
-            }
-
-            if (response.IsSuccessStatusCode)
-            {
-                using var document = JsonDocument.Parse(string.IsNullOrWhiteSpace(text) ? "{}" : text);
-                var root = document.RootElement;
-                return new ApiResult<StudentEvidence>
-                {
-                    Success = true,
-                    StatusCode = response.StatusCode,
-                    Message = root.TryGetProperty("message", out var message) ? message.GetString() ?? string.Empty : string.Empty,
-                    Data = root.TryGetProperty("data", out var data) ? data.Deserialize<StudentEvidence>(Json) : default
-                };
-            }
-
-            return ReadProblem<StudentEvidence>(response.StatusCode, text);
-        }
-    }
-
-    public async Task<ApiResult<ApiFile>> DownloadStudentEvidenceFileAsync(int activityId, int evidenceId)
-    {
-        HttpResponseMessage raw;
-        try
-        {
-            raw = await _http.GetAsync($"api/v1/student-activities/{activityId}/evidences/{evidenceId}/file");
-        }
-        catch (HttpRequestException)
-        {
-            return new ApiResult<ApiFile> { StatusCode = HttpStatusCode.ServiceUnavailable, Message = "Không kết nối được API." };
-        }
-
-        using var response = raw;
-        if (response.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            throw new ApiUnauthorizedException("Phiên đăng nhập đã hết hạn hoặc tài khoản đã thay đổi quyền. Vui lòng đăng nhập lại.");
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return ReadProblem<ApiFile>(response.StatusCode, await response.Content.ReadAsStringAsync());
-        }
-
-        return new ApiResult<ApiFile>
-        {
-            Success = true,
-            StatusCode = response.StatusCode,
-            Data = new ApiFile(
-                await response.Content.ReadAsByteArrayAsync(),
-                response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream",
-                response.Content.Headers.ContentDisposition?.FileNameStar ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? $"minh-chung-{evidenceId}")
-        };
-    }
-
-    public Task<ApiResult<object>> DeleteStudentEvidenceAsync(int activityId, int evidenceId) =>
-        SendAsync<object>(HttpMethod.Delete, $"api/v1/student-activities/{activityId}/evidences/{evidenceId}");
-
     // ---- Activity management (HSSV, SystemAdmin)
     public Task<ApiResult<PagedResult<ActivityDto>>> GetActivitiesAsync(string? search, string? status, int page, int pageSize = 10) =>
         SendAsync<PagedResult<ActivityDto>>(HttpMethod.Get, $"api/v1/admin/activities?{Query(("search", search), ("status", status), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
@@ -249,9 +135,9 @@ public sealed class ApiClient
     public Task<ApiResult<ReminderScheduleDto>> UpdateReminderScheduleAsync(int activityId, IReadOnlyList<int> offsetsMinutes) =>
         SendAsync<ReminderScheduleDto>(HttpMethod.Put, $"api/v1/admin/activities/{activityId}/reminder-schedule", new { offsetsMinutes });
 
-    public Task<ApiResult<ActivityParticipants>> GetParticipantsAsync(int activityId, string? status, string? search, bool pendingOnly, int page, int pageSize = 20) =>
+    public Task<ApiResult<ActivityParticipants>> GetParticipantsAsync(int activityId, string? status, string? search, int page, int pageSize = 20) =>
         SendAsync<ActivityParticipants>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/participants?{Query(
-            ("status", status), ("search", search), ("hasPendingEvidence", pendingOnly ? "true" : null),
+            ("status", status), ("search", search),
             ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
 
     public Task<ApiResult<ParticipantDetail>> GetParticipantAsync(int activityId, int registrationId) =>
@@ -262,43 +148,6 @@ public sealed class ApiClient
 
     public Task<ApiResult<ParticipantDetail>> RemoveCheckInAsync(int activityId, int sessionId, int registrationId) =>
         SendAsync<ParticipantDetail>(HttpMethod.Delete, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-ins/{registrationId}");
-
-    public Task<ApiResult<StaffEvidence>> ReviewEvidenceAsync(int activityId, int evidenceId, string status, string? note) =>
-        SendAsync<StaffEvidence>(HttpMethod.Patch, $"api/v1/admin/activities/{activityId}/evidences/{evidenceId}/review", new { status, note });
-
-    /// <summary>Downloads an evidence file; files are capped at 5 MB by the API, so buffering is fine.</summary>
-    public async Task<ApiResult<ApiFile>> GetEvidenceFileAsync(int activityId, int evidenceId)
-    {
-        HttpResponseMessage raw;
-        try
-        {
-            raw = await _http.GetAsync($"api/v1/admin/activities/{activityId}/evidences/{evidenceId}/file");
-        }
-        catch (HttpRequestException)
-        {
-            return new ApiResult<ApiFile> { StatusCode = HttpStatusCode.ServiceUnavailable, Message = "Không kết nối được API." };
-        }
-
-        using var response = raw;
-        if (response.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            throw new ApiUnauthorizedException("Phiên đăng nhập đã hết hạn hoặc tài khoản đã thay đổi quyền. Vui lòng đăng nhập lại.");
-        }
-        if (!response.IsSuccessStatusCode)
-        {
-            return ReadProblem<ApiFile>(response.StatusCode, await response.Content.ReadAsStringAsync());
-        }
-
-        return new ApiResult<ApiFile>
-        {
-            Success = true,
-            StatusCode = response.StatusCode,
-            Data = new ApiFile(
-                await response.Content.ReadAsByteArrayAsync(),
-                response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream",
-                response.Content.Headers.ContentDisposition?.FileNameStar ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? $"minh-chung-{evidenceId}")
-        };
-    }
 
     public Task<ApiResult<List<ClassDto>>> GetClassesAsync() =>
         SendAsync<List<ClassDto>>(HttpMethod.Get, "api/v1/admin/classes");

@@ -54,8 +54,13 @@ public sealed class ReportTests : IClassFixture<CustomWebApplicationFactory>
         {
             Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Patch, $"/api/v1/admin/activities/{activityId}/status", staff, new { status })).StatusCode);
         }
-        Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/activities/{activityId}/scoring/approve", staff,
-            new { registrationIds = new[] { registrations["SV210002"] } })).StatusCode);
+        // Both check-ins recorded 7 points automatically; staff revoke SV210001's, so only SV210002's count.
+        var scoring = (await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{activityId}/scoring", staff)))
+            .GetProperty("candidates").EnumerateArray()
+            .Single(item => item.GetProperty("registrationId").GetInt32() == registrations["SV210001"]);
+        Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Post,
+            $"/api/v1/admin/point-records/{scoring.GetProperty("pointRecord").GetProperty("id").GetInt32()}/transition", staff,
+            new { status = "Revoked", reason = "Rời buổi sớm" })).StatusCode);
 
         // A cancelled activity in the same period is reported separately, not counted.
         var cancelledId = await CreateActivityAsync(staff, 3);

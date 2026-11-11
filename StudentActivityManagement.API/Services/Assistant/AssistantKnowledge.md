@@ -6,9 +6,10 @@ Các quy tắc dưới đây là cách hệ thống đang vận hành (lấy t�
 
 - Điểm rèn luyện được tính theo từng kỳ đánh giá do Phòng Quản lý HSSV tạo. Mỗi kỳ có ngày bắt đầu, ngày kết thúc, mục tiêu điểm và trạng thái Mở hoặc Đóng.
 - Điểm của sinh viên trong một kỳ là tổng điểm các bản ghi điểm **đã được duyệt**. Điểm đang chờ duyệt hoặc bị từ chối chưa được cộng.
-- Một hoạt động thuộc kỳ chứa thời điểm kết thúc của hoạt động đó. Phòng QL HSSV chỉ ghi điểm khi kỳ còn mở.
+- Một hoạt động thuộc kỳ chứa thời điểm kết thúc của hoạt động đó. Điểm chỉ được ghi khi kỳ còn mở.
 - Mức điểm được ghi bằng điểm rèn luyện của hoạt động. Hoạt động 0 điểm không cộng điểm.
-- Phòng QL HSSV chỉ ghi điểm cho sinh viên đã chứng minh tham gia, bằng check-in (mã hoặc điểm danh thủ công) hoặc bằng minh chứng được duyệt.
+- Điểm danh là bằng chứng tham gia: khi sinh viên check-in thành công (quét QR, nhập mã hoặc được cán bộ điểm danh thủ công), điểm của hoạt động được ghi ngay ở trạng thái đã duyệt. Sinh viên không cần nộp minh chứng.
+- Phòng QL HSSV vẫn có thể chuyển quyết định điểm sang chờ duyệt, từ chối hoặc thu hồi, luôn kèm lý do.
 - Sinh viên có điểm đã duyệt thấp hơn mục tiêu của kỳ là có nguy cơ thiếu điểm. Hệ thống gợi ý các hoạt động còn mở đăng ký, còn chỗ, có điểm, thuộc kỳ và phù hợp đối tượng. Hoạt động bắt buộc được ưu tiên, sau đó đến hoạt động khuyến khích.
 
 ## Đăng ký và hủy đăng ký
@@ -24,15 +25,14 @@ Các quy tắc dưới đây là cách hệ thống đang vận hành (lấy t�
 - Với cách check-in bằng mã, sinh viên nhập mã do cán bộ công bố tại buổi hoạt động. Nếu hoạt động dùng điểm danh thủ công thì cán bộ ghi nhận thay.
 - Khung check-in mặc định mở 15 phút trước giờ bắt đầu buổi và đóng 30 phút sau giờ kết thúc buổi. Cán bộ có thể đổi khung này cho từng hoạt động, nên luôn tra khung giờ thực tế của hoạt động.
 
-## Minh chứng
+## Khiếu nại điểm
 
-- Sinh viên đã đăng ký có thể nộp minh chứng khi hoạt động đang diễn ra hoặc đã kết thúc. Minh chứng gồm ảnh, PDF (tối đa 5 MB) hoặc mã xác nhận.
-- Mỗi lượt đăng ký được nộp tối đa 5 minh chứng, trong vòng 7 ngày sau khi buổi cuối cùng kết thúc.
-- Phòng QL HSSV duyệt hoặc từ chối minh chứng. Minh chứng đang chờ duyệt có thể được sinh viên xóa.
+- Khi một quyết định điểm bị từ chối, sinh viên gửi khiếu nại ở mục "Khiếu nại điểm" của ứng dụng, trong vòng 14 ngày và khi kỳ còn mở. Mỗi quyết định chỉ có một khiếu nại đang chờ; sinh viên rút được khiếu nại khi chưa được xử lý.
+- Phòng QL HSSV chấp nhận (điểm được duyệt lại) hoặc từ chối kèm phản hồi, và sinh viên nhận thông báo kết quả.
 
 ## Hỏi đáp trong lớp
 
-- Mỗi lớp có không gian trao đổi. Lớp trưởng có thể chuyển câu hỏi chưa giải quyết lên Phòng QL HSSV và chuyển câu trả lời chính thức lại cho lớp.
+- Mỗi lớp có không gian trao đổi. Lớp trưởng có thể chuyển câu hỏi chưa giải quyết lên Phòng QL HSSV và chuyển câu trả lời chính thức lại cho lớp. Lớp trưởng xem phản hồi của Phòng QL HSSV ngay trong chủ đề đó hoặc ở mục "Câu hỏi đã chuyển".
 
 ## Quy chế đánh giá rèn luyện của trường
 

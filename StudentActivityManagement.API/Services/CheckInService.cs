@@ -148,6 +148,7 @@ public sealed class CheckInService : ICheckInService
                 registration.Status = RegistrationStatus.Attended;
                 registration.CheckInTime ??= now;
             }
+            await AttendancePoints.AwardAsync(_context, registration, activity, staffId: null, now);
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
