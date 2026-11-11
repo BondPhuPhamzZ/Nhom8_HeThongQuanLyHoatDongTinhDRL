@@ -29,6 +29,14 @@ public sealed class ClassMonitorRelayTests : IClassFixture<CustomWebApplicationF
         var staffAnswer = await _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/class-escalations/{escalationId}/answer", staff, new { answer });
         Assert.Equal(HttpStatusCode.OK, staffAnswer.StatusCode);
 
+        // The monitor reads the official answer on the thread itself; other students do not see the escalation.
+        var monitorView = (await AccountTestClient.ReadJsonAsync(
+            await _api.GetAsync($"/api/v1/class-space/threads/{threadId}", monitor))).GetProperty("data").GetProperty("escalation");
+        Assert.Equal(answer, monitorView.GetProperty("answer").GetString());
+        Assert.True(monitorView.GetProperty("canRelay").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, (await AccountTestClient.ReadJsonAsync(
+            await _api.GetAsync($"/api/v1/class-space/threads/{threadId}", student))).GetProperty("data").GetProperty("escalation").ValueKind);
+
         var relay = await _api.SendAsync(HttpMethod.Post, $"/api/v1/class-space/escalations/{escalationId}/relay", monitor, null);
         Assert.Equal(HttpStatusCode.OK, relay.StatusCode);
         var relayed = (await AccountTestClient.ReadJsonAsync(relay)).GetProperty("data");
