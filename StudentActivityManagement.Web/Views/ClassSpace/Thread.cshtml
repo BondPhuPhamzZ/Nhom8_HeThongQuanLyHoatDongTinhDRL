@@ -32,6 +32,44 @@
     </div>
 </div>
 
+@if (Model.Escalation is { } escalation)
+{
+    <div class="card mb-4 @(escalation.Answer != null ? "border-success" : "")">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                <h2 class="h6 mb-0">Câu hỏi đã chuyển lên Phòng QL HSSV</h2>
+                <partial name="_EscalationBadge" model="escalation.Status" />
+            </div>
+            <p class="small text-muted pre-line mb-2">@escalation.Question</p>
+            @if (escalation.Answer != null)
+            {
+                <div class="alert alert-success py-2 mb-2">
+                    <div class="small fw-semibold">
+                        Phản hồi của @(escalation.AnsweredByName ?? "Phòng QL HSSV")
+                        @if (escalation.AnsweredAt.HasValue) { <span>· <vn-time value="@escalation.AnsweredAt.Value" /></span> }
+                    </div>
+                    <div class="pre-line">@escalation.Answer</div>
+                </div>
+                @if (escalation.CanRelay)
+                {
+                    <form asp-action="Relay" asp-route-escalationId="@escalation.Id" asp-route-threadId="@Model.Id" method="post" class="m-0">
+                        <button type="submit" class="btn btn-sm btn-primary">Chuyển phản hồi vào lớp</button>
+                        <span class="small text-muted ms-2">Cả lớp sẽ thấy phản hồi này là câu trả lời chính thức.</span>
+                    </form>
+                }
+                else if (escalation.RelayedAt.HasValue)
+                {
+                    <p class="small text-success mb-0">Đã chuyển vào lớp · <vn-time value="@escalation.RelayedAt.Value" /></p>
+                }
+            }
+            else if (escalation.Status == "Pending")
+            {
+                <p class="small text-muted mb-0">Đang chờ Phòng QL HSSV trả lời. Bạn sẽ nhận thông báo khi có phản hồi.</p>
+            }
+        </div>
+    </div>
+}
+
 @if (Model.CanEscalate)
 {
     <details class="card shadow-sm border-0 mb-4">

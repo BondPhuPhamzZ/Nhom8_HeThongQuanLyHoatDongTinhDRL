@@ -589,6 +589,7 @@ public sealed class ClassThreadDetail : ClassThreadSummary
     public bool CanEscalate { get; set; }
     public bool CanPin { get; set; }
     public bool CanManageAnswers { get; set; }
+    public ThreadEscalation? Escalation { get; set; }
     public List<ClassThreadReply> Replies { get; set; } = [];
 }
 
