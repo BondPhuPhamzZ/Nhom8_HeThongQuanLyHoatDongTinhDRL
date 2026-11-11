@@ -111,7 +111,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
                       subtitle: Text('${_items[i].kindLabel} · ${VnTime.dateTime(_items[i].createdAt)}\n${_items[i].body}', maxLines: 3, overflow: TextOverflow.ellipsis),
                       isThreeLine: true,
                       trailing: _items[i].isUnread
-                          ? Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle))
+                          ? Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle))
                           : null,
                     ),
                   ),

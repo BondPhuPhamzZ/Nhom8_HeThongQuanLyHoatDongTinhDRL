@@ -20,11 +20,11 @@ class EmptyState extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(AppStyles.radius),
-          border: Border.all(color: const Color(0xFFC8D1E0)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 36, color: const Color(0xFFADB5BD)),
+            Icon(icon, size: 36, color: AppColors.borderStrong),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.muted)),
             if (actionLabel != null && onAction != null) ...[

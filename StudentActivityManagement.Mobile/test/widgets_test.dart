@@ -14,9 +14,11 @@ void main() {
   testWidgets('StatusBadge uses the Web labels and design colours', (tester) async {
     await pump(tester, const StatusBadge('Attended'));
     expect(find.text('Đã tham gia'), findsOneWidget);
+    // Same soft tint as the Web's .text-bg-primary pill.
     final box = tester.widget<Container>(find.byType(Container)).decoration as BoxDecoration;
-    expect(box.color, AppColors.primary);
-    expect(box.borderRadius, BorderRadius.circular(4));
+    expect(box.color, AppColors.primarySoft);
+    expect(box.borderRadius, BorderRadius.circular(999));
+    expect(tester.widget<Text>(find.text('Đã tham gia')).style?.color, const Color(0xFF3F4AB8));
   });
 
   testWidgets('StatusBadge accepts a custom label', (tester) async {
