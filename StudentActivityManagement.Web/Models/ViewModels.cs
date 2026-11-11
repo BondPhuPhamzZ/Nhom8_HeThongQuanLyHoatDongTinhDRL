@@ -85,7 +85,6 @@ public sealed class ParticipantListViewModel
     public ActivityParticipants Data { get; set; } = new();
     public string? Status { get; set; }
     public string? Search { get; set; }
-    public bool PendingOnly { get; set; }
 
     /// <summary>Attendance can be changed while the activity is open, running or just finished (same rule as the API).</summary>
     public bool CanEditAttendance => Data.ActivityStatus is "Published" or "Ongoing" or "Completed";
@@ -254,14 +253,6 @@ public sealed class AudienceRuleFormItem
     public string? AcademicYear { get; set; }
     public int? ClassId { get; set; }
     public string ParticipationType { get; set; } = "Required";
-}
-
-// ---- Student Evidences (US-08)
-public sealed class StudentEvidenceViewModel
-{
-    public ActivityDto Activity { get; set; } = new();
-    public List<StudentEvidence> Evidences { get; set; } = [];
-    public bool CanUpload { get; set; }
 }
 
 /// <summary>US-31: the assistant page shows the chat only when the API reports the assistant enabled.</summary>
