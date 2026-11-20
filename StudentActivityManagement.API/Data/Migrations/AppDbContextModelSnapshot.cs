@@ -815,6 +815,9 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("TokenVersion")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
 

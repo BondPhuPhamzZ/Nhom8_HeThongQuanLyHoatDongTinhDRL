@@ -54,6 +54,12 @@ namespace StudentActivityManagement.API.Models
         public int FailedLoginCount { get; set; }
         public DateTime? LockoutEndUtc { get; set; }
 
+        /// <summary>
+        /// US-44: copied into every JWT ("tv"). Logging out or a password reset increments it, so every
+        /// token issued before (on any browser or device) is rejected at its next request.
+        /// </summary>
+        public int TokenVersion { get; set; }
+
         public int AccumulatedPoints { get; set; } = 0;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
