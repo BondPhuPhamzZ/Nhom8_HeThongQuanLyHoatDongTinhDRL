@@ -156,6 +156,8 @@ namespace StudentActivityManagement.API.Services
             if (!string.IsNullOrWhiteSpace(request.Password))
             {
                 student.PasswordHash = PasswordHasher.HashPassword(request.Password);
+                // A new password signs the student out everywhere (US-44).
+                student.TokenVersion++;
             }
 
             await _context.SaveChangesAsync();

@@ -103,6 +103,19 @@ namespace StudentActivityManagement.API.Services
             return ApiResponseDto<AuthResponseDto>.Ok(response, "Đăng nhập thành công.");
         }
 
+        public async Task<ApiResponseDto<object>> LogoutAsync(int userId)
+        {
+            // One atomic increment: every token of this account issued so far stops working.
+            var updated = await _context.Users
+                .Where(user => user.Id == userId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(user => user.TokenVersion, user => user.TokenVersion + 1)
+                    .SetProperty(user => user.UpdatedAt, DateTime.UtcNow));
+            return updated == 0
+                ? ApiResponseDto<object>.Fail("Không tìm thấy tài khoản.", StatusCodes.Status404NotFound, ApiErrorCodes.ResourceNotFound)
+                : ApiResponseDto<object>.Ok(new { revoked = true }, "Đã đăng xuất khỏi mọi trình duyệt và thiết bị.");
+        }
+
         public async Task<ApiResponseDto<UserDto>> GetCurrentUserAsync(int userId)
         {
             var user = await _context.Users

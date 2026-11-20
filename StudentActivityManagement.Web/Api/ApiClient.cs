@@ -52,6 +52,10 @@ public sealed class ApiClient
     public Task<ApiResult<AuthResponse>> LoginAsync(string usernameOrEmail, string password) =>
         SendAsync<AuthResponse>(HttpMethod.Post, "api/v1/auth/login", new { usernameOrEmail, password }, throwOn401: false);
 
+    /// <summary>US-44: revokes the account's tokens everywhere; a 401 means the session was already revoked.</summary>
+    public Task<ApiResult<object>> LogoutAsync() =>
+        SendAsync<object>(HttpMethod.Post, "api/v1/auth/logout", null, throwOn401: false);
+
     // ---- Student
     /// <param name="registered">True lists the student's own registered activities, ended ones included.</param>
     public Task<ApiResult<PagedResult<ActivityDto>>> GetStudentActivitiesAsync(string? search, string? campus, int page, int pageSize = 9, bool registered = false) =>
@@ -251,7 +255,7 @@ public sealed class ApiClient
 
         using var response = raw;
         if (response.StatusCode == HttpStatusCode.Unauthorized)
-            throw new ApiUnauthorizedException("Phiên đăng nhập đã hết hạn hoặc tài khoản đã thay đổi quyền. Vui lòng đăng nhập lại.");
+            throw new ApiUnauthorizedException("Phiên đăng nhập đã kết thúc (hết hạn, đã đăng xuất ở thiết bị khác hoặc tài khoản đã thay đổi quyền). Vui lòng đăng nhập lại.");
         if (!response.IsSuccessStatusCode)
             return ReadProblem<ApiFile>(response.StatusCode, await response.Content.ReadAsStringAsync());
 
@@ -370,7 +374,7 @@ public sealed class ApiClient
             var text = await response.Content.ReadAsStringAsync();
             if (response.StatusCode == HttpStatusCode.Unauthorized && throwOn401)
             {
-                throw new ApiUnauthorizedException("Phiên đăng nhập đã hết hạn hoặc tài khoản đã thay đổi quyền. Vui lòng đăng nhập lại.");
+                throw new ApiUnauthorizedException("Phiên đăng nhập đã kết thúc (hết hạn, đã đăng xuất ở thiết bị khác hoặc tài khoản đã thay đổi quyền). Vui lòng đăng nhập lại.");
             }
 
             if (response.IsSuccessStatusCode)

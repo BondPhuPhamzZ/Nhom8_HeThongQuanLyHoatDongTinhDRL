@@ -13,6 +13,9 @@ namespace StudentActivityManagement.API.Services
 
     public class JwtTokenGenerator : IJwtTokenGenerator
     {
+        /// <summary>Claim holding User.TokenVersion (US-44).</summary>
+        public const string TokenVersionClaim = "tv";
+
         private readonly IConfiguration _config;
 
         public JwtTokenGenerator(IConfiguration config)
@@ -42,7 +45,8 @@ namespace StudentActivityManagement.API.Services
                 new Claim(ClaimTypes.Role, user.Role),
                 new Claim("StudentCode", user.StudentCode),
                 new Claim("Campus", user.Campus ?? ""),
-                new Claim("IsClassMonitor", user.IsClassMonitor.ToString())
+                new Claim("IsClassMonitor", user.IsClassMonitor.ToString()),
+                new Claim(TokenVersionClaim, user.TokenVersion.ToString(System.Globalization.CultureInfo.InvariantCulture))
             };
 
             var expiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes);

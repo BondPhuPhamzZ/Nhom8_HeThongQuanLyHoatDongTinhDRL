@@ -3,7 +3,7 @@ import '../utils/vn_time.dart';
 import 'api_client.dart';
 import 'preference_service.dart';
 
-/// US-01: sign in with the shared JWT endpoint. Signing out only forgets the token, as on the Web.
+/// US-01: sign in with the shared JWT endpoint. US-44: signing out revokes the account's tokens on every device.
 class AuthService {
   final _api = ApiClient.instance;
   final _prefs = PreferenceService.instance;
@@ -37,5 +37,17 @@ class AuthService {
     return null;
   }
 
-  Future<void> logout() => _prefs.clearSession();
+  /// Asks the API to revoke every token of the account (US-44), then forgets the local one. The local session
+  /// ends even when the API is unreachable or the token was already revoked elsewhere.
+  Future<void> logout() async {
+    try {
+      await _api.postLong('/api/v1/auth/logout', null, const Duration(seconds: 5));
+    } on ApiException {
+      // Offline, or already signed out from another device.
+    }
+    await _prefs.clearSession();
+  }
+
+  /// Forgets the local session only: used when the API has already rejected the token.
+  Future<void> forget() => _prefs.clearSession();
 }

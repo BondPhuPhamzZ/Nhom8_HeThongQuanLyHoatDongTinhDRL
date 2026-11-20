@@ -70,9 +70,11 @@ public sealed class AccountController : WebControllerBase
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
-        // The JWT is stateless; dropping the cookie removes the only copy the Web held.
+        // US-44: the API revokes every token of the account first, so other browsers and phones are
+        // signed out too; the local cookie is dropped whatever the API answers.
+        var result = await _api.LogoutAsync();
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        FlashSuccess("Đã đăng xuất.");
+        FlashSuccess(result.Success ? "Đã đăng xuất khỏi mọi trình duyệt và thiết bị." : "Đã đăng xuất.");
         return RedirectToAction(nameof(Login));
     }
 

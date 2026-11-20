@@ -54,7 +54,7 @@ Tài khoản dữ liệu mẫu:
 
 | Nhóm endpoint | Student | Monitor | HSSV | SystemAdmin |
 |---|---|---|---|---|
-| `/api/v1/auth/me` | ✓ | ✓ | ✓ | ✓ |
+| `/api/v1/auth/me`, `POST /api/v1/auth/logout` | ✓ | ✓ | ✓ | ✓ |
 | `/api/v1/student-activities/*` | ✓ | ✓ | 403 | 403 |
 | `/api/v1/admin/students`, `/classes`, `/activities` | 403 | 403 | ✓ | ✓ |
 | `/api/v1/admin/accounts/*` | 403 | 403 | 403 | ✓ |
@@ -64,6 +64,12 @@ Tài khoản dữ liệu mẫu:
 - Quản lý lớp (US-18): `PUT /api/v1/admin/classes/{id}` sửa mã, tên lớp, khoa (mã lớp không được trùng, `409`). `DELETE /api/v1/admin/classes/{id}` chỉ xóa lớp không còn sinh viên, không là đối tượng tham gia của hoạt động và chưa có dữ liệu trao đổi; nếu vi phạm trả `409 business_rule_violation`.
 - Không thể tự đổi vai trò, tự khóa tài khoản của mình, hoặc làm hệ thống không còn `SystemAdmin` đang hoạt động.
 - Khóa tài khoản hoặc đổi vai trò (kể cả chỉ định lớp trưởng mới) có hiệu lực ngay: token cũ nhận `401`, client phải đăng nhập lại. Tài khoản bị khóa đăng nhập nhận `403` với `errorCode = account_disabled`.
+
+### Đăng xuất khỏi mọi thiết bị (US-44)
+
+- `POST /api/v1/auth/logout` tăng `User.TokenVersion`; giá trị này nằm trong claim `tv` của mọi JWT. Vì API đối chiếu token với database ở mỗi request, **mọi token đã cấp cho tài khoản** (trình duyệt khác, điện thoại, token đã sao chép) nhận `401 authentication_required` ở request kế tiếp. Đăng nhập lại cấp token mới với phiên bản mới.
+- Phòng QL HSSV đặt lại mật khẩu sinh viên (`PUT /api/v1/admin/students/{id}` có `password`) cũng tăng phiên bản, nên sinh viên bị đăng xuất ở mọi nơi.
+- Web và Mobile gọi endpoint này trước khi xóa phiên ở client, và đưa người dùng về trang đăng nhập khi API trả `401`. Migration: `Sprint10TokenVersion`.
 
 ### Bảo vệ đăng nhập (US-39)
 

@@ -9,7 +9,8 @@ enum AuthStatus { unknown, signedOut, signedIn }
 /// Session state for the whole app. A 401 from any API call signs the user out.
 class AuthProvider extends ChangeNotifier {
   AuthProvider({AuthService? service}) : _service = service ?? AuthService() {
-    ApiClient.instance.onUnauthorized = () => _expire('Phiên đăng nhập đã hết hạn hoặc tài khoản đã thay đổi quyền. Vui lòng đăng nhập lại.');
+    ApiClient.instance.onUnauthorized = () => _expire(
+        'Phiên đăng nhập đã kết thúc (hết hạn, đã đăng xuất ở thiết bị khác hoặc tài khoản đã thay đổi quyền). Vui lòng đăng nhập lại.');
   }
 
   final AuthService _service;
@@ -40,16 +41,22 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// US-44: signs out here and on every other device of the account.
   Future<void> logout() async {
-    await _service.logout();
+    // Leave the signed-in state first, so a 401 answered by the logout call itself cannot loop back here.
     user = null;
     status = AuthStatus.signedOut;
     notifyListeners();
+    await _service.logout();
   }
 
+  /// The API already rejected the token (expired, revoked from another device, account changed).
   void _expire(String message) {
     if (status != AuthStatus.signedIn) return;
     notice = message;
-    logout();
+    user = null;
+    status = AuthStatus.signedOut;
+    notifyListeners();
+    _service.forget();
   }
 }

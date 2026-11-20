@@ -28,11 +28,14 @@ public sealed class AccountAccessValidator : IAccountAccessValidator
         var tokenRole = principal.FindFirst(ClaimTypes.Role)?.Value;
         var account = await _context.Users.AsNoTracking()
             .Where(user => user.Id == userId)
-            .Select(user => new { user.IsActive, user.Role })
+            .Select(user => new { user.IsActive, user.Role, user.TokenVersion })
             .FirstOrDefaultAsync(cancellationToken);
+        // Tokens issued before US-44 carry no version and count as version 0.
+        var tokenVersion = int.TryParse(principal.FindFirst(JwtTokenGenerator.TokenVersionClaim)?.Value, out var version) ? version : 0;
 
         return account != null &&
                account.IsActive &&
-               string.Equals(account.Role, tokenRole, StringComparison.Ordinal);
+               string.Equals(account.Role, tokenRole, StringComparison.Ordinal) &&
+               account.TokenVersion == tokenVersion;
     }
 }

@@ -68,5 +68,23 @@ namespace StudentActivityManagement.API.Controllers
 
             return Ok(result);
         }
+
+        /// <summary>
+        /// US-44: đăng xuất khỏi mọi trình duyệt và thiết bị; mọi token đã cấp cho tài khoản bị từ chối từ request kế tiếp.
+        /// </summary>
+        [HttpPost("logout")]
+        [Authorize]
+        [ProducesResponseType(typeof(ApiResponseDto<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Logout()
+        {
+            if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+            {
+                return ApiProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.AuthenticationRequired, "Phiên đăng nhập không hợp lệ.");
+            }
+
+            var result = await _authService.LogoutAsync(userId);
+            return result.Success ? Ok(result) : ProblemFrom(result);
+        }
     }
 }
