@@ -58,6 +58,15 @@ public sealed class ApiClient
         SendAsync<AssistantUsageReport>(HttpMethod.Get,
             $"api/v1/admin/assistant-usage?{Query(("from", from?.ToString("yyyy-MM-dd")), ("to", to?.ToString("yyyy-MM-dd")), ("keyword", keyword))}");
 
+    public Task<ApiResult<PersonalProfile>> GetProfileAsync() =>
+        SendAsync<PersonalProfile>(HttpMethod.Get, "api/v1/me/profile");
+
+    public Task<ApiResult<PersonalProfile>> UpdateContactAsync(string email, string phone, string currentPassword) =>
+        SendAsync<PersonalProfile>(HttpMethod.Put, "api/v1/me/profile", new { email, phone, currentPassword });
+
+    public Task<ApiResult<AuthResponse>> ChangePasswordAsync(string currentPassword, string newPassword) =>
+        SendAsync<AuthResponse>(HttpMethod.Post, "api/v1/me/change-password", new { currentPassword, newPassword });
+
     // ---- Auth
     public Task<ApiResult<AuthResponse>> LoginAsync(string usernameOrEmail, string password) =>
         SendAsync<AuthResponse>(HttpMethod.Post, "api/v1/auth/login", new { usernameOrEmail, password }, throwOn401: false);

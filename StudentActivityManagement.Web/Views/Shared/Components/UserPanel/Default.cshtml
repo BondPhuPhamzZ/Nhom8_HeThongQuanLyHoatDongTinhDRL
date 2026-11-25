@@ -1,10 +1,14 @@
 @model UserPanelModel
 <div class="user-panel d-flex align-items-center gap-3">
-    <div class="text-end lh-sm" title="@Model.FullName · @Model.Code · @Model.RoleLabel">
-        <div class="user-panel-name">@Model.FullName</div>
-        <div class="user-panel-meta">
-            @Model.Code · @Model.RoleLabel@(string.IsNullOrEmpty(Model.ClassCode) ? "" : $" · {Model.ClassCode}")
-        </div>
+    <div class="dropdown">
+        <button type="button" class="btn btn-link text-end lh-sm px-0 text-decoration-none" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="user-panel-name d-block dropdown-toggle">@Model.FullName</span>
+            <span class="user-panel-meta d-block">@Model.Code · @Model.RoleLabel@(string.IsNullOrEmpty(Model.ClassCode) ? "" : $" · {Model.ClassCode}")</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">Hồ sơ cá nhân</a></li>
+            <li><a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">Đổi mật khẩu</a></li>
+        </ul>
     </div>
     <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
         <button type="submit" class="btn btn-sm btn-outline-secondary">Đăng xuất</button>

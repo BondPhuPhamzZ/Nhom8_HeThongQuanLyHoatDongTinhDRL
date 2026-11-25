@@ -84,6 +84,9 @@ public sealed class PointAppealDto
     public DateTime? ResolvedAt { get; set; }
 }
 
+public sealed record PersonalProfile(string StudentCode, string FullName, string Role, string? ClassCode, string Campus,
+    string AcademicYear, string Email, string Phone, DateTime? UpdatedAt);
+
 public sealed class AuthResponse
 {
     public string Token { get; set; } = string.Empty;

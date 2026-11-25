@@ -25,7 +25,14 @@ else
         {
             <div class="list-group-item py-3">
                 <div class="d-flex flex-wrap justify-content-between gap-2">
-                    <a asp-controller="@(staff ? "Scoring" : "StudentActivities")" asp-action="@(staff ? "Index" : "Details")" asp-route-id="@item.ActivityId" class="fw-semibold">@item.Title</a>
+                    @if (item.Kind == "ProfileUpdated")
+                    {
+                        <a asp-controller="Account" asp-action="Profile" class="fw-semibold">@item.Title</a>
+                    }
+                    else
+                    {
+                        <a asp-controller="@(staff ? "Scoring" : "StudentActivities")" asp-action="@(staff ? "Index" : "Details")" asp-route-id="@item.ActivityId" class="fw-semibold">@item.Title</a>
+                    }
                     <span class="small text-muted"><vn-time value="@item.CreatedAt" /></span>
                 </div>
                 <span class="badge text-bg-light border mb-2">@(item.Kind switch { "ClassActivity" => "Hoạt động mới của lớp", "ActivityReminder" => "Nhắc lịch", "FinalizationBlocked" => "Chờ mở kỳ", "PointsFinalized" => "Chốt điểm", _ => "Thông báo" })</span>

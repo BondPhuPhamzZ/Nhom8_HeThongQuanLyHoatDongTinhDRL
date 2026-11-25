@@ -3,6 +3,39 @@ using StudentActivityManagement.Web.Api;
 
 namespace StudentActivityManagement.Web.Models;
 
+public sealed class ProfilePageViewModel
+{
+    public PersonalProfile? Details { get; set; }
+
+    [Required(ErrorMessage = "Nhập email.")]
+    [Display(Name = "Email")]
+    public string Email { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Nhập số điện thoại.")]
+    [Display(Name = "Số điện thoại")]
+    public string Phone { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Nhập mật khẩu hiện tại.")]
+    [Display(Name = "Mật khẩu hiện tại")]
+    public string CurrentPassword { get; set; } = string.Empty;
+}
+
+public sealed class ChangePasswordViewModel
+{
+    [Required(ErrorMessage = "Nhập mật khẩu hiện tại.")]
+    [Display(Name = "Mật khẩu hiện tại")]
+    public string CurrentPassword { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Nhập mật khẩu mới.")]
+    [Display(Name = "Mật khẩu mới")]
+    public string NewPassword { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Nhập lại mật khẩu mới.")]
+    [Compare(nameof(NewPassword), ErrorMessage = "Mật khẩu nhập lại không khớp.")]
+    [Display(Name = "Nhập lại mật khẩu mới")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+
 public sealed class AccountListViewModel
 {
     public PagedResult<AccountDto> Page { get; set; } = new();
