@@ -14,6 +14,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     private const string JwtIssuer = "StudentActivityManagement.API.Tests";
     private const string JwtAudience = "StudentActivityManagement.API.Tests";
 
+    public TestTimeProvider Time { get; } = new();
+
     private readonly string _databasePath = Path.Combine(
         Path.GetTempPath(),
         $"student-activity-tests-{Guid.NewGuid():N}.db");
@@ -40,11 +42,13 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 // A developer's real Gemini key in user-secrets must never be used by tests (US-31);
                 // AssistantTests sets a fake key together with a scripted Gemini handler.
                 ["Gemini:ApiKey"] = string.Empty,
+                ["Lifecycle:WorkerEnabled"] = "false",
                 ["LoginSecurity:RequestsPerMinutePerIp"] = "100000"
             });
         });
         builder.ConfigureServices(services =>
         {
+            services.AddSingleton<TimeProvider>(Time);
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
             {
                 options.TokenValidationParameters.ValidIssuer = JwtIssuer;

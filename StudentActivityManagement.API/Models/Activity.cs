@@ -52,6 +52,11 @@ namespace StudentActivityManagement.API.Models
 
         public DateTime? UpdatedAt { get; set; }
 
+        public DateTime? PointsFinalizedAt { get; set; }
+        public int? PointsFinalizedById { get; set; }
+        [JsonIgnore]
+        public User? PointsFinalizedBy { get; set; }
+
         [JsonIgnore]
         public virtual ICollection<ActivityRegistration> Registrations { get; set; } = new List<ActivityRegistration>();
 

@@ -279,10 +279,17 @@ public sealed class ScoringTests : IClassFixture<CustomWebApplicationFactory>
                                                    item.GetProperty("registrationId").GetInt32() != evidenceRegistrationId)
             .GetProperty("registrationId").GetInt32();
 
-        Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Post,
-            $"/api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-ins", staff, new { registrationId = attendedId })).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Patch,
-            $"/api/v1/admin/activities/{activityId}/status", staff, new { status = "Ongoing" })).StatusCode);
+        using (sessionStart.HasValue ? _factory.Time.At(start) : null)
+        {
+            Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Post,
+                $"/api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-ins", staff, new { registrationId = attendedId })).StatusCode);
+        }
+
+        using (_factory.Time.At(activity.GetProperty("startTime").GetDateTime().AddSeconds(1)))
+        {
+            Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Patch,
+                $"/api/v1/admin/activities/{activityId}/status", staff, new { status = "Ongoing" })).StatusCode);
+        }
 
         var evidenceId = await UploadCodeEvidenceAsync(withEvidence, activityId);
         Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Patch,
@@ -290,6 +297,7 @@ public sealed class ScoringTests : IClassFixture<CustomWebApplicationFactory>
 
         if (complete)
         {
+            using var clock = _factory.Time.At(activity.GetProperty("checkInClosesAt").GetDateTime().AddSeconds(1));
             Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Patch,
                 $"/api/v1/admin/activities/{activityId}/status", staff, new { status = "Completed" })).StatusCode);
         }

@@ -9,10 +9,12 @@ namespace StudentActivityManagement.API.Services;
 public sealed class ScoringService : IScoringService
 {
     private readonly AppDbContext _context;
+    private readonly TimeProvider _time;
 
-    public ScoringService(AppDbContext context)
+    public ScoringService(AppDbContext context, TimeProvider time)
     {
         _context = context;
+        _time = time;
     }
 
     public async Task<ApiResponseDto<ActivityScoringDto>> GetActivityScoringAsync(int activityId)
@@ -72,7 +74,7 @@ public sealed class ScoringService : IScoringService
             : candidates.Where(candidate => candidate.Eligible).Select(candidate => candidate.RegistrationId).ToList();
         var result = new ApprovePointsResultDto();
         var note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
 
         await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
         try
@@ -189,7 +191,7 @@ public sealed class ScoringService : IScoringService
                 StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation);
         }
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var reason = request.Reason.Trim();
         // An appeal may own the transaction across both required score transitions.
         await using var transaction = _context.Database.CurrentTransaction == null

@@ -63,6 +63,12 @@ namespace StudentActivityManagement.API.Data
                       .OnDelete(DeleteBehavior.SetNull);
             });
 
+            modelBuilder.Entity<Activity>()
+                .HasOne(activity => activity.PointsFinalizedBy)
+                .WithMany()
+                .HasForeignKey(activity => activity.PointsFinalizedById)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ActivityRegistration configuration
             modelBuilder.Entity<ActivityRegistration>(entity =>
             {
@@ -130,6 +136,10 @@ namespace StudentActivityManagement.API.Data
 
             modelBuilder.Entity<ActivityCheckInConfig>(entity =>
             {
+                entity.Property(config => config.CorrectionWindowMinutes)
+                    .HasDefaultValue(Services.Settings.SettingDefaults.CorrectionWindowMinutes)
+                    .HasSentinel(Services.Settings.SettingDefaults.CorrectionWindowMinutes);
+
                 entity.HasOne(config => config.Activity)
                       .WithOne()
                       .HasForeignKey<ActivityCheckInConfig>(config => config.ActivityId)

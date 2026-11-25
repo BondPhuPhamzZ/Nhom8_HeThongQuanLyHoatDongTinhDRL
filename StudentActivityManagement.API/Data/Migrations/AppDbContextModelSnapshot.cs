@@ -59,6 +59,12 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("PointsFinalizedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("PointsFinalizedById")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("RegistrationCloseTime")
                         .HasColumnType("TEXT");
 
@@ -90,6 +96,8 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PointsFinalizedById");
 
                     b.ToTable("Activities");
                 });
@@ -170,6 +178,11 @@ namespace StudentActivityManagement.API.Data.Migrations
 
                     b.Property<int>("CloseAfterMinutes")
                         .HasColumnType("INTEGER");
+
+                    b.Property<int>("CorrectionWindowMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(1440);
 
                     b.Property<string>("Method")
                         .IsRequired()
@@ -883,6 +896,16 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.HasIndex("RecipientUserId", "CreatedAt");
 
                     b.ToTable("UserNotifications");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.Activity", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.User", "PointsFinalizedBy")
+                        .WithMany()
+                        .HasForeignKey("PointsFinalizedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("PointsFinalizedBy");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityAudienceRule", b =>

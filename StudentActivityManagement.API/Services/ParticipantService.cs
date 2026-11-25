@@ -4,6 +4,7 @@ using StudentActivityManagement.API.DTOs.Common;
 using StudentActivityManagement.API.DTOs.Participants;
 using StudentActivityManagement.API.Models;
 using StudentActivityManagement.API.Services.Storage;
+using StudentActivityManagement.API.Services.Settings;
 
 namespace StudentActivityManagement.API.Services;
 
@@ -14,16 +15,19 @@ public sealed class ParticipantService : IParticipantService
 
     // Attendance can be recorded or corrected while the activity is open, running or just finished
     // (before scoring in US-22); never for drafts or cancelled activities.
-    private static readonly string[] AttendanceStatuses =
-        [ActivityStatus.Published, ActivityStatus.Ongoing, ActivityStatus.Completed];
+
 
     private readonly AppDbContext _context;
+    private readonly ICheckInConfigProvider _configProvider;
+    private readonly TimeProvider _time;
     private readonly IEvidenceFileStorage _storage;
 
-    public ParticipantService(AppDbContext context, IEvidenceFileStorage storage)
+    public ParticipantService(AppDbContext context, IEvidenceFileStorage storage, ICheckInConfigProvider configProvider, TimeProvider time)
     {
         _context = context;
         _storage = storage;
+        _configProvider = configProvider;
+        _time = time;
     }
 
     public async Task<ApiResponseDto<ActivityParticipantsDto>> GetParticipantsAsync(
@@ -134,6 +138,7 @@ public sealed class ParticipantService : IParticipantService
 
     public async Task<ApiResponseDto<ParticipantDetailDto>> RecordManualCheckInAsync(int activityId, int sessionId, int registrationId, int staffId)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
         var (error, registration) = await LoadForAttendanceAsync<ParticipantDetailDto>(activityId, sessionId, registrationId);
         if (error != null)
         {
@@ -148,8 +153,7 @@ public sealed class ParticipantService : IParticipantService
             return Fail<ParticipantDetailDto>("Sinh viên đã được ghi nhận tham gia buổi này.", StatusCodes.Status409Conflict, ApiErrorCodes.ResourceConflict);
         }
 
-        var now = DateTime.UtcNow;
-        await using var transaction = await _context.Database.BeginTransactionAsync();
+        var now = _time.GetUtcNow().UtcDateTime;
         try
         {
             // Staff may record attendance whatever the activity's method (e.g. a student's phone died),
@@ -184,6 +188,7 @@ public sealed class ParticipantService : IParticipantService
 
     public async Task<ApiResponseDto<ParticipantDetailDto>> RemoveCheckInAsync(int activityId, int sessionId, int registrationId)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
         var (error, registration) = await LoadForAttendanceAsync<ParticipantDetailDto>(activityId, sessionId, registrationId);
         if (error != null)
         {
@@ -197,7 +202,6 @@ public sealed class ParticipantService : IParticipantService
             return NotFound<ParticipantDetailDto>("Sinh viên chưa có dữ liệu tham gia buổi này.");
         }
 
-        await using var transaction = await _context.Database.BeginTransactionAsync();
         _context.ActivityCheckIns.Remove(checkIn);
         var hasOtherCheckIns = await _context.ActivityCheckIns
             .AnyAsync(item => item.RegistrationId == registrationId && item.Id != checkIn.Id);
@@ -247,7 +251,7 @@ public sealed class ParticipantService : IParticipantService
         evidence.ReviewStatus = reviewStatus;
         evidence.ReviewNote = trimmedNote;
         evidence.ReviewedById = reopened ? null : staffId;
-        evidence.ReviewedAt = reopened ? null : DateTime.UtcNow;
+        evidence.ReviewedAt = reopened ? null : _time.GetUtcNow().UtcDateTime;
         await _context.SaveChangesAsync();
         await _context.Entry(evidence).Reference(item => item.ReviewedBy).LoadAsync();
 
@@ -284,12 +288,14 @@ public sealed class ParticipantService : IParticipantService
     private async Task<(ApiResponseDto<T>? Error, ActivityRegistration? Registration)> LoadForAttendanceAsync<T>(
         int activityId, int sessionId, int registrationId)
     {
-        var activity = await _context.Activities.AsNoTracking().FirstOrDefaultAsync(item => item.Id == activityId);
+        var activity = await _context.Activities.AsNoTracking().Include(item => item.Sessions)
+            .FirstOrDefaultAsync(item => item.Id == activityId);
         if (activity == null)
         {
             return (NotFound<T>("Không tìm thấy hoạt động."), null);
         }
-        if (!await _context.ActivitySessions.AnyAsync(item => item.Id == sessionId && item.ActivityId == activityId))
+        var session = activity.Sessions.FirstOrDefault(item => item.Id == sessionId);
+        if (session == null)
         {
             return (NotFound<T>("Không tìm thấy buổi tổ chức của hoạt động này."), null);
         }
@@ -299,10 +305,13 @@ public sealed class ParticipantService : IParticipantService
         {
             return (NotFound<T>("Không tìm thấy sinh viên đăng ký trong hoạt động này."), null);
         }
-        if (!AttendanceStatuses.Contains(activity.Status))
-        {
-            return (Conflict<T>("Chỉ điểm danh cho hoạt động đang mở, đang diễn ra hoặc vừa kết thúc."), null);
-        }
+        var config = await _configProvider.GetAsync(activityId);
+        var now = _time.GetUtcNow().UtcDateTime;
+        var phase = ActivityPhase.Resolve(activity, activity.Sessions, config, now);
+        if (!ActivityPhase.AllowsStudentCheckIn(phase) && phase != ActivityPhase.AttendanceReview)
+            return (Conflict<T>("Hoạt động không ở giai đoạn cho phép điểm danh."), null);
+        if (now < config.OpensAt(session))
+            return (Conflict<T>($"Buổi này chưa đến giờ điểm danh (mở lúc {ActivityService.VietnamTime(config.OpensAt(session))})."), null);
         // The automatic award follows attendance; only a decision made by staff freezes it.
         if (await AttendancePoints.IsDecidedByStaffAsync(_context, registrationId))
         {

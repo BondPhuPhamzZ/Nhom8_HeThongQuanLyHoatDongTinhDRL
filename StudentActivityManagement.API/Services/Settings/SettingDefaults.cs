@@ -8,6 +8,9 @@ public static class SettingDefaults
     public const string CheckInMethod = CheckInMethods.Code;
     public const int OpenBeforeMinutes = 15;
     public const int CloseAfterMinutes = 30;
+    public const int CorrectionWindowMinutes = 1440;
+    public const int MinCorrectionWindowMinutes = 0;
+    public const int MaxCorrectionWindowMinutes = 10080;
     public const int MinWindowMinutes = 0;
     public const int MaxWindowMinutes = 240;
 

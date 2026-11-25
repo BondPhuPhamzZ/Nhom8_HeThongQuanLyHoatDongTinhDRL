@@ -26,6 +26,8 @@ public class ActivityCheckInConfig
     /// <summary>Check-in closes this many minutes after each session ends.</summary>
     public int CloseAfterMinutes { get; set; }
 
+    public int CorrectionWindowMinutes { get; set; } = Services.Settings.SettingDefaults.CorrectionWindowMinutes;
+
     public DateTime UpdatedAt { get; set; }
 
     public int? UpdatedById { get; set; }

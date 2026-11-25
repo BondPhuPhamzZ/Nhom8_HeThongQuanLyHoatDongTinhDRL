@@ -238,12 +238,15 @@ public sealed class CheckInTests : IClassFixture<CustomWebApplicationFactory>
         var staff = await StaffAsync();
         var student = await _api.LoginAsync(StudentCode, StudentPassword);
         var (activityId, sessionId) = await CreateRegisteredActivityAsync(staff, student);
-        foreach (var status in new[] { "Ongoing", "Completed" })
+        var lifecycle = await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{activityId}", staff));
+        foreach (var (status, field) in new[] { ("Ongoing", "startTime"), ("Completed", "checkInClosesAt") })
         {
+            using var clock = _factory.Time.At(lifecycle.GetProperty(field).GetDateTime().AddSeconds(1));
             Assert.Equal(HttpStatusCode.OK,
                 (await _api.SendAsync(HttpMethod.Patch, $"/api/v1/admin/activities/{activityId}/status", staff, new { status })).StatusCode);
         }
 
+        using var afterClose = _factory.Time.At(lifecycle.GetProperty("checkInClosesAt").GetDateTime().AddSeconds(1));
         Assert.Equal(HttpStatusCode.Conflict, (await _api.SendAsync(HttpMethod.Post, CodeUrl(activityId, sessionId), staff, null)).StatusCode);
     }
 

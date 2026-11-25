@@ -9,15 +9,15 @@ namespace StudentActivityManagement.API.Services;
 
 public sealed class ActivitySettingsService : IActivitySettingsService
 {
-    private static readonly string[] EditableStatuses = [ActivityStatus.Draft, ActivityStatus.Published, ActivityStatus.Ongoing];
-
     private readonly AppDbContext _context;
     private readonly ICheckInConfigProvider _configProvider;
+    private readonly TimeProvider _time;
 
-    public ActivitySettingsService(AppDbContext context, ICheckInConfigProvider configProvider)
+    public ActivitySettingsService(AppDbContext context, ICheckInConfigProvider configProvider, TimeProvider time)
     {
         _context = context;
         _configProvider = configProvider;
+        _time = time;
     }
 
     public async Task<ApiResponseDto<CheckInConfigDto>> GetCheckInConfigAsync(int activityId)
@@ -34,6 +34,7 @@ public sealed class ActivitySettingsService : IActivitySettingsService
             Method = effective.Method,
             OpenBeforeMinutes = effective.OpenBeforeMinutes,
             CloseAfterMinutes = effective.CloseAfterMinutes,
+            CorrectionWindowMinutes = effective.CorrectionWindowMinutes,
             IsDefault = effective.IsDefault,
             HasCheckIns = hasCheckIns,
             UpdatedAt = effective.UpdatedAt
@@ -45,7 +46,7 @@ public sealed class ActivitySettingsService : IActivitySettingsService
     {
         var activity = await _context.Activities.FirstOrDefaultAsync(item => item.Id == activityId);
         if (activity == null) return NotFound<CheckInConfigDto>();
-        if (!EditableStatuses.Contains(activity.Status, StringComparer.OrdinalIgnoreCase))
+        if (await IsClosedAsync(activity))
         {
             return Conflict<CheckInConfigDto>("Không thể sửa cấu hình check-in của hoạt động đã kết thúc hoặc đã hủy.");
         }
@@ -64,7 +65,7 @@ public sealed class ActivitySettingsService : IActivitySettingsService
             return Conflict<CheckInConfigDto>("Không thể đổi phương thức sau khi hoạt động đã có check-in.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         if (config == null)
         {
             config = new ActivityCheckInConfig { ActivityId = activityId };
@@ -74,6 +75,7 @@ public sealed class ActivitySettingsService : IActivitySettingsService
         config.Method = method;
         config.OpenBeforeMinutes = request.OpenBeforeMinutes;
         config.CloseAfterMinutes = request.CloseAfterMinutes;
+        config.CorrectionWindowMinutes = request.CorrectionWindowMinutes ?? config.CorrectionWindowMinutes;
         config.UpdatedAt = now;
         config.UpdatedById = updatedById;
         await _context.SaveChangesAsync();
@@ -84,6 +86,7 @@ public sealed class ActivitySettingsService : IActivitySettingsService
             Method = config.Method,
             OpenBeforeMinutes = config.OpenBeforeMinutes,
             CloseAfterMinutes = config.CloseAfterMinutes,
+            CorrectionWindowMinutes = config.CorrectionWindowMinutes,
             IsDefault = false,
             HasCheckIns = hasCheckIns,
             UpdatedAt = config.UpdatedAt
@@ -114,7 +117,7 @@ public sealed class ActivitySettingsService : IActivitySettingsService
     {
         var activity = await _context.Activities.FirstOrDefaultAsync(item => item.Id == activityId);
         if (activity == null) return NotFound<ReminderScheduleDto>();
-        if (!EditableStatuses.Contains(activity.Status, StringComparer.OrdinalIgnoreCase))
+        if (await IsClosedAsync(activity))
         {
             return Conflict<ReminderScheduleDto>("Không thể sửa lịch nhắc của hoạt động đã kết thúc hoặc đã hủy.");
         }
@@ -146,6 +149,13 @@ public sealed class ActivitySettingsService : IActivitySettingsService
             OffsetsMinutes = sorted,
             IsDefault = false
         }, "Đã lưu lịch nhắc.");
+    }
+
+    private async Task<bool> IsClosedAsync(Activity activity)
+    {
+        var config = await _configProvider.GetAsync(activity.Id);
+        return ActivityPhase.Resolve(activity, activity.Sessions, config, _time.GetUtcNow().UtcDateTime)
+            is ActivityPhase.AttendanceReview or ActivityPhase.Finalized or ActivityPhase.Cancelled;
     }
 
     private static ApiResponseDto<T> NotFound<T>() => ApiResponseDto<T>.Fail(

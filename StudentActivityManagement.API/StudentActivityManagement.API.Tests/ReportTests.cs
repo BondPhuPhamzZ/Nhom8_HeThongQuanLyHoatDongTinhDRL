@@ -12,9 +12,11 @@ public sealed class ReportTests : IClassFixture<CustomWebApplicationFactory>
 {
     private const string Password = "123456";
     private readonly AccountTestClient _api;
+    private readonly TestTimeProvider _time;
 
     public ReportTests(CustomWebApplicationFactory factory)
     {
+        _time = factory.Time;
         _api = new AccountTestClient(factory.CreateClient());
     }
 
@@ -50,8 +52,10 @@ public sealed class ReportTests : IClassFixture<CustomWebApplicationFactory>
             Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Post,
                 $"/api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-ins", staff, new { registrationId = registrations[code] })).StatusCode);
         }
-        foreach (var status in new[] { "Ongoing", "Completed" })
+        var lifecycle = await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{activityId}", staff));
+        foreach (var (status, field) in new[] { ("Ongoing", "startTime"), ("Completed", "checkInClosesAt") })
         {
+            using var clock = _time.At(lifecycle.GetProperty(field).GetDateTime().AddSeconds(1));
             Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Patch, $"/api/v1/admin/activities/{activityId}/status", staff, new { status })).StatusCode);
         }
         // Both check-ins recorded 7 points automatically; staff revoke SV210001's, so only SV210002's count.

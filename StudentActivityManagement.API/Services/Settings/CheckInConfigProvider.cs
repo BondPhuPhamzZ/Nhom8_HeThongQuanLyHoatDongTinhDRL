@@ -17,20 +17,6 @@ public sealed class CheckInConfigProvider : ICheckInConfigProvider
         var config = await _context.ActivityCheckInConfigs.AsNoTracking()
             .FirstOrDefaultAsync(item => item.ActivityId == activityId, cancellationToken);
 
-        return config == null
-            ? new EffectiveCheckInConfig(
-                activityId,
-                SettingDefaults.CheckInMethod,
-                SettingDefaults.OpenBeforeMinutes,
-                SettingDefaults.CloseAfterMinutes,
-                IsDefault: true,
-                UpdatedAt: null)
-            : new EffectiveCheckInConfig(
-                activityId,
-                config.Method,
-                config.OpenBeforeMinutes,
-                config.CloseAfterMinutes,
-                IsDefault: false,
-                config.UpdatedAt);
+        return EffectiveCheckInConfig.From(activityId, config);
     }
 }

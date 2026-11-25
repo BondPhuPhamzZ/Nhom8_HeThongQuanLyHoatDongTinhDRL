@@ -12,11 +12,13 @@ public sealed class StudentReportService : IStudentReportService
         [RegistrationStatus.Registered, RegistrationStatus.Attended, RegistrationStatus.Cancelled, RegistrationStatus.Absent];
 
     private readonly AppDbContext _context;
+    private readonly TimeProvider _time;
     private readonly int _appealWindowDays;
 
-    public StudentReportService(AppDbContext context, IConfiguration configuration)
+    public StudentReportService(AppDbContext context, IConfiguration configuration, TimeProvider time)
     {
         _context = context;
+        _time = time;
         _appealWindowDays = PointAppealService.WindowDays(configuration);
     }
 
@@ -55,7 +57,7 @@ public sealed class StudentReportService : IStudentReportService
             }
         }
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var period = periodId.HasValue
             ? await _context.EvaluationPeriods.AsNoTracking().FirstOrDefaultAsync(item => item.Id == periodId.Value)
             : await _context.EvaluationPeriods.AsNoTracking()

@@ -5,23 +5,25 @@ public sealed class ReminderDispatchWorker : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ReminderDispatchWorker> _logger;
+    private readonly TimeProvider _time;
 
-    public ReminderDispatchWorker(IServiceScopeFactory scopeFactory, ILogger<ReminderDispatchWorker> logger)
+    public ReminderDispatchWorker(IServiceScopeFactory scopeFactory, ILogger<ReminderDispatchWorker> logger, TimeProvider time)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _time = time;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1), _time);
         do
         {
             try
             {
                 using var scope = _scopeFactory.CreateScope();
                 var service = scope.ServiceProvider.GetRequiredService<INotificationService>();
-                var count = await service.DispatchDueRemindersAsync(DateTime.UtcNow, stoppingToken);
+                var count = await service.DispatchDueRemindersAsync(_time.GetUtcNow().UtcDateTime, stoppingToken);
                 if (count > 0) _logger.LogInformation("Created {NotificationCount} activity reminders", count);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

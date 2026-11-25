@@ -1,31 +1,38 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using StudentActivityManagement.API.Data;
 using StudentActivityManagement.API.DTOs.Activity;
 using StudentActivityManagement.API.DTOs.Common;
 using StudentActivityManagement.API.Models;
+using StudentActivityManagement.API.Services.Settings;
 
 namespace StudentActivityManagement.API.Services;
 
 public sealed class ActivityService : IActivityService
 {
-    // Ongoing stays visible so students can open the activity to check in while it runs;
-    // registration itself still requires Published.
+    // Published and Ongoing are candidates for the current student list; the check-in close time is authoritative.
     private static readonly string[] StudentVisibleStatuses = [ActivityStatus.Published, ActivityStatus.Ongoing];
 
     // A student who holds a registration keeps access after the activity ends, so they can check
-    // results and submit evidence (US-08) within the submission window.
+    // results, including cancellation, and reach any available legacy evidence.
     private static readonly string[] RegisteredVisibleStatuses =
-        [ActivityStatus.Published, ActivityStatus.Ongoing, ActivityStatus.Completed];
+        [ActivityStatus.Published, ActivityStatus.Ongoing, ActivityStatus.Completed, ActivityStatus.Cancelled];
 
     private readonly AppDbContext _context;
     private readonly IActivityEligibilityService _eligibilityService;
     private readonly INotificationService _notifications;
+    private readonly ICheckInConfigProvider _checkInConfig;
+    private readonly IActivityLifecycleService _lifecycle;
+    private readonly TimeProvider _time;
 
-    public ActivityService(AppDbContext context, IActivityEligibilityService eligibilityService, INotificationService notifications)
+    public ActivityService(AppDbContext context, IActivityEligibilityService eligibilityService, INotificationService notifications,
+        ICheckInConfigProvider checkInConfig, IActivityLifecycleService lifecycle, TimeProvider time)
     {
         _context = context;
         _eligibilityService = eligibilityService;
         _notifications = notifications;
+        _checkInConfig = checkInConfig;
+        _lifecycle = lifecycle;
+        _time = time;
     }
 
     public async Task<ApiResponseDto<PagedResultDto<ActivityResponseDto>>> GetActivitiesAsync(
@@ -41,7 +48,7 @@ public sealed class ActivityService : IActivityService
             .FirstOrDefaultAsync(item => item.Id == id);
         return activity == null
             ? NotFoundActivity()
-            : ApiResponseDto<ActivityResponseDto>.Ok(MapToResponse(activity));
+            : ApiResponseDto<ActivityResponseDto>.Ok(await MapSingleAsync(activity));
     }
 
     public async Task<ApiResponseDto<PagedResultDto<ActivityResponseDto>>> GetStudentActivitiesAsync(
@@ -67,8 +74,7 @@ public sealed class ActivityService : IActivityService
         }
         else
         {
-            query = BuildActivityQuery(campus, null, search, upcomingOnly: true)
-                .Where(activity => StudentVisibleStatuses.Contains(activity.Status));
+            query = CurrentStudentActivities(BuildActivityQuery(campus, null, search, upcomingOnly: false));
             query = _eligibilityService.ApplyEligibleFor(query, student);
         }
 
@@ -86,9 +92,8 @@ public sealed class ActivityService : IActivityService
                 ApiErrorCodes.AccessDenied);
         }
 
-        var now = DateTime.UtcNow;
-        var query = WithStructure(_context.Activities.AsNoTracking())
-            .Where(activity => activity.Id == id && StudentVisibleStatuses.Contains(activity.Status) && activity.EndTime >= now);
+        var query = CurrentStudentActivities(WithStructure(_context.Activities.AsNoTracking()))
+            .Where(activity => activity.Id == id);
         var activity = await _eligibilityService.ApplyEligibleFor(query, student).FirstOrDefaultAsync();
         activity ??= await WithStructure(_context.Activities.AsNoTracking())
             .FirstOrDefaultAsync(item => item.Id == id &&
@@ -108,7 +113,7 @@ public sealed class ActivityService : IActivityService
             .Where(registration => registration.ActivityId == id && registration.StudentId == student.Id)
             .Select(registration => registration.Status)
             .FirstOrDefaultAsync();
-        return ApiResponseDto<ActivityResponseDto>.Ok(MapToResponse(activity, student, registrationStatus));
+        return ApiResponseDto<ActivityResponseDto>.Ok(await MapSingleAsync(activity, student, registrationStatus));
     }
 
     public async Task<ApiResponseDto<ActivityResponseDto>> CreateActivityAsync(ActivityCreateDto request)
@@ -147,7 +152,7 @@ public sealed class ActivityService : IActivityService
             TrainingPoints = request.TrainingPoints,
             TargetAudience = request.TargetAudience.Trim(),
             Status = NormalizeStatus(request.Status)!,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = _time.GetUtcNow().UtcDateTime,
             Sessions = request.Sessions.Select(MapSession).ToList(),
             AudienceRules = request.AudienceRules.Select(MapAudienceRule).ToList()
         };
@@ -162,23 +167,27 @@ public sealed class ActivityService : IActivityService
         await LoadStructureAsync(activity);
 
         return ApiResponseDto<ActivityResponseDto>.Ok(
-            MapToResponse(activity),
+            await MapSingleAsync(activity),
             "Tạo mới hoạt động rèn luyện thành công.");
     }
 
     public async Task<ApiResponseDto<ActivityResponseDto>> UpdateActivityAsync(int id, ActivityUpdateDto request)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
         var activity = await WithStructure(_context.Activities)
             .FirstOrDefaultAsync(item => item.Id == id);
         if (activity == null)
         {
             return NotFoundActivity();
         }
-        if (ActivityStatus.IsFinal(activity.Status))
+        var config = await _checkInConfig.GetAsync(id);
+        var phase = _lifecycle.GetPhase(activity, activity.Sessions, config);
+        if (phase.Phase is ActivityPhase.AttendanceReview or ActivityPhase.Finalized or ActivityPhase.Cancelled)
         {
             return ActivityConflict("Hoạt động đã kết thúc hoặc đã hủy nên không thể chỉnh sửa.");
         }
 
+        PreserveUnchangedTimes(activity, request);
         var validationError = await ValidateStructureAsync(
             request.Sessions,
             request.AudienceRules,
@@ -205,6 +214,11 @@ public sealed class ActivityService : IActivityService
             return InvalidActivity("Mỗi buổi chỉ được gửi một lần.");
         }
 
+        var registrations = await _context.ActivityRegistrations
+            .Where(item => item.ActivityId == id && item.Status != RegistrationStatus.Cancelled).ToListAsync();
+        var editError = CheckEdit(activity, request, config, phase.Phase, registrations.Count > 0);
+        if (editError != null) return ActivityConflict(editError);
+
         var removedSessionIds = existingSessionIds.Except(requestedSessionIds).ToList();
         if (removedSessionIds.Count > 0 &&
             (await _context.ActivityCheckIns.AnyAsync(checkIn => removedSessionIds.Contains(checkIn.SessionId)) ||
@@ -215,11 +229,21 @@ public sealed class ActivityService : IActivityService
         }
 
         var requestedStatus = NormalizeStatus(request.Status)!;
-        var transitionError = await CheckTransitionAsync(activity, requestedStatus);
-        if (transitionError != null)
-        {
-            return ActivityConflict(transitionError);
-        }
+        var transitionError = await CheckTransitionAsync(activity, requestedStatus, phase);
+        if (transitionError != null) return transitionError;
+        var proposedPhase = _lifecycle.GetPhase(activity, request.Sessions.Select(MapSession), config);
+        var proposedStart = request.Sessions.Min(session => session.StartTime);
+        var now = _time.GetUtcNow().UtcDateTime;
+        if (requestedStatus == ActivityStatus.Ongoing && proposedStart > now &&
+            (activity.Status != ActivityStatus.Ongoing || activity.StartTime <= now))
+            return PhaseNotReached("Đang diễn ra", proposedStart);
+        if (requestedStatus == ActivityStatus.Completed && proposedPhase.CheckInClosesAt > now)
+            return PhaseNotReached("Đã kết thúc", proposedPhase.CheckInClosesAt);
+        if (requestedStatus == ActivityStatus.Cancelled && proposedPhase.CheckInClosesAt <= now)
+            return ActivityConflict("Không thể hủy hoạt động sau khi hết giờ check-in.");
+
+        var scheduleChanged = ScheduleChanged(activity, request.Sessions);
+        var cancelled = requestedStatus == ActivityStatus.Cancelled && activity.Status != ActivityStatus.Cancelled;
 
         var orderedSessions = request.Sessions.OrderBy(session => session.SortOrder).ToList();
         var firstSession = orderedSessions[0];
@@ -237,13 +261,17 @@ public sealed class ActivityService : IActivityService
         activity.TrainingPoints = request.TrainingPoints;
         activity.TargetAudience = request.TargetAudience.Trim();
         activity.Status = requestedStatus;
-        activity.UpdatedAt = DateTime.UtcNow;
+        activity.UpdatedAt = _time.GetUtcNow().UtcDateTime;
 
-        await using var transaction = await _context.Database.BeginTransactionAsync();
         await SyncSessionsAsync(activity, request.Sessions);
         _context.ActivityAudienceRules.RemoveRange(activity.AudienceRules);
         activity.AudienceRules = request.AudienceRules.Select(MapAudienceRule).ToList();
 
+        if (cancelled)
+            await RecordCancellationAsync(activity, registrations, now);
+        else if (scheduleChanged)
+            AddRegistrationNotifications(activity, registrations, $"activity-schedule:{id}:{Guid.NewGuid():N}",
+                "ActivityScheduleChanged", "Lịch hoạt động đã thay đổi", now);
         await _context.SaveChangesAsync();
         await transaction.CommitAsync();
         // Audience rules may change while published; idempotent source keys only notify newly eligible users.
@@ -255,12 +283,13 @@ public sealed class ActivityService : IActivityService
         await LoadStructureAsync(activity);
 
         return ApiResponseDto<ActivityResponseDto>.Ok(
-            MapToResponse(activity),
+            await MapSingleAsync(activity),
             "Cập nhật hoạt động rèn luyện thành công.");
     }
 
     public async Task<ApiResponseDto<ActivityResponseDto>> UpdateActivityStatusAsync(int id, string newStatus)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
         var activity = await WithStructure(_context.Activities)
             .FirstOrDefaultAsync(item => item.Id == id);
         if (activity == null)
@@ -274,16 +303,23 @@ public sealed class ActivityService : IActivityService
             return InvalidActivity("Trạng thái hoạt động không hợp lệ.");
         }
 
-        var transitionError = await CheckTransitionAsync(activity, normalizedStatus);
-        if (transitionError != null)
-        {
-            return ActivityConflict(transitionError);
-        }
+        var config = await _checkInConfig.GetAsync(id);
+        var phase = _lifecycle.GetPhase(activity, activity.Sessions, config);
+        var transitionError = await CheckTransitionAsync(activity, normalizedStatus, phase);
+        if (transitionError != null) return transitionError;
 
         var previousStatus = activity.Status;
+        var now = _time.GetUtcNow().UtcDateTime;
         activity.Status = normalizedStatus;
-        activity.UpdatedAt = DateTime.UtcNow;
+        activity.UpdatedAt = now;
+        if (normalizedStatus == ActivityStatus.Cancelled && previousStatus != ActivityStatus.Cancelled)
+        {
+            var registrations = await _context.ActivityRegistrations
+                .Where(item => item.ActivityId == id && item.Status != RegistrationStatus.Cancelled).ToListAsync();
+            await RecordCancellationAsync(activity, registrations, now);
+        }
         await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
         if (previousStatus != ActivityStatus.Published && activity.Status == ActivityStatus.Published)
         {
             await _notifications.NotifyMonitorsOfPublishedActivityAsync(activity.Id);
@@ -291,7 +327,7 @@ public sealed class ActivityService : IActivityService
         }
 
         return ApiResponseDto<ActivityResponseDto>.Ok(
-            MapToResponse(activity),
+            await MapSingleAsync(activity),
             $"Đã cập nhật trạng thái hoạt động thành '{normalizedStatus}'.");
     }
 
@@ -324,7 +360,7 @@ public sealed class ActivityService : IActivityService
 
     public async Task<ApiResponseDto<bool>> RegisterActivityAsync(int activityId, int studentId)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var student = await FindStudentAsync(studentId);
         if (student == null)
         {
@@ -367,11 +403,16 @@ public sealed class ActivityService : IActivityService
                     ApiErrorCodes.AccessDenied);
             }
 
+            var config = await _checkInConfig.GetAsync(activityId);
+            if (ActivityPhase.Resolve(activity, activity.Sessions, config, now) != ActivityPhase.RegistrationOpen)
+                return ApiResponseDto<bool>.Fail("Không trong thời gian đăng ký.", StatusCodes.Status409Conflict,
+                    ApiErrorCodes.BusinessRuleViolation);
+
             var updatedRows = await _context.Activities
                 .Where(item => item.Id == activityId &&
                                item.Status == ActivityStatus.Published &&
                                item.RegistrationOpenTime <= now &&
-                               item.RegistrationCloseTime >= now &&
+                               item.RegistrationCloseTime >= now && item.StartTime > now &&
                                item.CurrentParticipantsCount < item.MaxParticipants)
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(item => item.CurrentParticipantsCount, item => item.CurrentParticipantsCount + 1));
@@ -439,7 +480,8 @@ public sealed class ActivityService : IActivityService
                 ApiErrorCodes.AccessDenied);
         }
 
-        var activity = await _context.Activities.AsNoTracking()
+        await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        var activity = await _context.Activities.AsNoTracking().Include(item => item.Sessions)
             .FirstOrDefaultAsync(item => item.Id == activityId);
         if (activity == null)
         {
@@ -449,7 +491,6 @@ public sealed class ActivityService : IActivityService
                 ApiErrorCodes.ResourceNotFound);
         }
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
         try
         {
             var registration = await _context.ActivityRegistrations
@@ -476,8 +517,10 @@ public sealed class ActivityService : IActivityService
                     ApiErrorCodes.BusinessRuleViolation);
             }
 
-            var now = DateTime.UtcNow;
-            if (now > activity.RegistrationCloseTime)
+            var now = _time.GetUtcNow().UtcDateTime;
+            var config = await _checkInConfig.GetAsync(activityId);
+            if (ActivityPhase.Resolve(activity, activity.Sessions, config, now)
+                is not (ActivityPhase.Upcoming or ActivityPhase.RegistrationOpen))
             {
                 return ApiResponseDto<bool>.Fail(
                     "Đã hết thời hạn hủy đăng ký hoạt động.",
@@ -533,12 +576,23 @@ public sealed class ActivityService : IActivityService
         }
     }
 
+    private IQueryable<Activity> CurrentStudentActivities(IQueryable<Activity> query)
+    {
+        var now = _time.GetUtcNow().UtcDateTime;
+        return query.Where(activity => StudentVisibleStatuses.Contains(activity.Status) &&
+            activity.PointsFinalizedAt == null &&
+            activity.EndTime.AddMinutes(_context.ActivityCheckInConfigs
+                .Where(config => config.ActivityId == activity.Id)
+                .Select(config => (int?)config.CloseAfterMinutes)
+                .FirstOrDefault() ?? SettingDefaults.CloseAfterMinutes) > now);
+    }
+
     private IQueryable<Activity> BuildActivityQuery(string? campus, string? status, string? search, bool upcomingOnly)
     {
         var query = WithStructure(_context.Activities.AsNoTracking());
         if (upcomingOnly)
         {
-            var now = DateTime.UtcNow;
+            var now = _time.GetUtcNow().UtcDateTime;
             query = query.Where(activity => activity.EndTime >= now);
         }
         if (!string.IsNullOrWhiteSpace(campus))
@@ -583,10 +637,21 @@ public sealed class ActivityService : IActivityService
                 .ToDictionaryAsync(registration => registration.ActivityId, registration => registration.Status);
         }
 
+        var ids = activities.Select(item => item.Id).ToList();
+        var configs = await _context.ActivityCheckInConfigs.AsNoTracking()
+            .Where(item => ids.Contains(item.ActivityId)).ToDictionaryAsync(item => item.ActivityId);
+        var activeRegistrations = student == null
+            ? (await _context.ActivityRegistrations.AsNoTracking()
+                .Where(item => ids.Contains(item.ActivityId) && item.Status != RegistrationStatus.Cancelled)
+                .Select(item => item.ActivityId).Distinct().ToListAsync()).ToHashSet()
+            : [];
+
         return ApiResponseDto<PagedResultDto<ActivityResponseDto>>.Ok(new PagedResultDto<ActivityResponseDto>
         {
             Items = activities
-                .Select(activity => MapToResponse(activity, student, registrationStatuses.GetValueOrDefault(activity.Id)))
+                .Select(activity => MapToResponse(activity,
+                    EffectiveCheckInConfig.From(activity.Id, configs.GetValueOrDefault(activity.Id)),
+                    activeRegistrations.Contains(activity.Id), student, registrationStatuses.GetValueOrDefault(activity.Id)))
                 .ToList(),
             TotalCount = totalCount,
             PageIndex = pageIndex,
@@ -635,25 +700,152 @@ public sealed class ActivityService : IActivityService
         return null;
     }
 
-    /// <summary>Returns an error message when <paramref name="target"/> is not a legal next status, otherwise null.</summary>
-    private async Task<string?> CheckTransitionAsync(Activity activity, string target)
+    private async Task<ApiResponseDto<ActivityResponseDto>?> CheckTransitionAsync(
+        Activity activity, string target, ActivityPhaseInfo phase)
     {
-        if (target == activity.Status)
-        {
-            return null;
-        }
-        if (!ActivityStatus.NextOf(activity.Status).Contains(target))
-        {
-            return $"Không thể chuyển hoạt động từ trạng thái '{activity.Status}' sang '{target}'.";
-        }
-        if (target == ActivityStatus.Draft &&
-            await _context.ActivityRegistrations.AnyAsync(registration =>
-                registration.ActivityId == activity.Id && registration.Status != RegistrationStatus.Cancelled))
-        {
-            return "Hoạt động đã có sinh viên đăng ký nên không thể chuyển về Nháp.";
-        }
+        if (target == activity.Status) return null;
+
+        var now = _time.GetUtcNow().UtcDateTime;
+        var isPublished = activity.Status is ActivityStatus.Published or ActivityStatus.Ongoing;
+        if (isPublished && target == ActivityStatus.Ongoing && now < activity.StartTime)
+            return PhaseNotReached("Đang diễn ra", activity.StartTime);
+        if (isPublished && target == ActivityStatus.Completed && now < phase.CheckInClosesAt)
+            return PhaseNotReached("Đã kết thúc", phase.CheckInClosesAt);
+        var catchesUp = activity.Status == ActivityStatus.Published && target == ActivityStatus.Completed &&
+                        phase.Phase == ActivityPhase.AttendanceReview;
+        if (!catchesUp && !ActivityStatus.NextOf(activity.Status).Contains(target))
+            return ActivityConflict($"Không thể chuyển hoạt động từ trạng thái '{activity.Status}' sang '{target}'.");
+
+        if (target == ActivityStatus.Ongoing && phase.Phase != ActivityPhase.Ongoing ||
+            target == ActivityStatus.Completed && phase.Phase != ActivityPhase.AttendanceReview ||
+            target is ActivityStatus.Draft or ActivityStatus.Cancelled &&
+            (phase.Phase is ActivityPhase.AttendanceReview or ActivityPhase.Finalized ||
+             target == ActivityStatus.Draft && phase.Phase == ActivityPhase.Ongoing))
+            return ActivityConflict("Không thể chuyển hoạt động sang trạng thái này ở giai đoạn hiện tại.");
+
+        if (target == ActivityStatus.Draft && await HasActiveRegistrationsAsync(activity.Id))
+            return ActivityConflict("Hoạt động đã có sinh viên đăng ký nên không thể chuyển về Nháp.");
 
         return null;
+    }
+
+    private static ApiResponseDto<ActivityResponseDto> PhaseNotReached(string label, DateTime when) =>
+        ApiResponseDto<ActivityResponseDto>.Fail(
+            $"Hoạt động sẽ tự chuyển sang {label} lúc {VietnamTime(when)}. Không thể chuyển sớm.",
+            StatusCodes.Status409Conflict, ApiErrorCodes.ActivityPhaseNotReached);
+
+    internal static string VietnamTime(DateTime utc) => utc.AddHours(7).ToString("HH:mm dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+
+    private Task<bool> HasActiveRegistrationsAsync(int id) => _context.ActivityRegistrations
+        .AnyAsync(item => item.ActivityId == id && item.Status != RegistrationStatus.Cancelled);
+
+    private string? CheckEdit(Activity activity, ActivityUpdateDto request, EffectiveCheckInConfig config,
+        string phase, bool hasRegistrations)
+    {
+        if (phase is ActivityPhase.Draft or ActivityPhase.Upcoming || !hasRegistrations) return null;
+        if (request.TrainingPoints != activity.TrainingPoints) return "Không thể sửa điểm rèn luyện sau khi có đăng ký.";
+        if (!SameMinute(request.RegistrationOpenTime, activity.RegistrationOpenTime)) return "Không thể sửa giờ mở đăng ký.";
+        if (request.TargetAudience.Trim() != activity.TargetAudience || !request.AudienceRules.Select(MapAudienceRule)
+            .Select(item => (item.Campus, item.AcademicYear, item.ClassId, item.ParticipationType)).ToHashSet()
+            .SetEquals(activity.AudienceRules.Select(item => (item.Campus, item.AcademicYear, item.ClassId, item.ParticipationType))))
+            return "Không thể sửa đối tượng sau khi có đăng ký.";
+
+        var now = _time.GetUtcNow().UtcDateTime;
+        if (phase is ActivityPhase.RegistrationOpen or ActivityPhase.RegistrationClosed)
+            return !SameMinute(request.RegistrationCloseTime, activity.RegistrationCloseTime) && request.RegistrationCloseTime < now
+                ? "Giờ đóng đăng ký mới không được ở quá khứ." : null;
+
+        if (request.ActivityName.Trim() != activity.ActivityName || request.OrganizerName.Trim() != activity.OrganizerName ||
+            request.MaxParticipants != activity.MaxParticipants || !SameMinute(request.RegistrationCloseTime, activity.RegistrationCloseTime))
+            return "Không thể sửa tên, đơn vị, sức chứa hoặc giờ đóng đăng ký khi hoạt động đang diễn ra.";
+
+        foreach (var session in activity.Sessions)
+        {
+            var next = request.Sessions.FirstOrDefault(item => item.Id == session.Id);
+            var opened = config.OpensAt(session) <= now;
+            if (next == null && opened) return "Không thể xóa buổi đã mở check-in.";
+            if (next == null) continue;
+            if (next.SessionName.Trim() != session.SessionName || next.SortOrder != session.SortOrder)
+                return "Không thể đổi tên hoặc thứ tự buổi khi hoạt động đang diễn ra.";
+            if (opened && (!SameMinute(next.StartTime, session.StartTime) || next.Location.Trim() != session.Location ||
+                           next.Campus.Trim() != session.Campus))
+                return "Không thể đổi giờ bắt đầu hoặc địa điểm của buổi đã mở check-in.";
+            if (!opened && !SameMinute(next.StartTime, session.StartTime) && next.StartTime.AddMinutes(-config.OpenBeforeMinutes) <= now)
+                return "Không thể dời buổi chưa mở check-in về thời điểm đã mở.";
+            if (!SameMinute(next.EndTime, session.EndTime) && (next.EndTime < now || session.EndTime < now))
+                return "Không thể đổi giờ kết thúc của buổi đã kết thúc hoặc đặt giờ kết thúc trong quá khứ.";
+        }
+
+        return request.Sessions.Any(item => item.Id == null && item.StartTime.AddMinutes(-config.OpenBeforeMinutes) <= now)
+            ? "Chỉ có thể thêm buổi chưa tới giờ mở check-in." : null;
+    }
+
+    private static bool SameMinute(DateTime a, DateTime b) => Math.Abs((a - b).TotalSeconds) < 60;
+
+    // Keep the stored timestamps when a client submits the same schedule at a different precision.
+    // Otherwise successive edits could move a locked deadline by repeated sub-minute increments.
+    private static void PreserveUnchangedTimes(Activity activity, ActivityUpdateDto request)
+    {
+        if (SameMinute(request.RegistrationOpenTime, activity.RegistrationOpenTime))
+            request.RegistrationOpenTime = activity.RegistrationOpenTime;
+        if (SameMinute(request.RegistrationCloseTime, activity.RegistrationCloseTime))
+            request.RegistrationCloseTime = activity.RegistrationCloseTime;
+
+        foreach (var session in activity.Sessions)
+        {
+            var next = request.Sessions.FirstOrDefault(item => item.Id == session.Id);
+            if (next == null) continue;
+            if (SameMinute(next.StartTime, session.StartTime)) next.StartTime = session.StartTime;
+            if (SameMinute(next.EndTime, session.EndTime)) next.EndTime = session.EndTime;
+        }
+    }
+
+    private static bool ScheduleChanged(Activity activity, IReadOnlyCollection<ActivitySessionInputDto> sessions) =>
+        activity.Sessions.Count != sessions.Count || sessions.Any(item =>
+            !activity.Sessions.Any(old => old.Id == item.Id && SameMinute(old.StartTime, item.StartTime) &&
+                SameMinute(old.EndTime, item.EndTime) && old.Campus == item.Campus.Trim() && old.Location == item.Location.Trim()));
+
+    private async Task RecordCancellationAsync(Activity activity, List<ActivityRegistration> registrations, DateTime now)
+    {
+        AddRegistrationNotifications(activity, registrations, $"activity-cancelled:{activity.Id}",
+            "ActivityCancelled", "Hoạt động đã bị hủy", now);
+
+        var records = await _context.PointRecords.Include(item => item.History)
+            .Where(item => item.ActivityId == activity.Id && item.Status == PointRecordStatus.Approved &&
+                item.Reason == AttendancePoints.AutoReason && item.History.Count == 1).ToListAsync();
+        foreach (var record in records)
+        {
+            const string reason = "Hoạt động bị hủy.";
+            record.Status = PointRecordStatus.Revoked;
+            record.Reason = reason;
+            record.DecidedAt = now;
+            record.DecidedById = null;
+            record.History.Add(new PointRecordHistory
+            {
+                FromStatus = PointRecordStatus.Approved,
+                ToStatus = PointRecordStatus.Revoked,
+                Points = record.Points,
+                Reason = reason,
+                ChangedAt = now
+            });
+            var registration = registrations.FirstOrDefault(item => item.Id == record.RegistrationId);
+            if (registration != null) registration.PointsEarned = 0;
+        }
+    }
+
+    private void AddRegistrationNotifications(Activity activity, IEnumerable<ActivityRegistration> registrations,
+        string source, string kind, string title, DateTime now)
+    {
+        _context.UserNotifications.AddRange(registrations.Select(item => new UserNotification
+        {
+            ActivityId = activity.Id,
+            RecipientUserId = item.StudentId,
+            SourceKey = $"{source}:{item.StudentId}",
+            Kind = kind,
+            Title = title,
+            Body = $"{title}: {activity.ActivityName}.",
+            CreatedAt = now
+        }));
     }
 
     private Task<User?> FindStudentAsync(int studentId) => _context.Users
@@ -734,48 +926,69 @@ public sealed class ActivityService : IActivityService
             value.Equals(source.ParticipationType.Trim(), StringComparison.OrdinalIgnoreCase))
     };
 
-    private ActivityResponseDto MapToResponse(Activity activity, User? student = null, string? registrationStatus = null) => new()
+    private async Task<ActivityResponseDto> MapSingleAsync(Activity activity, User? student = null, string? registrationStatus = null) =>
+        MapToResponse(activity, await _checkInConfig.GetAsync(activity.Id),
+            student == null && await HasActiveRegistrationsAsync(activity.Id), student, registrationStatus);
+
+    private ActivityResponseDto MapToResponse(Activity activity, EffectiveCheckInConfig config,
+        bool hasActiveRegistrations, User? student, string? registrationStatus)
     {
-        Id = activity.Id,
-        MyRegistrationStatus = registrationStatus,
-        ActivityName = activity.ActivityName,
-        Description = activity.Description,
-        Requirements = activity.Requirements,
-        OrganizerName = activity.OrganizerName,
-        Location = activity.Location,
-        Campus = activity.Campus,
-        StartTime = activity.StartTime,
-        EndTime = activity.EndTime,
-        RegistrationOpenTime = activity.RegistrationOpenTime,
-        RegistrationCloseTime = activity.RegistrationCloseTime,
-        MaxParticipants = activity.MaxParticipants,
-        CurrentParticipantsCount = activity.CurrentParticipantsCount,
-        TrainingPoints = activity.TrainingPoints,
-        TargetAudience = activity.TargetAudience,
-        Status = activity.Status,
-        AllowedNextStatuses = student == null ? ActivityStatus.NextOf(activity.Status).ToList() : null,
-        CreatedAt = activity.CreatedAt,
-        Sessions = activity.Sessions.OrderBy(session => session.SortOrder).Select(session => new ActivitySessionResponseDto
+        var phase = _lifecycle.GetPhase(activity, activity.Sessions, config);
+        return new()
         {
-            Id = session.Id,
-            SessionName = session.SessionName,
-            Campus = session.Campus,
-            Location = session.Location,
-            StartTime = session.StartTime,
-            EndTime = session.EndTime,
-            SortOrder = session.SortOrder
-        }).ToList(),
-        AudienceRules = activity.AudienceRules.Select(rule => new ActivityAudienceRuleResponseDto
-        {
-            Id = rule.Id,
-            Campus = rule.Campus,
-            AcademicYear = rule.AcademicYear,
-            ClassId = rule.ClassId,
-            ClassCode = rule.Class?.ClassCode,
-            ParticipationType = rule.ParticipationType
-        }).ToList(),
-        Eligibility = student == null ? null : _eligibilityService.Evaluate(activity, student)
-    };
+            Id = activity.Id,
+            MyRegistrationStatus = registrationStatus,
+            ActivityName = activity.ActivityName,
+            Description = activity.Description,
+            Requirements = activity.Requirements,
+            OrganizerName = activity.OrganizerName,
+            Location = activity.Location,
+            Campus = activity.Campus,
+            StartTime = activity.StartTime,
+            EndTime = activity.EndTime,
+            RegistrationOpenTime = activity.RegistrationOpenTime,
+            RegistrationCloseTime = activity.RegistrationCloseTime,
+            MaxParticipants = activity.MaxParticipants,
+            CurrentParticipantsCount = activity.CurrentParticipantsCount,
+            TrainingPoints = activity.TrainingPoints,
+            TargetAudience = activity.TargetAudience,
+            Status = activity.Status,
+            Phase = phase.Phase,
+            PhaseLabel = phase.PhaseLabel,
+            CheckInClosesAt = phase.CheckInClosesAt,
+            PointsFinalizeDueAt = phase.PointsFinalizeDueAt,
+            PointsFinalizedAt = activity.PointsFinalizedAt,
+            AllowedNextStatuses = student == null ? ActivityStatus.NextOf(activity.Status).Where(status => status switch
+            {
+                ActivityStatus.Ongoing or ActivityStatus.Completed => false,
+                ActivityStatus.Cancelled => phase.Phase is not (ActivityPhase.AttendanceReview or ActivityPhase.Finalized),
+                ActivityStatus.Draft => !hasActiveRegistrations && phase.Phase is ActivityPhase.Upcoming
+                    or ActivityPhase.RegistrationOpen or ActivityPhase.RegistrationClosed,
+                _ => true
+            }).ToList() : null,
+            CreatedAt = activity.CreatedAt,
+            Sessions = activity.Sessions.OrderBy(session => session.SortOrder).Select(session => new ActivitySessionResponseDto
+            {
+                Id = session.Id,
+                SessionName = session.SessionName,
+                Campus = session.Campus,
+                Location = session.Location,
+                StartTime = session.StartTime,
+                EndTime = session.EndTime,
+                SortOrder = session.SortOrder
+            }).ToList(),
+            AudienceRules = activity.AudienceRules.Select(rule => new ActivityAudienceRuleResponseDto
+            {
+                Id = rule.Id,
+                Campus = rule.Campus,
+                AcademicYear = rule.AcademicYear,
+                ClassId = rule.ClassId,
+                ClassCode = rule.Class?.ClassCode,
+                ParticipationType = rule.ParticipationType
+            }).ToList(),
+            Eligibility = student == null ? null : _eligibilityService.Evaluate(activity, student)
+        };
+    }
 
     private static ApiResponseDto<ActivityResponseDto> InvalidActivity(string message) =>
         ApiResponseDto<ActivityResponseDto>.Fail(
