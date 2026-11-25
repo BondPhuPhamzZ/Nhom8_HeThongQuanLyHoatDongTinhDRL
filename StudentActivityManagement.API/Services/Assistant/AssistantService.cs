@@ -63,14 +63,20 @@ public sealed partial class AssistantService : IAssistantService
 
     private bool IsEnabled => _options.Value.Enabled && _geminiOptions.Value.IsConfigured;
 
-    public async Task<AssistantStatusDto> GetStatusAsync(int studentId) => new()
+    public async Task<AssistantStatusDto> GetStatusAsync(int studentId)
     {
-        Enabled = IsEnabled,
-        Model = IsEnabled ? _geminiOptions.Value.Model : null,
-        RequestsPerMinute = _options.Value.RequestsPerMinute,
-        DailyQuestionLimit = _quota.Limit,
-        RemainingToday = await _quota.RemainingAsync(studentId)
-    };
+        var usage = await _quota.GetStudentStatusAsync(studentId);
+        return new AssistantStatusDto
+        {
+            Enabled = IsEnabled,
+            Model = IsEnabled ? _geminiOptions.Value.Model : null,
+            RequestsPerMinute = _options.Value.RequestsPerMinute,
+            DailyQuestionLimit = _quota.Limit,
+            RemainingToday = usage.Remaining,
+            DailyTokenLimit = _quota.TokenLimit,
+            TokensUsedToday = usage.TokensUsed
+        };
+    }
 
     public async Task<ApiResponseDto<AssistantReplyDto>> ChatAsync(
         int studentId, string role, AssistantChatRequestDto request, CancellationToken cancellationToken)
@@ -95,13 +101,6 @@ public sealed partial class AssistantService : IAssistantService
             !await _context.AssistantConversations.AnyAsync(item => item.Id == id && item.UserId == studentId, cancellationToken))
         {
             return ConversationNotFound<AssistantReplyDto>();
-        }
-
-        if (!await _quota.TryConsumeAsync(studentId))
-        {
-            return ApiResponseDto<AssistantReplyDto>.Fail(
-                $"Bạn đã dùng hết {_quota.Limit} câu hỏi của hôm nay. Trợ lý sẽ trả lời tiếp vào ngày mai.",
-                StatusCodes.Status429TooManyRequests, ApiErrorCodes.AssistantRateLimited);
         }
 
         // Personal data typed by the student never leaves the API (free-tier terms, US-32).
@@ -136,6 +135,10 @@ public sealed partial class AssistantService : IAssistantService
         var toolsUsed = new List<string>();
         var maxRounds = Math.Max(0, options.MaxToolRounds);
         GeminiResponse? answer = null;
+        var reservation = await _quota.TryConsumeAsync(studentId, AssistantDailyUsage.Assistant, cancellationToken);
+        if (!reservation.Success || reservation.Data is not { } lease)
+            return ApiResponseDto<AssistantReplyDto>.Fail(reservation.Message, reservation.HttpStatusCode, reservation.ErrorCode);
+        var successfulRound = false;
 
         try
         {
@@ -154,6 +157,7 @@ public sealed partial class AssistantService : IAssistantService
                 };
 
                 var response = await _gemini.GenerateContentAsync(body, cancellationToken);
+                successfulRound = true;
                 promptTokens += response.PromptTokens;
                 outputTokens += response.OutputTokens;
                 if (response.FunctionCalls.Count == 0 || round == maxRounds || response.Content == null)
@@ -182,7 +186,6 @@ public sealed partial class AssistantService : IAssistantService
         catch (GeminiException exception)
         {
             _logger.LogWarning("Assistant question failed: {Failure} ({Message})", exception.Failure, exception.Message);
-            await _quota.RefundAsync(studentId);
             await SaveConversationAsync(studentId, request.ConversationId, question, redacted, askedAt,
                 null, promptTokens, outputTokens, cancellationToken);
             return exception.Failure switch
@@ -199,6 +202,11 @@ public sealed partial class AssistantService : IAssistantService
             };
         }
 
+        finally
+        {
+            await _quota.FinishAsync(lease, successfulRound, promptTokens + outputTokens);
+        }
+
         var reply = BuildReply(answer, seenActivities, toolsUsed);
         reply.Reply = Truncate(PersonalDataRedactor.Redact(reply.Reply, known, out var replyRedacted), 8000);
         reply.PersonalDataRedacted = redacted || replyRedacted;
@@ -206,7 +214,10 @@ public sealed partial class AssistantService : IAssistantService
             reply, promptTokens, outputTokens, cancellationToken);
         reply.ConversationId = saved.ConversationId;
         reply.MessageId = saved.MessageId;
-        reply.RemainingToday = await _quota.RemainingAsync(studentId);
+        var usage = await _quota.GetStudentStatusAsync(studentId);
+        reply.RemainingToday = usage.Remaining;
+        reply.DailyTokenLimit = _quota.TokenLimit;
+        reply.TokensUsedToday = usage.TokensUsed;
         return ApiResponseDto<AssistantReplyDto>.Ok(reply);
     }
 

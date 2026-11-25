@@ -6,14 +6,15 @@ using Microsoft.Extensions.Options;
 using StudentActivityManagement.API.DTOs.Assistant;
 using StudentActivityManagement.API.DTOs.Common;
 using StudentActivityManagement.API.DTOs.Reports;
+using StudentActivityManagement.API.Models;
 
 namespace StudentActivityManagement.API.Services.Assistant;
 
 public interface IStaffAiService
 {
-    Task<ApiResponseDto<ReportInsightsDto>> GetReportInsightsAsync(ReportQueryDto query, CancellationToken cancellationToken);
+    Task<ApiResponseDto<ReportInsightsDto>> GetReportInsightsAsync(int staffId, ReportQueryDto query, CancellationToken cancellationToken);
 
-    Task<ApiResponseDto<EscalationDraftDto>> DraftEscalationAnswerAsync(int escalationId, CancellationToken cancellationToken);
+    Task<ApiResponseDto<EscalationDraftDto>> DraftEscalationAnswerAsync(int staffId, int escalationId, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -27,6 +28,8 @@ public sealed partial class StaffAiService : IStaffAiService
     private const int MaxStatementsPerSection = 4;
 
     private readonly GeminiClient _gemini;
+    private readonly AssistantDailyQuota _quota;
+    private readonly TimeProvider _time;
     private readonly IReportService _reports;
     private readonly IStaffEscalationService _escalations;
     private readonly IOptions<GeminiOptions> _geminiOptions;
@@ -34,12 +37,16 @@ public sealed partial class StaffAiService : IStaffAiService
 
     public StaffAiService(
         GeminiClient gemini,
+        AssistantDailyQuota quota,
+        TimeProvider time,
         IReportService reports,
         IStaffEscalationService escalations,
         IOptions<GeminiOptions> geminiOptions,
         ILogger<StaffAiService> logger)
     {
         _gemini = gemini;
+        _quota = quota;
+        _time = time;
         _reports = reports;
         _escalations = escalations;
         _geminiOptions = geminiOptions;
@@ -48,7 +55,7 @@ public sealed partial class StaffAiService : IStaffAiService
 
     // ---- US-33: report commentary
 
-    public async Task<ApiResponseDto<ReportInsightsDto>> GetReportInsightsAsync(ReportQueryDto query, CancellationToken cancellationToken)
+    public async Task<ApiResponseDto<ReportInsightsDto>> GetReportInsightsAsync(int staffId, ReportQueryDto query, CancellationToken cancellationToken)
     {
         if (!_geminiOptions.Value.IsConfigured) return GeminiFailures.NotConfigured<ReportInsightsDto>();
 
@@ -82,20 +89,9 @@ public sealed partial class StaffAiService : IStaffAiService
             }
         };
 
-        JsonObject answer;
-        try
-        {
-            answer = ParseJson(await _gemini.GenerateContentAsync(body, cancellationToken));
-        }
-        catch (GeminiException exception)
-        {
-            _logger.LogWarning("Report insights failed: {Failure} ({Message})", exception.Failure, exception.Message);
-            return GeminiFailures.From<ReportInsightsDto>(exception);
-        }
-        catch (JsonException)
-        {
-            return GeminiFailures.From<ReportInsightsDto>(new GeminiException(GeminiFailure.Unavailable, "Gemini returned invalid JSON."));
-        }
+        var generation = await GenerateJsonAsync(staffId, body, cancellationToken);
+        if (!generation.Success || generation.Data is not { } answer)
+            return ApiResponseDto<ReportInsightsDto>.Fail(generation.Message, generation.HttpStatusCode, generation.ErrorCode);
 
         // Grounding check: a statement may only use numbers that occur in the report data.
         var allowed = AllowedNumbers(data);
@@ -120,7 +116,7 @@ public sealed partial class StaffAiService : IStaffAiService
             Suggestions = Checked("suggestions"),
             RemovedStatements = removed,
             Model = _gemini.Model,
-            GeneratedAt = DateTime.UtcNow
+            GeneratedAt = _time.GetUtcNow().UtcDateTime
         };
         if (removed > 0) _logger.LogWarning("Report insights: removed {Removed} statement(s) with numbers not in the report.", removed);
         return ApiResponseDto<ReportInsightsDto>.Ok(result);
@@ -245,7 +241,7 @@ public sealed partial class StaffAiService : IStaffAiService
 
     // ---- US-34: draft answer to an escalated class question
 
-    public async Task<ApiResponseDto<EscalationDraftDto>> DraftEscalationAnswerAsync(int escalationId, CancellationToken cancellationToken)
+    public async Task<ApiResponseDto<EscalationDraftDto>> DraftEscalationAnswerAsync(int staffId, int escalationId, CancellationToken cancellationToken)
     {
         if (!_geminiOptions.Value.IsConfigured) return GeminiFailures.NotConfigured<EscalationDraftDto>();
 
@@ -292,20 +288,9 @@ public sealed partial class StaffAiService : IStaffAiService
             }
         };
 
-        JsonObject answer;
-        try
-        {
-            answer = ParseJson(await _gemini.GenerateContentAsync(body, cancellationToken));
-        }
-        catch (GeminiException exception)
-        {
-            _logger.LogWarning("Escalation draft failed: {Failure} ({Message})", exception.Failure, exception.Message);
-            return GeminiFailures.From<EscalationDraftDto>(exception);
-        }
-        catch (JsonException)
-        {
-            return GeminiFailures.From<EscalationDraftDto>(new GeminiException(GeminiFailure.Unavailable, "Gemini returned invalid JSON."));
-        }
+        var generation = await GenerateJsonAsync(staffId, body, cancellationToken);
+        if (!generation.Success || generation.Data is not { } answer)
+            return ApiResponseDto<EscalationDraftDto>.Fail(generation.Message, generation.HttpStatusCode, generation.ErrorCode);
 
         var draft = (answer["draft"] as JsonValue)?.TryGetValue<string>(out var text) == true ? text.Replace("**", string.Empty).Trim() : string.Empty;
         if (draft.Length == 0)
@@ -339,6 +324,33 @@ public sealed partial class StaffAiService : IStaffAiService
         4. Những chỗ "[đã ẩn]" là thông tin cá nhân hệ thống đã ẩn; không đoán.
         5. Văn phong lịch sự, rõ ràng, xưng "Phòng Quản lý HSSV", gọi người hỏi là "các bạn". Văn bản thuần, không Markdown, không link.
         """;
+
+    private async Task<ApiResponseDto<JsonObject>> GenerateJsonAsync(int staffId, JsonObject body, CancellationToken ct)
+    {
+        var reservation = await _quota.TryConsumeAsync(staffId, AssistantDailyUsage.StaffAi, ct);
+        if (!reservation.Success || reservation.Data is not { } lease)
+            return ApiResponseDto<JsonObject>.Fail(reservation.Message, reservation.HttpStatusCode, reservation.ErrorCode);
+
+        GeminiResponse? response = null;
+        try
+        {
+            response = await _gemini.GenerateContentAsync(body, ct);
+            return ApiResponseDto<JsonObject>.Ok(ParseJson(response));
+        }
+        catch (GeminiException exception)
+        {
+            _logger.LogWarning("Staff AI request failed: {Failure} ({Message})", exception.Failure, exception.Message);
+            return GeminiFailures.From<JsonObject>(exception);
+        }
+        catch (JsonException)
+        {
+            return GeminiFailures.From<JsonObject>(new GeminiException(GeminiFailure.Unavailable, "Gemini returned invalid JSON."));
+        }
+        finally
+        {
+            await _quota.FinishAsync(lease, response != null, (response?.PromptTokens ?? 0) + (response?.OutputTokens ?? 0));
+        }
+    }
 
     // ---- helpers
 

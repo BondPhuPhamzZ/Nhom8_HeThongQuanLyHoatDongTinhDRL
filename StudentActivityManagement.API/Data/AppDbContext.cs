@@ -185,8 +185,9 @@ namespace StudentActivityManagement.API.Data
 
             modelBuilder.Entity<AssistantDailyUsage>(entity =>
             {
-                // One counter per student and day; the unique index makes concurrent first questions safe.
-                entity.HasIndex(usage => new { usage.StudentId, usage.UsageDate }).IsUnique();
+                entity.HasIndex(usage => new { usage.StudentId, usage.UsageDate, usage.Feature }).IsUnique();
+                entity.HasIndex(usage => usage.UsageDate);
+                entity.Property(usage => usage.Feature).HasDefaultValue(AssistantDailyUsage.Assistant);
                 entity.HasOne(usage => usage.Student)
                       .WithMany()
                       .HasForeignKey(usage => usage.StudentId)

@@ -48,6 +48,8 @@ public sealed class AssistantReplyDto
 
     /// <summary>Questions the student may still ask today.</summary>
     public int RemainingToday { get; set; }
+    public int DailyTokenLimit { get; set; }
+    public int TokensUsedToday { get; set; }
 }
 
 public sealed class AssistantStatusDto
@@ -62,6 +64,8 @@ public sealed class AssistantStatusDto
     public int DailyQuestionLimit { get; set; }
 
     public int RemainingToday { get; set; }
+    public int DailyTokenLimit { get; set; }
+    public int TokensUsedToday { get; set; }
 }
 
 /// <summary>An activity the assistant referred to; built from tool results, so it always exists and the student may see it.</summary>

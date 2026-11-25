@@ -437,10 +437,20 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Feature")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Assistant");
+
                     b.Property<int>("QuestionCount")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("StudentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TokenCount")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateOnly>("UsageDate")
@@ -448,7 +458,9 @@ namespace StudentActivityManagement.API.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("StudentId", "UsageDate")
+                    b.HasIndex("UsageDate");
+
+                    b.HasIndex("StudentId", "UsageDate", "Feature")
                         .IsUnique();
 
                     b.ToTable("AssistantDailyUsages");
