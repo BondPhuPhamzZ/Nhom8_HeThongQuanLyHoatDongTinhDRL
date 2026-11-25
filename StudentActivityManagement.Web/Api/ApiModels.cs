@@ -267,6 +267,8 @@ public sealed class SessionCheckInStatus
     public DateTime ClosesAt { get; set; }
     public bool CanCheckIn { get; set; }
     public DateTime? CheckedInAt { get; set; }
+    public DateTime? VoidedAt { get; set; }
+    public string? VoidReason { get; set; }
 }
 
 public sealed class ActivityCheckInCodes
@@ -307,9 +309,25 @@ public sealed class ActivityParticipants
     public int ActivityId { get; set; }
     public string ActivityName { get; set; } = string.Empty;
     public string ActivityStatus { get; set; } = string.Empty;
+    public string Phase { get; set; } = string.Empty;
+    public DateTime CheckInClosesAt { get; set; }
     public ParticipantSummary Summary { get; set; } = new();
     public List<SessionAttendance> Sessions { get; set; } = [];
     public PagedResult<Participant> Participants { get; set; } = new();
+}
+
+public sealed class CheckInLogEntry
+{
+    public string StudentCode { get; set; } = string.Empty;
+    public string StudentName { get; set; } = string.Empty;
+    public string SessionName { get; set; } = string.Empty;
+    public DateTime CheckedInAt { get; set; }
+    public string Method { get; set; } = string.Empty;
+    public string? RecordedByName { get; set; }
+    public string? Note { get; set; }
+    public DateTime? VoidedAt { get; set; }
+    public string? VoidedByName { get; set; }
+    public string? VoidReason { get; set; }
 }
 
 public sealed class ParticipantSummary

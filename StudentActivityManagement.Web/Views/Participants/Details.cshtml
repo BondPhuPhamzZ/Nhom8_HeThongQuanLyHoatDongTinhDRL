@@ -2,6 +2,7 @@
 @{
     var participant = Model.Participant;
     var activity = Model.Activity;
+    var review = activity.Phase == "AttendanceReview";
     ViewData["Title"] = $"{participant.FullName} – {activity.ActivityName}";
 }
 <a asp-action="Index" asp-route-id="@activity.Id" class="btn-back">&larr; Người tham gia: @activity.ActivityName</a>
@@ -12,6 +13,10 @@
 <h1 class="h3 mt-2 mb-1">@participant.FullName</h1>
 <p class="text-muted">@participant.StudentCode · @(participant.ClassCode ?? "Chưa có lớp") · @participant.AcademicYear · @participant.Campus</p>
 
+@if (activity.Phase == "Ongoing")
+{
+    <p class="alert alert-light border">Đang diễn ra: chỉ được thêm điểm danh. Có thể hủy ghi nhận từ <vn-time value="@activity.CheckInClosesAt" />.</p>
+}
 <h2 class="h5 mt-4">Tham gia từng buổi</h2>
 <div class="table-responsive">
     <table class="table table-sm align-middle">
@@ -35,16 +40,9 @@
                         }
                     </td>
                     <td class="text-end">
-                        @if (Model.CanEditAttendance)
+                        @if (Model.CanEditAttendance && (checkIn == null || review))
                         {
-                            <form asp-action="@(checkIn == null ? "RecordCheckIn" : "RemoveCheckIn")" asp-route-id="@activity.Id" method="post" class="m-0"
-                                  onsubmit="@(checkIn == null ? "" : "return confirm('Hủy ghi nhận tham gia buổi này?');")">
-                                <input type="hidden" name="sessionId" value="@session.Id" />
-                                <input type="hidden" name="registrationId" value="@participant.RegistrationId" />
-                                <button type="submit" class="btn btn-sm @(checkIn == null ? "btn-outline-success" : "btn-outline-danger")">
-                                    @(checkIn == null ? "Điểm danh" : "Hủy điểm danh")
-                                </button>
-                            </form>
+                            <partial name="_AttendanceAction" model="@(new AttendanceActionViewModel(activity.Id, session.Id, participant.RegistrationId, checkIn != null, review))" />
                         }
                     </td>
                 </tr>
@@ -52,3 +50,5 @@
         </tbody>
     </table>
 </div>
+
+<partial name="_CheckInLog" model="Model.Log" />

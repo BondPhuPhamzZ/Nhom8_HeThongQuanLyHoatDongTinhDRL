@@ -25,6 +25,10 @@
                     }
                 </div>
             </div>
+            @if (session.VoidReason is { } reason)
+            {
+                <p class="text-danger small mb-0 mt-2">Đã hủy ghi nhận: @reason</p>
+            }
             @if (session.CanCheckIn)
             {
                 <form asp-controller="StudentActivities" asp-action="CheckIn" asp-route-id="@Model.ActivityId" method="post" class="d-flex gap-2 mt-2">

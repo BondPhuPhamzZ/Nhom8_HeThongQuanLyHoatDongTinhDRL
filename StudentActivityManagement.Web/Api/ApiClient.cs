@@ -147,11 +147,15 @@ public sealed class ApiClient
     public Task<ApiResult<ParticipantDetail>> GetParticipantAsync(int activityId, int registrationId) =>
         SendAsync<ParticipantDetail>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/participants/{registrationId}");
 
-    public Task<ApiResult<ParticipantDetail>> RecordCheckInAsync(int activityId, int sessionId, int registrationId) =>
-        SendAsync<ParticipantDetail>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-ins", new { registrationId });
+    public Task<ApiResult<ParticipantDetail>> RecordCheckInAsync(int activityId, int sessionId, int registrationId, string? note) =>
+        SendAsync<ParticipantDetail>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-ins", new { registrationId, note });
 
-    public Task<ApiResult<ParticipantDetail>> RemoveCheckInAsync(int activityId, int sessionId, int registrationId) =>
-        SendAsync<ParticipantDetail>(HttpMethod.Delete, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-ins/{registrationId}");
+    public Task<ApiResult<ParticipantDetail>> VoidCheckInAsync(int activityId, int sessionId, int registrationId, string? reason) =>
+        SendAsync<ParticipantDetail>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-ins/{registrationId}/void", new { reason });
+
+    public Task<ApiResult<List<CheckInLogEntry>>> GetCheckInLogAsync(int activityId, int? registrationId = null) =>
+        SendAsync<List<CheckInLogEntry>>(HttpMethod.Get,
+            $"api/v1/admin/activities/{activityId}/check-in-log?{Query(("registrationId", registrationId?.ToString()))}");
 
     public Task<ApiResult<List<ClassDto>>> GetClassesAsync() =>
         SendAsync<List<ClassDto>>(HttpMethod.Get, "api/v1/admin/classes");
