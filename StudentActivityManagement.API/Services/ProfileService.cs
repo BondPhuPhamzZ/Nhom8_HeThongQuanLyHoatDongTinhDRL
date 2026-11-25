@@ -61,9 +61,12 @@ public sealed partial class ProfileService(AppDbContext context, IJwtTokenGenera
         var validation = PasswordPolicy.Validate(request.NewPassword, user);
         if (validation != null) return Invalid<AuthResponseDto>(validation);
 
+        var now = time.GetUtcNow().UtcDateTime;
         user.PasswordHash = PasswordHasher.HashPassword(request.NewPassword);
         user.TokenVersion++;
-        user.UpdatedAt = time.GetUtcNow().UtcDateTime;
+        user.MustChangePassword = false;
+        user.UpdatedAt = now;
+        await PasswordResetService.InvalidateCodesAsync(context, userId, now, ct);
         await context.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         return ApiResponseDto<AuthResponseDto>.Ok(AuthService.CreateSession(user, jwt),

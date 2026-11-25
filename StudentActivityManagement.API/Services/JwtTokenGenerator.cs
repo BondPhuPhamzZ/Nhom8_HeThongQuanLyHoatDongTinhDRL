@@ -15,6 +15,7 @@ namespace StudentActivityManagement.API.Services
     {
         /// <summary>Claim holding User.TokenVersion (US-44).</summary>
         public const string TokenVersionClaim = "tv";
+        public const string PasswordChangeClaim = "pwd_change";
 
         private readonly IConfiguration _config;
 
@@ -48,6 +49,8 @@ namespace StudentActivityManagement.API.Services
                 new Claim("IsClassMonitor", user.IsClassMonitor.ToString()),
                 new Claim(TokenVersionClaim, user.TokenVersion.ToString(System.Globalization.CultureInfo.InvariantCulture))
             };
+
+            if (user.MustChangePassword) claims.Add(new Claim(PasswordChangeClaim, "1"));
 
             var expiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes);
 

@@ -60,6 +60,8 @@ namespace StudentActivityManagement.API.Models
         /// </summary>
         public int TokenVersion { get; set; }
 
+        public bool MustChangePassword { get; set; }
+
         public int AccumulatedPoints { get; set; } = 0;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

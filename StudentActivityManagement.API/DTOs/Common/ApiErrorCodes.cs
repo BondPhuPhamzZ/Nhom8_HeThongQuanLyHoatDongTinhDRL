@@ -17,6 +17,8 @@ public static class ApiErrorCodes
     public const string BusinessRuleViolation = "business_rule_violation";
     public const string ConcurrencyConflict = "concurrency_conflict";
     public const string UnexpectedError = "unexpected_error";
+    public const string PasswordChangeRequired = "password_change_required";
+    public const string ServiceUnavailable = "service_unavailable";
 
     /// <summary>The AI assistant (US-31) is switched off, has no Gemini key, or Gemini cannot be reached.</summary>
     public const string AssistantUnavailable = "assistant_unavailable";

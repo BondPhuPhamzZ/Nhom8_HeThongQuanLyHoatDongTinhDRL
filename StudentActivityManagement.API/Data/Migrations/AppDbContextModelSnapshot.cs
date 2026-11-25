@@ -674,6 +674,43 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.ToTable("EvaluationPeriods");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.PasswordResetCode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RequestedIp")
+                        .HasMaxLength(45)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("PasswordResetCodes");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.PointAppeal", b =>
                 {
                     b.Property<int>("Id")
@@ -923,6 +960,9 @@ namespace StudentActivityManagement.API.Data.Migrations
 
                     b.Property<DateTime?>("LockoutEndUtc")
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -1237,6 +1277,17 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Navigation("Author");
 
                     b.Navigation("Thread");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.PasswordResetCode", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.PointAppeal", b =>

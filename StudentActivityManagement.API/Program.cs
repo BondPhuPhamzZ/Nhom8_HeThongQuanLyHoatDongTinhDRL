@@ -17,10 +17,12 @@ using StudentActivityManagement.API.Authorization;
 using StudentActivityManagement.API.Data;
 using StudentActivityManagement.API.DTOs.Common;
 using StudentActivityManagement.API.Models;
+using StudentActivityManagement.API.Middleware;
 using StudentActivityManagement.API.OpenApi;
 using StudentActivityManagement.API.Serialization;
 using StudentActivityManagement.API.Services;
 using StudentActivityManagement.API.Services.Assistant;
+using StudentActivityManagement.API.Services.Email;
 using StudentActivityManagement.API.Services.Settings;
 using StudentActivityManagement.API.Services.Storage;
 
@@ -44,6 +46,17 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 // 2. Add Dependency Injection Services
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+builder.Services.Configure<SmtpEmailOptions>(builder.Configuration.GetSection("Email:Smtp"));
+builder.Services.AddScoped<SmtpEmailSender>();
+builder.Services.AddScoped<LogEmailSender>();
+builder.Services.AddScoped<IEmailSender>(services =>
+{
+    var settings = services.GetRequiredService<IOptions<SmtpEmailOptions>>().Value;
+    return services.GetRequiredService<IWebHostEnvironment>().IsDevelopment() && string.IsNullOrWhiteSpace(settings.Host)
+        ? services.GetRequiredService<LogEmailSender>()
+        : services.GetRequiredService<SmtpEmailSender>();
+});
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IActivityEligibilityService, ActivityEligibilityService>();
@@ -364,6 +377,7 @@ app.UseCors("ClientApps");
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<PasswordChangeRequiredMiddleware>();
 app.UseRateLimiter(); // after authentication: the assistant limit is per signed-in student
 
 app.MapControllers();

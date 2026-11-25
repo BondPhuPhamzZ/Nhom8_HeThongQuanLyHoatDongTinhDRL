@@ -144,7 +144,8 @@ namespace StudentActivityManagement.API.Services
                 ClassCode = user.Class?.ClassCode,
                 ClassName = user.Class?.ClassName,
                 IsClassMonitor = user.IsClassMonitor,
-                AccumulatedPoints = user.AccumulatedPoints
+                AccumulatedPoints = user.AccumulatedPoints,
+                MustChangePassword = user.MustChangePassword
             };
         }
     }

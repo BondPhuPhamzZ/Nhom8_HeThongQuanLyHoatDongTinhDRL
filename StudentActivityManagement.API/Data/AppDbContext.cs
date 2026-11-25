@@ -30,6 +30,7 @@ namespace StudentActivityManagement.API.Data
         public DbSet<AssistantDailyUsage> AssistantDailyUsages { get; set; } = null!;
         public DbSet<AssistantConversation> AssistantConversations { get; set; } = null!;
         public DbSet<AssistantMessage> AssistantMessages { get; set; } = null!;
+        public DbSet<PasswordResetCode> PasswordResetCodes { get; set; } = null!;
 
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
@@ -167,6 +168,13 @@ namespace StudentActivityManagement.API.Data
                       .WithMany()
                       .HasForeignKey(offset => offset.ActivityId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<PasswordResetCode>(entity =>
+            {
+                entity.HasIndex(item => new { item.UserId, item.CreatedAt });
+                entity.HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<AssistantConversation>(entity =>

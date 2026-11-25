@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using System.Data;
+using Microsoft.EntityFrameworkCore;
 using StudentActivityManagement.API.Data;
 using StudentActivityManagement.API.DTOs.Class;
 using StudentActivityManagement.API.DTOs.Common;
@@ -10,10 +11,12 @@ namespace StudentActivityManagement.API.Services
     public class StudentService : IStudentService
     {
         private readonly AppDbContext _context;
+        private readonly TimeProvider _time;
 
-        public StudentService(AppDbContext context)
+        public StudentService(AppDbContext context, TimeProvider time)
         {
             _context = context;
+            _time = time;
         }
 
         public async Task<ApiResponseDto<PagedResultDto<StudentResponseDto>>> GetStudentsAsync(
@@ -121,6 +124,8 @@ namespace StudentActivityManagement.API.Services
 
         public async Task<ApiResponseDto<StudentResponseDto>> UpdateStudentAsync(int id, StudentUpdateDto request)
         {
+            await using var transaction = string.IsNullOrWhiteSpace(request.Password) ? null
+                : await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             var student = await _context.Users
                 .Include(u => u.Class)
                 .FirstOrDefaultAsync(u => u.Id == id && (u.Role == Role.Student || u.Role == Role.Monitor));
@@ -151,16 +156,21 @@ namespace StudentActivityManagement.API.Services
             student.Campus = request.Campus;
             student.AcademicYear = request.AcademicYear;
             student.ClassId = request.ClassId;
-            student.UpdatedAt = DateTime.UtcNow;
+            var now = _time.GetUtcNow().UtcDateTime;
+            student.UpdatedAt = now;
 
             if (!string.IsNullOrWhiteSpace(request.Password))
             {
                 student.PasswordHash = PasswordHasher.HashPassword(request.Password);
-                // A new password signs the student out everywhere (US-44).
                 student.TokenVersion++;
+                student.MustChangePassword = true;
+                student.FailedLoginCount = 0;
+                student.LockoutEndUtc = null;
+                await PasswordResetService.InvalidateCodesAsync(_context, student.Id, now, CancellationToken.None);
             }
 
             await _context.SaveChangesAsync();
+            if (transaction != null) await transaction.CommitAsync();
 
             return ApiResponseDto<StudentResponseDto>.Ok(MapToStudentResponse(student), "Cập nhật sinh viên thành công.");
         }
@@ -178,6 +188,12 @@ namespace StudentActivityManagement.API.Services
             {
                 return ApiResponseDto<bool>.Fail(
                     "Không thể xóa sinh viên đã có lịch sử đăng ký hoạt động. Hãy khóa tài khoản ở Sprint quản trị tài khoản.");
+            }
+
+            if (await _context.AssistantConversations.AnyAsync(conversation => conversation.UserId == id))
+            {
+                return ApiResponseDto<bool>.Fail("Không thể xóa sinh viên đã có lịch sử trợ lý AI. Hãy khóa tài khoản.",
+                    StatusCodes.Status409Conflict, ApiErrorCodes.ResourceConflict);
             }
 
             _context.Users.Remove(student);

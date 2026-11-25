@@ -13,10 +13,29 @@ namespace StudentActivityManagement.API.Controllers
     public class AuthController : ApiControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IPasswordResetService _passwordReset;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IPasswordResetService passwordReset)
         {
             _authService = authService;
+            _passwordReset = passwordReset;
+        }
+
+        [AllowAnonymous, HttpPost("forgot-password")]
+        [EnableRateLimiting("login")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto request)
+        {
+            var result = await _passwordReset.RequestCodeAsync(request, HttpContext.Connection.RemoteIpAddress?.ToString(),
+                HttpContext.RequestAborted);
+            return result.Success ? Ok(result) : ProblemFrom(result);
+        }
+
+        [AllowAnonymous, HttpPost("reset-password")]
+        [EnableRateLimiting("login")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto request)
+        {
+            var result = await _passwordReset.ResetAsync(request, HttpContext.RequestAborted);
+            return result.Success ? Ok(result) : ProblemFrom(result);
         }
 
         /// <summary>
