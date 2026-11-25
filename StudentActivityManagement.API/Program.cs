@@ -81,7 +81,6 @@ builder.Services.Configure<AssistantOptions>(builder.Configuration.GetSection(As
 builder.Services.Configure<LoginSecurityOptions>(builder.Configuration.GetSection(LoginSecurityOptions.SectionName));
 builder.Services.AddHttpClient<GeminiClient>(client => client.Timeout = Timeout.InfiniteTimeSpan); // GeminiClient applies Gemini:TimeoutSeconds
 builder.Services.AddScoped<AssistantTools>();
-builder.Services.AddSingleton<AssistantHistorySigner>();
 builder.Services.AddScoped<AssistantDailyQuota>();
 builder.Services.AddScoped<IStaffAiService, StaffAiService>();
 builder.Services.AddScoped<IAssistantService, AssistantService>();

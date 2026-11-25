@@ -1,27 +1,27 @@
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+
 namespace StudentActivityManagement.API.DTOs.Assistant;
 
-/// <summary>
-/// One question to the assistant. The client keeps the conversation and sends it back each time (the API stores
-/// nothing); only <c>user</c> and <c>assistant</c> text turns are accepted and the last one must be the new question.
-/// </summary>
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class AssistantChatRequestDto
 {
-    public List<AssistantChatMessageDto> Messages { get; set; } = [];
+    [Range(1, int.MaxValue)]
+    public int? ConversationId { get; set; }
+
+    [Required]
+    public string Message { get; set; } = string.Empty;
 }
 
-public sealed class AssistantChatMessageDto
-{
-    /// <summary><c>user</c> or <c>assistant</c>.</summary>
-    public string Role { get; set; } = string.Empty;
+public record AssistantConversationDto(int Id, string Title, DateTime CreatedAt, DateTime LastMessageAt, int MessageCount);
 
-    public string Content { get; set; } = string.Empty;
+public sealed record AssistantConversationDetailDto(
+    int Id, string Title, DateTime CreatedAt, DateTime LastMessageAt, int MessageCount, List<AssistantMessageDto> Messages)
+    : AssistantConversationDto(Id, Title, CreatedAt, LastMessageAt, MessageCount);
 
-    /// <summary>
-    /// Required on <c>assistant</c> turns: the <see cref="AssistantReplyDto.ReplySignature"/> the API returned with that
-    /// answer. Turns the API never produced (or edited ones) are rejected, so a client cannot invent assistant messages.
-    /// </summary>
-    public string? Signature { get; set; }
-}
+public sealed record AssistantMessageDto(
+    int Id, string Role, string Content, DateTime CreatedAt, string Status,
+    List<string> ToolsUsed, List<AssistantActivityDto> Activities, bool PersonalDataRedacted);
 
 public sealed class AssistantReplyDto
 {
@@ -39,8 +39,9 @@ public sealed class AssistantReplyDto
 
     public string Model { get; set; } = string.Empty;
 
-    /// <summary>Send back with this answer as <c>signature</c> when continuing the conversation.</summary>
-    public string ReplySignature { get; set; } = string.Empty;
+    public int ConversationId { get; set; }
+
+    public int MessageId { get; set; }
 
     /// <summary>True when personal data (name, student code, email, phone, ID number) was removed before calling Gemini.</summary>
     public bool PersonalDataRedacted { get; set; }

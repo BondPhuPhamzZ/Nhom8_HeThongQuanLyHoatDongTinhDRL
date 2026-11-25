@@ -14,16 +14,19 @@ public sealed class AssistantDailyQuota
     private readonly AppDbContext _context;
     private readonly IOptions<AssistantOptions> _options;
 
-    public AssistantDailyQuota(AppDbContext context, IOptions<AssistantOptions> options)
+    private readonly TimeProvider _time;
+
+    public AssistantDailyQuota(AppDbContext context, IOptions<AssistantOptions> options, TimeProvider time)
     {
         _context = context;
         _options = options;
+        _time = time;
     }
 
     public int Limit => Math.Max(1, _options.Value.DailyQuestionLimit);
 
     /// <summary>Vietnam calendar day (UTC+7, no daylight saving).</summary>
-    public static DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+    public DateOnly Today => DateOnly.FromDateTime(_time.GetUtcNow().UtcDateTime.AddHours(7));
 
     public async Task<int> RemainingAsync(int studentId)
     {
