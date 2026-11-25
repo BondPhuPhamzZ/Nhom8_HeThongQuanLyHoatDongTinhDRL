@@ -97,7 +97,7 @@ class _AppealsScreenState extends State<AppealsScreen> {
                     child: ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
-                        const Text('Quyết định điểm bị từ chối được khiếu nại trong 14 ngày khi kỳ còn mở.', style: TextStyle(color: AppColors.muted)),
+                        const Text('Quyết định bị từ chối hoặc ghi vắng có thể được khiếu nại khi kỳ còn mở.', style: TextStyle(color: AppColors.muted)),
                         const SectionTitle('Có thể khiếu nại'),
                         if (_appealable.isEmpty)
                           const EmptyState(icon: LucideIcons.circleCheck, message: 'Không có quyết định điểm nào cần khiếu nại trong kỳ này.')
@@ -111,7 +111,8 @@ class _AppealsScreenState extends State<AppealsScreen> {
                                   children: [
                                     Row(children: [
                                       Expanded(child: Text(item.activityName, style: const TextStyle(fontWeight: FontWeight.w700))),
-                                      if (item.pointStatus != null) StatusBadge(item.pointStatus!),
+                                      if (item.pointStatus != null)
+                                        StatusBadge(item.pointStatus!, label: item.isAbsence ? 'Vắng khi chốt điểm' : null),
                                     ]),
                                     if (item.pointReason != null && item.pointReason!.isNotEmpty) ...[
                                       const SizedBox(height: 4),

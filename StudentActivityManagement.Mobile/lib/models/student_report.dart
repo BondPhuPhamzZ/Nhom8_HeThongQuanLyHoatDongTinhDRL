@@ -50,6 +50,7 @@ class ActivityHistoryItem {
     this.pointRecordId,
     this.appealStatus,
     this.canAppeal = false,
+    this.isAbsence = false,
     required this.checkInCount,
     required this.sessions,
   });
@@ -70,6 +71,7 @@ class ActivityHistoryItem {
   final int? pointRecordId;
   final String? appealStatus;
   final bool canAppeal;
+  final bool isAbsence;
   final int checkInCount;
   final List<SessionHistory> sessions;
 
@@ -89,6 +91,7 @@ class ActivityHistoryItem {
         pointRecordId: json['pointRecordId'] as int?,
         appealStatus: json['appealStatus'] as String?,
         canAppeal: json['canAppeal'] as bool? ?? false,
+        isAbsence: json['isAbsence'] as bool? ?? false,
         checkInCount: json['checkInCount'] as int? ?? 0,
         sessions: ((json['sessions'] as List?) ?? const [])
             .map((raw) => SessionHistory.fromJson((raw as Map).cast<String, dynamic>()))
