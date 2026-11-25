@@ -41,6 +41,16 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateContact(String email, String phone, String currentPassword) async {
+    user = await _service.updateContact(email, phone, currentPassword);
+    notifyListeners();
+  }
+
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    user = await _service.changePassword(currentPassword, newPassword);
+    notifyListeners();
+  }
+
   /// US-44: signs out here and on every other device of the account.
   Future<void> logout() async {
     // Leave the signed-in state first, so a 401 answered by the logout call itself cannot loop back here.

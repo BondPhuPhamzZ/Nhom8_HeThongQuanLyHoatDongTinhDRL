@@ -10,7 +10,23 @@ class AuthService {
 
   Future<AppUser> login(String usernameOrEmail, String password) async {
     final result = await _api.post('/api/v1/auth/login', {'usernameOrEmail': usernameOrEmail.trim(), 'password': password});
-    final data = result.map;
+    return _saveSession(result.map);
+  }
+
+  Future<AppUser> updateContact(String email, String phone, String currentPassword) async {
+    await _api.put('/api/v1/me/profile', {'email': email, 'phone': phone, 'currentPassword': currentPassword});
+    return AppUser.fromJson((await _api.get('/api/v1/auth/me')).map);
+  }
+
+  Future<AppUser> changePassword(String currentPassword, String newPassword) async {
+    final result = await _api.post('/api/v1/me/change-password', {
+      'currentPassword': currentPassword,
+      'newPassword': newPassword,
+    });
+    return _saveSession(result.map);
+  }
+
+  Future<AppUser> _saveSession(Map<String, dynamic> data) async {
     final user = AppUser.fromJson((data['user'] as Map).cast<String, dynamic>());
     if (!user.isStudentRole) {
       throw ApiException('Ứng dụng di động dành cho sinh viên và lớp trưởng. Cán bộ Phòng QL HSSV và quản trị viên dùng bản Web.');

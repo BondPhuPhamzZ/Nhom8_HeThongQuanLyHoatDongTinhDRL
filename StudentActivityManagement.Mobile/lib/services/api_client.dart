@@ -70,12 +70,16 @@ class ApiClient {
         timeout: timeout,
       );
 
+  Future<ApiResult> put(String path, Object body) =>
+      _send(() => _http.put(uri(path), headers: _headers(), body: jsonEncode(body)));
+
   Future<ApiResult> patch(String path, [Object? body]) =>
       _send(() => _http.patch(uri(path), headers: _headers(), body: body == null ? null : jsonEncode(body)));
 
   Future<ApiResult> delete(String path) => _send(() => _http.delete(uri(path), headers: _headers()));
 
   Future<ApiResult> _send(Future<http.Response> Function() call, {Duration? timeout}) async {
+    final requestToken = PreferenceService.instance.token;
     final http.Response response;
     try {
       response = await call().timeout(timeout ?? ApiConfig.requestTimeout);
@@ -104,7 +108,7 @@ class ApiClient {
       errorCode: body['errorCode'] as String?,
       fieldErrors: _fieldErrors(body['errors']),
     );
-    if (error.isUnauthorized && PreferenceService.instance.token != null) {
+    if (error.isUnauthorized && requestToken != null && PreferenceService.instance.token == requestToken) {
       onUnauthorized?.call();
     }
     throw error;

@@ -6,6 +6,8 @@ import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/preference_service.dart';
 import '../widgets/feedback_views.dart';
+import '../profile/change_password_screen.dart';
+import '../profile/edit_contact_screen.dart';
 
 /// Account information from `/auth/me` and sign-out.
 class ProfileTab extends StatelessWidget {
@@ -22,6 +24,7 @@ class ProfileTab extends StatelessWidget {
       (LucideIcons.calendar, 'Khóa', user.academicYear),
       (LucideIcons.mapPin, 'Cơ sở', user.campus),
       (LucideIcons.messageCircle, 'Email', user.email),
+      (Icons.phone_outlined, 'Số điện thoại', user.phone.isEmpty ? '—' : user.phone),
       (LucideIcons.server, 'API', PreferenceService.instance.baseUrl),
     ];
 
@@ -75,6 +78,14 @@ class ProfileTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
+        OutlinedButton(
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EditContactScreen(user: user))),
+          child: const Text('Sửa thông tin liên hệ'),
+        ),
+        OutlinedButton(
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
+          child: const Text('Đổi mật khẩu'),
+        ),
         OutlinedButton.icon(
           style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger, side: const BorderSide(color: AppColors.danger, width: 1.5)),
           onPressed: () => context.read<AuthProvider>().logout(),
