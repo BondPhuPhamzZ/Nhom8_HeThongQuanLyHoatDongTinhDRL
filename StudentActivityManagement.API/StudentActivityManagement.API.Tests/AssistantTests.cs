@@ -343,7 +343,7 @@ public sealed class AssistantTests : IClassFixture<CustomWebApplicationFactory>
         var api = new AccountTestClient(app.CreateClient());
         var student = await api.LoginAsync(StudentCode, StudentPassword);
         gemini.ReplyStatus(HttpStatusCode.ServiceUnavailable, "{}");
-        var question = $"Mình muốn tra điểm {Guid.NewGuid():N}.";
+        const string question = "Mình muốn tra điểm trong ca lỗi nhà cung cấp.";
 
         await AccountTestClient.AssertProblemAsync(
             await api.SendAsync(HttpMethod.Post, "/api/v1/assistant/chat", student, Question(question)),
