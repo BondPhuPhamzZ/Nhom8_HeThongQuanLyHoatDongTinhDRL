@@ -36,6 +36,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
   String? _statusError;
   bool _busy = false;
   int? _remainingToday;
+  int _tokensUsedToday = 0;
   int? _conversationId;
 
   @override
@@ -62,6 +63,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
         setState(() {
           _status = status;
           _remainingToday = status.remainingToday;
+          _tokensUsedToday = status.tokensUsedToday;
           _conversationId = detail?.id;
           _messages
             ..clear()
@@ -91,6 +93,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
           _conversationId = reply.conversationId;
           _messages.add(ChatMessage.assistant(reply));
           _remainingToday = reply.remainingToday ?? _remainingToday;
+          _tokensUsedToday = reply.tokensUsedToday ?? _tokensUsedToday;
         });
       }
     } on ApiException catch (error) {
@@ -254,6 +257,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text('Còn $_remainingToday/${status.dailyQuestionLimit} câu hỏi hôm nay',
                       style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                ),
+              if (status.dailyTokenLimit > 0 && _tokensUsedToday * 10 > status.dailyTokenLimit * 9)
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: Text('Sắp hết hạn mức hôm nay.', style: TextStyle(color: AppColors.muted)),
                 ),
               const SizedBox(height: 12),
               if (_messages.isEmpty)

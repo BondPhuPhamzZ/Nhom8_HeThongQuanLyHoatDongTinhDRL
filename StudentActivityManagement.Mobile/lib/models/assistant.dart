@@ -2,18 +2,29 @@ import '../utils/vn_time.dart';
 
 /// `GET /api/v1/assistant/status`: the chat is shown only when the server has the assistant enabled.
 class AssistantStatus {
-  const AssistantStatus({required this.enabled, this.model, this.dailyQuestionLimit = 0, this.remainingToday = 0});
+  const AssistantStatus({
+    required this.enabled,
+    this.model,
+    this.dailyQuestionLimit = 0,
+    this.remainingToday = 0,
+    this.dailyTokenLimit = 0,
+    this.tokensUsedToday = 0,
+  });
 
   final bool enabled;
   final String? model;
   final int dailyQuestionLimit;
   final int remainingToday;
+  final int dailyTokenLimit;
+  final int tokensUsedToday;
 
   factory AssistantStatus.fromJson(Map<String, dynamic> json) => AssistantStatus(
         enabled: json['enabled'] as bool? ?? false,
         model: json['model'] as String?,
         dailyQuestionLimit: json['dailyQuestionLimit'] as int? ?? 0,
         remainingToday: json['remainingToday'] as int? ?? 0,
+        dailyTokenLimit: json['dailyTokenLimit'] as int? ?? 0,
+        tokensUsedToday: json['tokensUsedToday'] as int? ?? 0,
       );
 }
 
@@ -62,6 +73,7 @@ class AssistantReply {
     this.messageId = 0,
     this.personalDataRedacted = false,
     this.remainingToday,
+    this.tokensUsedToday,
   });
 
   final String reply;
@@ -75,6 +87,7 @@ class AssistantReply {
   /// True when the API hid personal data (name, student code, email, phone) before calling Gemini.
   final bool personalDataRedacted;
   final int? remainingToday;
+  final int? tokensUsedToday;
 
   factory AssistantReply.fromJson(Map<String, dynamic> json) => AssistantReply(
         reply: json['reply'] as String? ?? '',
@@ -87,6 +100,7 @@ class AssistantReply {
         messageId: json['messageId'] as int? ?? 0,
         personalDataRedacted: json['personalDataRedacted'] as bool? ?? false,
         remainingToday: json['remainingToday'] as int?,
+        tokensUsedToday: json['tokensUsedToday'] as int?,
       );
 }
 
