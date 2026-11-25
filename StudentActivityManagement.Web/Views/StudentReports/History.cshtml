@@ -58,7 +58,11 @@ else
                         </td>
                         <td><status-badge value="@activity.RegistrationStatus" /></td>
                         <td>
-                            @if (activity.PointStatus == "Approved")
+                            @if (activity.PointStatusLabel is { } label)
+                            {
+                                <span>@label</span>
+                            }
+                            else if (activity.PointStatus == "Approved")
                             {
                                 <span>@activity.PointsAwarded điểm đã duyệt</span>
                             }

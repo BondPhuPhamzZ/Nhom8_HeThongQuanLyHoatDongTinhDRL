@@ -27,6 +27,14 @@ public sealed class ScoringController : WebControllerBase
         return View(result.Data);
     }
 
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> FinalizePoints(int id)
+    {
+        var result = await _api.FinalizePointsAsync(id);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Index), new { id });
+    }
+
     /// <summary>Approves the ticked registrations, or every eligible one when <paramref name="all"/> is set.</summary>
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Approve(int id, List<int>? registrationIds, bool all, string? note)

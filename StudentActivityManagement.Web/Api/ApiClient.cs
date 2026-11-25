@@ -173,6 +173,9 @@ public sealed class ApiClient
     public Task<ApiResult<ActivityScoring>> GetScoringAsync(int activityId) =>
         SendAsync<ActivityScoring>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/scoring");
 
+    public Task<ApiResult<FinalizePointsResult>> FinalizePointsAsync(int activityId) =>
+        SendAsync<FinalizePointsResult>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/scoring/finalize");
+
     public Task<ApiResult<ApprovePointsResult>> ApprovePointsAsync(int activityId, List<int>? registrationIds, string? note) =>
         SendAsync<ApprovePointsResult>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/scoring/approve", new { registrationIds, note });
 
@@ -228,11 +231,11 @@ public sealed class ApiClient
         SendAsync<ThreadEscalation>(HttpMethod.Post, $"api/v1/admin/class-escalations/{escalationId}/answer", new { answer });
 
     // ---- In-app reminders (US-06)
-    public Task<ApiResult<PagedResult<UserNotification>>> GetNotificationsAsync(bool unreadOnly, int page, int pageSize = 20) =>
-        SendAsync<PagedResult<UserNotification>>(HttpMethod.Get, $"api/v1/notifications?{Query(("unreadOnly", unreadOnly.ToString().ToLowerInvariant()), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
+    public Task<ApiResult<PagedResult<UserNotification>>> GetNotificationsAsync(bool unreadOnly, int page, int pageSize = 20, bool staff = false) =>
+        SendAsync<PagedResult<UserNotification>>(HttpMethod.Get, $"api/v1/{(staff ? "admin/" : "")}notifications?{Query(("unreadOnly", unreadOnly.ToString().ToLowerInvariant()), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
 
-    public Task<ApiResult<UserNotification>> MarkNotificationReadAsync(int id) =>
-        SendAsync<UserNotification>(HttpMethod.Post, $"api/v1/notifications/{id}/read");
+    public Task<ApiResult<UserNotification>> MarkNotificationReadAsync(int id, bool staff = false) =>
+        SendAsync<UserNotification>(HttpMethod.Post, $"api/v1/{(staff ? "admin/" : "")}notifications/{id}/read");
 
     // ---- Reports (US-24)
     public Task<ApiResult<ReportOverview>> GetReportOverviewAsync(ReportFilter filter) =>

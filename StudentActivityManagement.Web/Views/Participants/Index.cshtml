@@ -2,7 +2,7 @@
 @{
     var data = Model.Data;
     ViewData["Title"] = $"Người tham gia – {data.ActivityName}";
-    var statuses = new[] { ("", "Mọi trạng thái"), ("Registered", "Đã đăng ký"), ("Attended", "Đã tham gia"), ("Cancelled", "Đã hủy") };
+    var statuses = new[] { ("", "Mọi trạng thái"), ("Registered", "Đã đăng ký"), ("Attended", "Đã tham gia"), ("Absent", "Vắng mặt"), ("Cancelled", "Đã hủy") };
     var returnTo = Context.Request.Path + Context.Request.QueryString;
     var paged = data.Participants;
     var review = data.Phase == "AttendanceReview";

@@ -24,7 +24,23 @@
     <div class="col-12 col-md-4"><div class="stat-tile"><div class="stat-value">@Model.EligibleCount</div><div class="stat-label">Đã điểm danh, chưa có điểm</div></div></div>
 </div>
 
-<div class="alert alert-info">Điểm được ghi tự động ngay khi sinh viên điểm danh (quét QR, nhập mã hoặc điểm danh thủ công). Dùng "Cập nhật quyết định" để đưa về chờ kiểm tra, từ chối hoặc thu hồi điểm, kèm lý do.</div>
+@if (Model.PointsFinalizedAt is DateTime finalizedAt)
+{
+    <p class="alert alert-light border">Đã chốt điểm lúc <vn-time value="@finalizedAt" />. Các điều chỉnh được lưu trong lịch sử quyết định.</p>
+}
+else if (Model.Phase is not ("Draft" or "Cancelled"))
+{
+    <div class="alert alert-light border d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <span>Sẽ tự chốt lúc <vn-time value="@Model.PointsFinalizeDueAt" />.</span>
+        @if (Model.Phase == "AttendanceReview")
+        {
+            <form asp-action="FinalizePoints" asp-route-id="@Model.ActivityId" method="post"
+                  onsubmit="return confirm('Chốt điểm ngay và kết thúc đối chiếu điểm danh?');">
+                <button class="btn btn-primary" type="submit">Chốt điểm ngay</button>
+            </form>
+        }
+    </div>
+}
 @if (Model.EligibleCount > 0 && !Model.CanApprove)
 {
     <div class="alert alert-warning">@Model.BlockedReason</div>

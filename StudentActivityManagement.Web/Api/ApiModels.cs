@@ -42,6 +42,9 @@ public sealed class StudentActivityHistoryDto
     public DateTime RegisteredAt { get; set; }
     public int TrainingPoints { get; set; }
     public string? PointStatus { get; set; }
+    public string? PointStatusLabel { get; set; }
+    public DateTime PointsFinalizeDueAt { get; set; }
+    public DateTime? PointsFinalizedAt { get; set; }
     public int? PointRecordId { get; set; }
     public string? AppealStatus { get; set; }
     /// <summary>US-37: the API decides whether this decision can be appealed now.</summary>
@@ -122,6 +125,7 @@ public sealed class ActivityDto
     public DateTime CheckInClosesAt { get; set; }
     public DateTime PointsFinalizeDueAt { get; set; }
     public DateTime? PointsFinalizedAt { get; set; }
+    public bool PointsFinalizationBlocked { get; set; }
     public bool CanEdit => Phase is not ("AttendanceReview" or "Finalized" or "Cancelled");
     public List<string>? AllowedNextStatuses { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -449,6 +453,8 @@ public sealed class EvaluationPeriod
     public int PointRecordCount { get; set; }
 }
 
+public sealed record FinalizePointsResult(int ApprovedCount, int AbsentCount, int SkippedExistingCount, DateTime PointsFinalizedAt);
+
 public sealed class ActivityScoring
 {
     public int ActivityId { get; set; }
@@ -456,6 +462,9 @@ public sealed class ActivityScoring
     public string ActivityStatus { get; set; } = string.Empty;
     public int TrainingPoints { get; set; }
     public EvaluationPeriod? Period { get; set; }
+    public string Phase { get; set; } = string.Empty;
+    public DateTime PointsFinalizeDueAt { get; set; }
+    public DateTime? PointsFinalizedAt { get; set; }
     public bool CanApprove { get; set; }
     public string? BlockedReason { get; set; }
     public int EligibleCount { get; set; }

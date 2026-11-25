@@ -19,7 +19,15 @@
             <span class="points-chip">+@Model.TrainingPoints điểm rèn luyện</span>
         </div>
         <h1 class="h3">@Model.ActivityName</h1>
-        @if ((registered || attended) && Model.Phase is "Ongoing" or "AttendanceReview")
+        @if (Model.PointsFinalizationBlocked)
+        {
+            <p class="alert alert-light border">Đang chờ Phòng QL HSSV mở kỳ đánh giá.</p>
+        }
+        else if (attended && Model.PointsFinalizedAt == null && Model.Phase != "Cancelled")
+        {
+            <p class="alert alert-light border">Đã điểm danh, điểm sẽ được chốt lúc <vn-time value="@Model.PointsFinalizeDueAt" />.</p>
+        }
+        else if (registered && Model.Phase is "Ongoing" or "AttendanceReview")
         {
             <p class="alert alert-light border">Điểm sẽ được chốt lúc <vn-time value="@Model.PointsFinalizeDueAt" />.</p>
         }
