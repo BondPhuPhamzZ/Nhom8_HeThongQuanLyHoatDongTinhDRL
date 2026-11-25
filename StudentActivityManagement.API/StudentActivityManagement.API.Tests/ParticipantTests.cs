@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using StudentActivityManagement.API.Data;
 using StudentActivityManagement.API.Models;
 using StudentActivityManagement.API.Services.Storage;
@@ -48,9 +49,9 @@ public sealed class ParticipantTests : IClassFixture<CustomWebApplicationFactory
     }
 
     [Fact]
-    public async Task ManualCheckIn_MarksAttended_RecordsStaff_AndCanBeUndone()
+    public async Task ManualCheckIn_MarksAttended_RecordsStaff_AndCanBeVoidedDuringReview()
     {
-        var setup = await SetupAsync();
+        var setup = await SetupForCorrectionAsync();
 
         var recorded = await RecordAsync(setup, setup.StudentRegistrationId);
         Assert.Equal(HttpStatusCode.OK, recorded.StatusCode);
@@ -68,13 +69,45 @@ public sealed class ParticipantTests : IClassFixture<CustomWebApplicationFactory
         Assert.Equal(1, list.GetProperty("participants").GetProperty("totalCount").GetInt32());
         Assert.Equal(1, list.GetProperty("sessions")[0].GetProperty("checkInCount").GetInt32());
 
-        var undone = await _api.SendAsync(HttpMethod.Delete, UndoUrl(setup, setup.StudentRegistrationId), setup.Staff, null);
+        var activity = await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{setup.ActivityId}", setup.Staff));
+        const string reason = "Điểm danh nhầm sinh viên.";
+        using (_factory.Time.At(activity.GetProperty("startTime").GetDateTime().AddSeconds(1)))
+        {
+            var tooEarly = await VoidAsync(setup, reason);
+            await AccountTestClient.AssertProblemAsync(tooEarly, HttpStatusCode.Conflict, "attendance_locked");
+        }
+
+        using var review = _factory.Time.At(activity.GetProperty("checkInClosesAt").GetDateTime().AddSeconds(1));
+        Assert.Equal(HttpStatusCode.BadRequest, (await VoidAsync(setup, null)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await VoidAsync(setup, "   Ngắn   ")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await VoidAsync(setup, reason, setup.Student)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _api.GetAsync(LogUrl(setup), setup.Student)).StatusCode);
+
+        var undone = await VoidAsync(setup, $"  {reason} ");
         Assert.Equal(HttpStatusCode.OK, undone.StatusCode);
         var afterUndo = await DataAsync(undone);
         Assert.Equal("Registered", afterUndo.GetProperty("registrationStatus").GetString());
         Assert.Equal(0, afterUndo.GetProperty("checkIns").GetArrayLength());
+        Assert.Equal(HttpStatusCode.NotFound, (await VoidAsync(setup, reason)).StatusCode);
 
-        Assert.Equal(HttpStatusCode.NotFound, (await _api.SendAsync(HttpMethod.Delete, UndoUrl(setup, setup.StudentRegistrationId), setup.Staff, null)).StatusCode);
+        var old = Assert.Single((await DataAsync(await _api.GetAsync(LogUrl(setup), setup.Staff))).EnumerateArray());
+        Assert.Equal(reason, old.GetProperty("voidReason").GetString());
+        Assert.True(old.GetProperty("voidedById").GetInt32() > 0);
+        Assert.NotEqual(JsonValueKind.Null, old.GetProperty("voidedAt").ValueKind);
+
+        var status = await DataAsync(await _api.GetAsync($"/api/v1/student-activities/{setup.ActivityId}/check-in-status", setup.Student));
+        Assert.Equal(reason, status.GetProperty("sessions")[0].GetProperty("voidReason").GetString());
+        var codes = await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{setup.ActivityId}/check-in-codes", setup.Staff));
+        Assert.Equal(0, codes.GetProperty("sessions")[0].GetProperty("checkInCount").GetInt32());
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await RecordAsync(setup, setup.StudentRegistrationId)).StatusCode);
+        const string note = "Đã đối chiếu danh sách.";
+        Assert.Equal(HttpStatusCode.OK, (await RecordAsync(setup, setup.StudentRegistrationId, note)).StatusCode);
+        var log = (await DataAsync(await _api.GetAsync(LogUrl(setup), setup.Staff))).EnumerateArray().ToArray();
+        Assert.Equal(2, log.Length);
+        Assert.Equal(reason, log[0].GetProperty("voidReason").GetString());
+        Assert.Equal(note, log[1].GetProperty("note").GetString());
+        Assert.Equal(JsonValueKind.Null, log[1].GetProperty("voidedAt").ValueKind);
     }
 
     [Fact]
@@ -221,6 +254,18 @@ public sealed class ParticipantTests : IClassFixture<CustomWebApplicationFactory
             RegistrationOf(StudentCode), RegistrationOf(MonitorCode));
     }
 
+    private async Task<Setup> SetupForCorrectionAsync()
+    {
+        var setup = await SetupAsync();
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var end = await db.Activities.Where(item => item.Id == setup.ActivityId).Select(item => item.EndTime).SingleAsync();
+        // Until US-47, a check-in must be outside any open evaluation period to test a successful void.
+        Assert.False(await db.EvaluationPeriods.AnyAsync(item => item.Status == EvaluationPeriodStatus.Open &&
+            item.StartDate <= end && end <= item.EndDate));
+        return setup;
+    }
+
     /// <summary>Evidence upload is US-08 (Kiệt); until then tests store evidence the same way that service will.</summary>
     private async Task<int> AddEvidenceAsync(int registrationId, bool withFile)
     {
@@ -247,16 +292,21 @@ public sealed class ParticipantTests : IClassFixture<CustomWebApplicationFactory
         return evidence.Id;
     }
 
-    private Task<HttpResponseMessage> RecordAsync(Setup setup, int registrationId) =>
+    private Task<HttpResponseMessage> RecordAsync(Setup setup, int registrationId, string? note = null) =>
         _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/activities/{setup.ActivityId}/sessions/{setup.SessionId}/check-ins",
-            setup.Staff, new { registrationId });
+            setup.Staff, new { registrationId, note });
 
     private Task<HttpResponseMessage> ReviewAsync(Setup setup, int evidenceId, string status, string? note) =>
         _api.SendAsync(HttpMethod.Patch, $"/api/v1/admin/activities/{setup.ActivityId}/evidences/{evidenceId}/review",
             setup.Staff, new { status, note });
 
-    private static string UndoUrl(Setup setup, int registrationId) =>
-        $"/api/v1/admin/activities/{setup.ActivityId}/sessions/{setup.SessionId}/check-ins/{registrationId}";
+    private Task<HttpResponseMessage> VoidAsync(Setup setup, string? reason, string? token = null) =>
+        _api.SendAsync(HttpMethod.Post,
+            $"/api/v1/admin/activities/{setup.ActivityId}/sessions/{setup.SessionId}/check-ins/{setup.StudentRegistrationId}/void",
+            token ?? setup.Staff, new { reason });
+
+    private static string LogUrl(Setup setup) =>
+        $"/api/v1/admin/activities/{setup.ActivityId}/check-in-log?sessionId={setup.SessionId}&registrationId={setup.StudentRegistrationId}";
 
     private static string ParticipantsUrl(int activityId) => $"/api/v1/admin/activities/{activityId}/participants";
 

@@ -221,7 +221,7 @@ public sealed class ActivityService : IActivityService
 
         var removedSessionIds = existingSessionIds.Except(requestedSessionIds).ToList();
         if (removedSessionIds.Count > 0 &&
-            (await _context.ActivityCheckIns.AnyAsync(checkIn => removedSessionIds.Contains(checkIn.SessionId)) ||
+            (await _context.ActivityCheckIns.IgnoreQueryFilters().AnyAsync(checkIn => removedSessionIds.Contains(checkIn.SessionId)) ||
              await _context.ActivityEvidences.AnyAsync(evidence =>
                  evidence.SessionId.HasValue && removedSessionIds.Contains(evidence.SessionId.Value))))
         {

@@ -150,6 +150,10 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("RecordedById")
                         .HasColumnType("INTEGER");
 
@@ -159,14 +163,27 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Property<int>("SessionId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("VoidReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("VoidedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("VoidedById")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("RecordedById");
 
                     b.HasIndex("SessionId");
 
+                    b.HasIndex("VoidedById");
+
                     b.HasIndex("RegistrationId", "SessionId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"VoidedAt\" IS NULL");
 
                     b.ToTable("ActivityCheckIns");
                 });
@@ -945,11 +962,18 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("StudentActivityManagement.API.Models.User", "VoidedBy")
+                        .WithMany()
+                        .HasForeignKey("VoidedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("RecordedBy");
 
                     b.Navigation("Registration");
 
                     b.Navigation("Session");
+
+                    b.Navigation("VoidedBy");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.ActivityCheckInConfig", b =>

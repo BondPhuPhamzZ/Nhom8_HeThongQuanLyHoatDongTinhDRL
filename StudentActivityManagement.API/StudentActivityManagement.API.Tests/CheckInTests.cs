@@ -263,6 +263,36 @@ public sealed class CheckInTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.Unauthorized, (await CheckInAsync(null, activityId, sessionId, "ABCDEF")).StatusCode);
     }
 
+    [Fact]
+    public async Task CodeCheckIn_IgnoresVoidedRowsButRejectsDuplicateActiveAttendance()
+    {
+        var staff = await StaffAsync();
+        var student = await _api.LoginAsync(StudentCode, StudentPassword);
+        var (activityId, sessionId) = await CreateRegisteredActivityAsync(staff, student);
+        var code = await IssueCodeAsync(staff, activityId, sessionId);
+
+        // Model a historical void with a check-in window that is open. Normal void requests still require review.
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var registrationId = await db.ActivityRegistrations
+                .Where(item => item.ActivityId == activityId).Select(item => item.Id).SingleAsync();
+            var now = _factory.Time.GetUtcNow().UtcDateTime;
+            db.ActivityCheckIns.Add(new ActivityCheckIn
+            {
+                RegistrationId = registrationId, SessionId = sessionId,
+                CheckedInAt = now.AddMinutes(-1), VoidedAt = now, VoidReason = "Đã ghi nhận nhầm."
+            });
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Equal(HttpStatusCode.OK, (await CheckInAsync(student, activityId, sessionId, code)).StatusCode);
+        var duplicate = await CheckInAsync(student, activityId, sessionId, code);
+        await AccountTestClient.AssertProblemAsync(duplicate, HttpStatusCode.Conflict, "resource_conflict");
+        var log = await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{activityId}/check-in-log", staff));
+        Assert.Equal(2, log.GetArrayLength());
+    }
+
     private Task<string> StaffAsync() => _api.LoginAsync(AccountTestClient.HssvCode, AccountTestClient.HssvPassword);
 
     /// <summary>Creates a published one-session activity and registers the student; by default the session starts in 5 minutes.</summary>

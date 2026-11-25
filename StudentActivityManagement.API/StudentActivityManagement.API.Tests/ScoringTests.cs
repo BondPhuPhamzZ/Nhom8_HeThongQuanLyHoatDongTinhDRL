@@ -77,26 +77,37 @@ public sealed class ScoringTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task UndoingAttendance_RemovesTheAutomaticPoints_ButAStaffDecisionFreezesAttendance()
+    public async Task VoidingAttendance_IsLockedOnceThePointsExist_AndKeepsTheRecord()
     {
         var setup = await SetupAsync(complete: true);
         var checkInUrl = $"/api/v1/admin/activities/{setup.ActivityId}/sessions/{setup.SessionId}/check-ins";
 
-        // Only the automatic award exists, so the check-in can still be corrected and takes the points with it.
-        Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Delete,
-            $"{checkInUrl}/{setup.AttendedRegistrationId}", setup.Staff, null)).StatusCode);
-        var undone = await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff));
-        Assert.Equal(JsonValueKind.Null, Candidate(undone, setup.AttendedRegistrationId).GetProperty("pointRecord").ValueKind);
-        Assert.Equal(0, await RegistrationPointsAsync(setup.AttendedRegistrationId));
-
-        // Checking in again records the points again; once staff change that decision, attendance is frozen.
-        Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Post, checkInUrl, setup.Staff,
-            new { registrationId = setup.AttendedRegistrationId })).StatusCode);
+        var activity = await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{setup.ActivityId}", setup.Staff));
+        using var clock = _factory.Time.At(activity.GetProperty("checkInClosesAt").GetDateTime().AddSeconds(1));
+        var voidUrl = $"{checkInUrl}/{setup.AttendedRegistrationId}/void";
+        var body = new { reason = "Cần xác minh lại điểm danh." };
         var sheet = await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff));
-        var recordId = Candidate(sheet, setup.AttendedRegistrationId).GetProperty("pointRecord").GetProperty("id").GetInt32();
+        var before = Candidate(sheet, setup.AttendedRegistrationId).GetProperty("pointRecord");
+        var recordId = before.GetProperty("id").GetInt32();
+
+        var blocked = await _api.SendAsync(HttpMethod.Post, voidUrl, setup.Staff, body);
+        await AccountTestClient.AssertProblemAsync(blocked, HttpStatusCode.Conflict, "attendance_locked");
+        var after = Candidate(await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff)),
+            setup.AttendedRegistrationId).GetProperty("pointRecord");
+        Assert.Equal(recordId, after.GetProperty("id").GetInt32());
+        Assert.Equal(before.GetProperty("status").GetString(), after.GetProperty("status").GetString());
+        Assert.Equal(before.GetProperty("points").GetInt32(), after.GetProperty("points").GetInt32());
+        Assert.Equal(7, await RegistrationPointsAsync(setup.AttendedRegistrationId));
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var checkIn = await db.ActivityCheckIns.IgnoreQueryFilters()
+            .SingleAsync(item => item.RegistrationId == setup.AttendedRegistrationId);
+        Assert.Null(checkIn.VoidedAt);
+
         Assert.Equal(HttpStatusCode.OK, (await TransitionAsync(setup, recordId, "Pending", "Cần xác minh lại điểm danh")).StatusCode);
-        var undo = await _api.SendAsync(HttpMethod.Delete, $"{checkInUrl}/{setup.AttendedRegistrationId}", setup.Staff, null);
-        Assert.Equal(HttpStatusCode.Conflict, undo.StatusCode);
+        var undo = await _api.SendAsync(HttpMethod.Post, voidUrl, setup.Staff, body);
+        await AccountTestClient.AssertProblemAsync(undo, HttpStatusCode.Conflict, "attendance_locked");
 
         // The other registration is not scored yet, so its evidence can still be reviewed.
         Assert.Equal(HttpStatusCode.OK, (await ReviewAsync(setup, setup.EvidenceId, "Pending")).StatusCode);

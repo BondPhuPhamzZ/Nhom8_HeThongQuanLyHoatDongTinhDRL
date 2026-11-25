@@ -46,6 +46,12 @@ public sealed class CheckInService : ICheckInService
         var checkIns = await _context.ActivityCheckIns.AsNoTracking()
             .Where(item => item.RegistrationId == registration.Id)
             .ToDictionaryAsync(item => item.SessionId, item => item.CheckedInAt);
+        var voided = (await _context.ActivityCheckIns.IgnoreQueryFilters().AsNoTracking()
+            .Where(item => item.RegistrationId == registration.Id && item.VoidedAt != null)
+            .OrderByDescending(item => item.VoidedAt).ThenByDescending(item => item.Id)
+            .Select(item => new { item.SessionId, item.VoidedAt, item.VoidReason })
+            .ToListAsync())
+            .GroupBy(item => item.SessionId).ToDictionary(group => group.Key, group => group.First());
         var now = _time.GetUtcNow().UtcDateTime;
         var canUseCode = config.Method == CheckInMethods.Code &&
                          ActivityPhase.AllowsStudentCheckIn(ActivityPhase.Resolve(activity, activity.Sessions, config, now)) &&
@@ -66,6 +72,8 @@ public sealed class CheckInService : ICheckInService
                 OpensAt = config.OpensAt(session),
                 ClosesAt = config.ClosesAt(session),
                 CheckedInAt = checkIns.TryGetValue(session.Id, out var checkedInAt) ? checkedInAt : null,
+                VoidedAt = voided.GetValueOrDefault(session.Id)?.VoidedAt,
+                VoidReason = voided.GetValueOrDefault(session.Id)?.VoidReason,
                 CanCheckIn = canUseCode && !checkIns.ContainsKey(session.Id) && config.IsOpen(session, now)
             }).ToList()
         });

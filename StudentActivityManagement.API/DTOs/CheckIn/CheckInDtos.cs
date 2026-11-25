@@ -43,6 +43,8 @@ public sealed class SessionCheckInStatusDto
     /// <summary>True when the student can check in to this session right now.</summary>
     public bool CanCheckIn { get; set; }
     public DateTime? CheckedInAt { get; set; }
+    public DateTime? VoidedAt { get; set; }
+    public string? VoidReason { get; set; }
 }
 
 /// <summary>Check-in codes of an activity for Phòng QL HSSV.</summary>
