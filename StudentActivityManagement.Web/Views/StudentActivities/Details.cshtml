@@ -4,16 +4,14 @@
     var registered = Model.MyRegistrationStatus == "Registered";
     // Attended (checked in) still holds a place, but it can no longer be cancelled.
     var attended = Model.MyRegistrationStatus == "Attended";
-    var now = DateTime.UtcNow;
-    var inWindow = now >= Model.RegistrationOpenTime && now <= Model.RegistrationCloseTime;
-    var canRegister = !registered && !attended && Model.Status == "Published" && inWindow && Model.RemainingSlots > 0;
-    var canCancel = registered && now <= Model.RegistrationCloseTime;
+    var canRegister = (Model.MyRegistrationStatus is null or "Cancelled") && Model.Phase == "RegistrationOpen" && Model.RemainingSlots > 0;
+    var canCancel = registered && Model.Phase is "Upcoming" or "RegistrationOpen";
 }
 <a asp-action="Index" class="btn-back">&larr; Danh sách hoạt động</a>
 <div class="row g-4 mt-1">
     <div class="col-lg-8">
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-            <status-badge value="@Model.Status" />
+            <status-badge value="@Model.Status" label="@Model.PhaseLabel" />
             @if (Model.Eligibility?.ParticipationType is string type)
             {
                 <status-badge value="@type" />
@@ -21,6 +19,10 @@
             <span class="points-chip">+@Model.TrainingPoints điểm rèn luyện</span>
         </div>
         <h1 class="h3">@Model.ActivityName</h1>
+        @if ((registered || attended) && Model.Phase is "Ongoing" or "AttendanceReview")
+        {
+            <p class="alert alert-light border">Điểm sẽ được chốt lúc <vn-time value="@Model.PointsFinalizeDueAt" />.</p>
+        }
         <p class="text-muted">Đơn vị tổ chức: @Model.OrganizerName</p>
         @if (User.IsInRole("Monitor") && (Model.Status is "Published" or "Ongoing"))
         {
@@ -85,7 +87,7 @@
                         @(attended ? "Bạn đã check-in hoạt động này." :
                           registered ? "Đã hết hạn hủy đăng ký." :
                           Model.Status == "Ongoing" ? "Hoạt động đang diễn ra, không nhận đăng ký mới." :
-                          !inWindow ? "Ngoài thời gian đăng ký." : "Hoạt động đã đủ số lượng.")
+                          Model.Phase != "RegistrationOpen" ? "Ngoài thời gian đăng ký." : "Hoạt động đã đủ số lượng.")
                     </p>
                 }
             </div>

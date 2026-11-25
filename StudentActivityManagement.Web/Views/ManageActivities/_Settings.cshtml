@@ -28,6 +28,7 @@
                         <div class="row g-2">
                             <div class="col-sm-6"><label class="form-label" for="open-before">Mở trước (phút)</label><input class="form-control" id="open-before" name="OpenBeforeMinutes" type="number" min="0" max="240" value="@Model.CheckIn.OpenBeforeMinutes" required /></div>
                             <div class="col-sm-6"><label class="form-label" for="close-after">Đóng sau (phút)</label><input class="form-control" id="close-after" name="CloseAfterMinutes" type="number" min="0" max="240" value="@Model.CheckIn.CloseAfterMinutes" required /></div>
+                            <div class="col-12"><label class="form-label" for="correction-window">Thời gian đối chiếu điểm danh sau khi kết thúc (phút)</label><input class="form-control" id="correction-window" name="CorrectionWindowMinutes" type="number" min="0" max="10080" value="@Model.CheckIn.CorrectionWindowMinutes" required /></div>
                         </div>
                         <button class="btn btn-primary mt-3" type="submit">Lưu cấu hình check-in</button>
                     </form>

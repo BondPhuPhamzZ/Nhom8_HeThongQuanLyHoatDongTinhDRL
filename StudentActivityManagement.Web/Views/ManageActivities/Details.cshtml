@@ -5,8 +5,6 @@
     var buttons = new Dictionary<string, (string Label, string Css)>
     {
         ["Published"] = ("Công bố", "btn-success"),
-        ["Ongoing"] = ("Bắt đầu diễn ra", "btn-primary"),
-        ["Completed"] = ("Kết thúc", "btn-dark"),
         ["Draft"] = ("Chuyển về Nháp", "btn-outline-secondary"),
         ["Cancelled"] = ("Hủy hoạt động", "btn-outline-danger")
     };
@@ -14,14 +12,13 @@
         .Where(buttons.ContainsKey)
         .Select(status => (status, buttons[status].Label, buttons[status].Css))
         .ToArray();
-    var isFinal = transitions.Length == 0;
     // The API also refuses drafts that only have cancelled registrations; this hides the obvious cases.
     var canDelete = Model.Status == "Draft" && Model.CurrentParticipantsCount == 0;
 }
 <a asp-action="Index" class="btn-back">&larr; Danh sách hoạt động</a>
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mt-2 mb-3">
     <div>
-        <status-badge value="@Model.Status" />
+        <status-badge value="@Model.Status" label="@Model.PhaseLabel" />
         <h1 class="h3 mt-2 mb-1">@Model.ActivityName</h1>
         <p class="text-muted mb-0">@Model.OrganizerName · tạo ngày <vn-time value="@Model.CreatedAt" format="date" /></p>
     </div>
@@ -37,11 +34,11 @@
         {
             <a class="btn btn-outline-secondary" asp-controller="Participants" asp-action="Index" asp-route-id="@Model.Id">Người tham gia</a>
         }
-        @if (Model.Status == "Completed")
+        @if (Model.Phase is "AttendanceReview" or "Finalized")
         {
             <a class="btn btn-primary" asp-controller="Scoring" asp-action="Index" asp-route-id="@Model.Id">Ghi điểm</a>
         }
-        @if (!isFinal)
+        @if (Model.CanEdit)
         {
             <a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@Model.Id">Sửa</a>
         }
@@ -60,6 +57,26 @@
     <div class="col-6 col-md-3"><div class="stat-tile"><div class="stat-value small-value"><vn-time value="@Model.RegistrationOpenTime" /></div><div class="stat-label">Mở đăng ký</div></div></div>
     <div class="col-6 col-md-3"><div class="stat-tile"><div class="stat-value small-value"><vn-time value="@Model.RegistrationCloseTime" /></div><div class="stat-label">Đóng đăng ký</div></div></div>
 </div>
+
+@if (Model.Phase is not ("Draft" or "Cancelled"))
+{
+    <dl class="row small">
+        <dt class="col-sm-5">Bắt đầu buổi đầu tiên</dt>
+        <dd class="col-sm-7"><vn-time value="@Model.StartTime" /></dd>
+        <dt class="col-sm-5">Hết giờ check-in</dt>
+        <dd class="col-sm-7"><vn-time value="@Model.CheckInClosesAt" /></dd>
+        <dt class="col-sm-5">@(Model.PointsFinalizedAt.HasValue ? "Đã chốt điểm" : "Dự kiến chốt điểm")</dt>
+        <dd class="col-sm-7"><vn-time value="@(Model.PointsFinalizedAt ?? Model.PointsFinalizeDueAt)" /></dd>
+    </dl>
+    @if (Model.Phase is "Upcoming" or "RegistrationOpen" or "RegistrationClosed")
+    {
+        <p class="text-muted">Tự chuyển sang Đang diễn ra lúc <vn-time value="@Model.StartTime" />.</p>
+    }
+    else if (Model.Phase == "Ongoing")
+    {
+        <p class="text-muted">Tự chuyển sang Đang đối chiếu lúc <vn-time value="@Model.CheckInClosesAt" />.</p>
+    }
+}
 
 <p class="pre-line">@Model.Description</p>
 @if (!string.IsNullOrWhiteSpace(Model.Requirements))

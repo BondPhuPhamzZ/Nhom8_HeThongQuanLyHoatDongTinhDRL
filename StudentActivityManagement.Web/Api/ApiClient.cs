@@ -130,8 +130,8 @@ public sealed class ApiClient
     public Task<ApiResult<CheckInConfigDto>> GetCheckInConfigAsync(int activityId) =>
         SendAsync<CheckInConfigDto>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/check-in-config");
 
-    public Task<ApiResult<CheckInConfigDto>> UpdateCheckInConfigAsync(int activityId, string method, int openBeforeMinutes, int closeAfterMinutes) =>
-        SendAsync<CheckInConfigDto>(HttpMethod.Put, $"api/v1/admin/activities/{activityId}/check-in-config", new { method, openBeforeMinutes, closeAfterMinutes });
+    public Task<ApiResult<CheckInConfigDto>> UpdateCheckInConfigAsync(int activityId, string method, int openBeforeMinutes, int closeAfterMinutes, int correctionWindowMinutes) =>
+        SendAsync<CheckInConfigDto>(HttpMethod.Put, $"api/v1/admin/activities/{activityId}/check-in-config", new { method, openBeforeMinutes, closeAfterMinutes, correctionWindowMinutes });
 
     public Task<ApiResult<ReminderScheduleDto>> GetReminderScheduleAsync(int activityId) =>
         SendAsync<ReminderScheduleDto>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/reminder-schedule");

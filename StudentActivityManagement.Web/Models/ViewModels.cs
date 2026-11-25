@@ -56,8 +56,7 @@ public sealed class ActivitySettingsViewModel
 {
     public CheckInConfigDto CheckIn { get; set; } = new();
     public ReminderScheduleDto Reminders { get; set; } = new();
-    public string ActivityStatus { get; set; } = string.Empty;
-    public bool CanEdit => ActivityStatus is "Draft" or "Published" or "Ongoing";
+    public bool CanEdit { get; set; }
 }
 
 public sealed class CheckInSettingsForm
@@ -70,6 +69,9 @@ public sealed class CheckInSettingsForm
 
     [Range(0, 240)]
     public int CloseAfterMinutes { get; set; } = 30;
+
+    [Range(0, 10080)]
+    public int CorrectionWindowMinutes { get; set; } = 1440;
 }
 
 public sealed class ReminderScheduleForm

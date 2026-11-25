@@ -117,6 +117,12 @@ public sealed class ActivityDto
     public int TrainingPoints { get; set; }
     public string TargetAudience { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public string Phase { get; set; } = string.Empty;
+    public string? PhaseLabel { get; set; }
+    public DateTime CheckInClosesAt { get; set; }
+    public DateTime PointsFinalizeDueAt { get; set; }
+    public DateTime? PointsFinalizedAt { get; set; }
+    public bool CanEdit => Phase is not ("AttendanceReview" or "Finalized" or "Cancelled");
     public List<string>? AllowedNextStatuses { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<SessionDto> Sessions { get; set; } = [];
@@ -133,6 +139,7 @@ public sealed class CheckInConfigDto
     public string Method { get; set; } = "Code";
     public int OpenBeforeMinutes { get; set; }
     public int CloseAfterMinutes { get; set; }
+    public int CorrectionWindowMinutes { get; set; } = 1440;
     public bool IsDefault { get; set; }
     public bool HasCheckIns { get; set; }
     public DateTime? UpdatedAt { get; set; }
