@@ -15,12 +15,12 @@
 
 @if (activity.Phase == "Ongoing")
 {
-    <p class="alert alert-light border">Đang diễn ra: chỉ được thêm điểm danh. Có thể hủy ghi nhận từ <vn-time value="@activity.CheckInClosesAt" />.</p>
+    <p class="alert alert-info small">Đang diễn ra: chỉ được thêm điểm danh. Có thể hủy ghi nhận từ <vn-time value="@activity.CheckInClosesAt" />.</p>
 }
 <h2 class="h5 mt-4">Tham gia từng buổi</h2>
-<div class="table-responsive">
-    <table class="table table-sm align-middle">
-        <thead><tr><th>Buổi</th><th>Thời gian</th><th>Check-in</th><th></th></tr></thead>
+<div class="table-responsive card shadow-sm border-0 mb-3">
+    <table class="table table-sm align-middle mb-0">
+        <thead class="table-light"><tr><th>Buổi</th><th>Thời gian</th><th>Check-in</th><th class="text-end">Thao tác</th></tr></thead>
         <tbody>
             @foreach (var session in activity.Sessions.OrderBy(item => item.SortOrder))
             {
@@ -39,7 +39,7 @@
                             <span class="text-muted">Chưa check-in</span>
                         }
                     </td>
-                    <td class="text-end">
+                    <td class="text-end text-nowrap">
                         @if (Model.CanEditAttendance && (checkIn == null || review))
                         {
                             <partial name="_AttendanceAction" model="@(new AttendanceActionViewModel(activity.Id, session.Id, participant.RegistrationId, checkIn != null, review))" />

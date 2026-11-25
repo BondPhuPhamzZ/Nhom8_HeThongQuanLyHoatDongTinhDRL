@@ -121,6 +121,22 @@ public sealed class ManageActivitiesController : WebControllerBase
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> StartNow(int id)
+    {
+        var result = await _api.StartActivityNowAsync(id);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> EndNow(int id)
+    {
+        var result = await _api.EndActivityNowAsync(id);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> GenerateCheckInCode(int id, int sessionId)
     {
         var result = await _api.GenerateCheckInCodeAsync(id, sessionId);

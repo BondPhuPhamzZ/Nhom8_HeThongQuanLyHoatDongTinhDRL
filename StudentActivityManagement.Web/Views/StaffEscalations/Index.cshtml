@@ -3,22 +3,19 @@
     ViewData["Title"] = "Câu hỏi từ lớp trưởng";
     var status = ViewBag.Status as string;
 }
-<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
-    <div>
-        <h1 class="h3 mb-1">@ViewData["Title"]</h1>
-        <p class="text-muted mb-0">Phòng QL HSSV tiếp nhận và phản hồi câu hỏi đã chuyển từ các lớp.</p>
-    </div>
-    <form asp-action="Index" method="get" class="d-flex gap-2">
-        <label for="status" class="visually-hidden">Trạng thái</label>
-        <select id="status" name="status" class="form-select w-auto">
-            <option value="" selected="@(string.IsNullOrEmpty(status))">Mọi trạng thái</option>
-            <option value="Pending" selected="@(status == "Pending")">Chờ trả lời</option>
-            <option value="Answered" selected="@(status == "Answered")">Đã trả lời</option>
-            <option value="Withdrawn" selected="@(status == "Withdrawn")">Đã rút lại</option>
-        </select>
-        <button class="btn btn-primary" type="submit">Lọc</button>
-    </form>
+<div class="mb-3">
+    <h1 class="h3 mb-1">@ViewData["Title"]</h1>
+    <p class="text-muted mb-0">Phòng QL HSSV tiếp nhận và phản hồi câu hỏi đã chuyển từ các lớp.</p>
 </div>
+<form asp-action="Index" method="get" class="d-flex flex-wrap gap-2 mb-3">
+    <select name="status" class="form-select w-auto" aria-label="Trạng thái câu hỏi">
+        <option value="" selected="@(string.IsNullOrEmpty(status))">Mọi trạng thái</option>
+        <option value="Pending" selected="@(status == "Pending")">Chờ trả lời</option>
+        <option value="Answered" selected="@(status == "Answered")">Đã trả lời</option>
+        <option value="Withdrawn" selected="@(status == "Withdrawn")">Đã rút lại</option>
+    </select>
+    <button class="btn btn-outline-primary" type="submit">Lọc</button>
+</form>
 
 @if (Model.Items.Count == 0)
 {
@@ -34,7 +31,7 @@ else
                     <span class="fw-semibold">@item.ThreadTitle</span>
                     <span class="small text-muted">@(item.RaisedByName ?? "Lớp trưởng") · <vn-time value="@item.CreatedAt" /></span>
                 </div>
-                <div class="small text-muted mb-2">Trạng thái: @item.Status · Mã câu hỏi: @item.Id</div>
+                <div class="small text-muted mb-2"><partial name="../ClassSpace/_EscalationBadge" model="item.Status" /> <span class="ms-1">Mã câu hỏi: @item.Id</span></div>
                 <p class="pre-line mb-2">@item.Question</p>
                 @if (item.Status == "Pending")
                 {

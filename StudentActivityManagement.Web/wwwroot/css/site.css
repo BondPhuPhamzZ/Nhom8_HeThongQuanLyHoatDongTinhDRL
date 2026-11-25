@@ -150,7 +150,7 @@ details.card > summary { cursor: pointer; padding: .85rem 1.25rem; list-style-po
 .table > :not(caption) > * > * { padding: .8rem 1rem; border-bottom-color: #eceffa; }
 .table thead th, .table-light th { background: var(--app-surface) !important; color: var(--app-ink-muted); font-size: .8125rem; font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--app-border) !important; }
 .table-sm > :not(caption) > * > * { padding: .55rem .75rem; }
-.table-responsive.card { overflow: hidden; }
+.table-responsive.card { overflow-x: auto; }
 td .btn + .btn, td form + .btn, td .btn + form { margin-left: .35rem; }
 
 .stat-tile { border-radius: var(--app-radius); padding: 1rem 1.125rem; height: 100%; }

@@ -2,9 +2,15 @@
 @{
     ViewData["Title"] = "Điểm rèn luyện và gợi ý";
 }
-<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-    <h1 class="h3">Điểm rèn luyện và gợi ý</h1>
-    <a class="btn btn-outline-primary btn-sm" asp-controller="Assistant" asp-action="Index">Hỏi trợ lý điểm rèn luyện</a>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+    <div>
+        <h1 class="h3 mb-1">Điểm rèn luyện và gợi ý</h1>
+        @if (Model.Summary is { } points)
+        {
+            <p class="text-muted mb-0">Kỳ @points.Period.Name · mục tiêu @points.Period.TargetPoints điểm</p>
+        }
+    </div>
+    <a class="btn btn-primary" asp-controller="Assistant" asp-action="Index">Hỏi trợ lý điểm rèn luyện</a>
 </div>
 @if (Model.Summary is not { } summary)
 {
@@ -12,7 +18,6 @@
 }
 else
 {
-    <p class="text-muted">Kỳ @summary.Period.Name · mục tiêu @summary.Period.TargetPoints điểm</p>
     <div class="row g-3 mb-4">
         <div class="col-sm-4"><div class="stat-tile"><div class="stat-value">@summary.ApprovedPoints</div><div class="stat-label">Điểm đã duyệt</div></div></div>
         <div class="col-sm-4"><div class="stat-tile"><div class="stat-value">@summary.Period.TargetPoints</div><div class="stat-label">Mục tiêu kỳ</div></div></div>
@@ -36,8 +41,8 @@ else
                 @foreach (var activity in summary.RecommendedActivities)
                 {
                     <div class="col-md-6">
-                        <article class="card h-100"><div class="card-body">
-                            <div class="d-flex justify-content-between gap-2"><h2 class="h5"><a asp-controller="StudentActivities" asp-action="Details" asp-route-id="@activity.Id">@activity.ActivityName</a></h2><span class="badge text-bg-primary">@activity.TrainingPoints điểm</span></div>
+                        <article class="card shadow-sm border-0 h-100"><div class="card-body">
+                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2"><h2 class="h5"><a asp-controller="StudentActivities" asp-action="Details" asp-route-id="@activity.Id">@activity.ActivityName</a></h2><span class="badge text-bg-primary">@activity.TrainingPoints điểm</span></div>
                             <p class="small text-muted mb-2">@activity.OrganizerName · @activity.Campus · còn @activity.RemainingSlots chỗ</p>
                             <p class="mb-2">@activity.Eligibility?.Reason</p>
                             <p class="small mb-0">Đóng đăng ký: <vn-time value="@activity.RegistrationCloseTime" /></p>

@@ -26,24 +26,29 @@
 
 @if (Model.PointsFinalizedAt is DateTime finalizedAt)
 {
-    <p class="alert alert-light border">Đã chốt điểm lúc <vn-time value="@finalizedAt" />. Các điều chỉnh được lưu trong lịch sử quyết định.</p>
+    <div class="alert alert-success small">Đã chốt điểm lúc <vn-time value="@finalizedAt" />. Các điều chỉnh sau đó được lưu trong lịch sử quyết định; sinh viên bị ghi vắng có thể khiếu nại.</div>
 }
 else if (Model.Phase is not ("Draft" or "Cancelled"))
 {
-    <div class="alert alert-light border d-flex flex-wrap align-items-center justify-content-between gap-2">
-        <span>Sẽ tự chốt lúc <vn-time value="@Model.PointsFinalizeDueAt" />.</span>
+    <div class="alert alert-info small d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <span>
+            Điểm sẽ tự chốt lúc <strong><vn-time value="@Model.PointsFinalizeDueAt" /></strong>.
+            @(Model.Phase == "AttendanceReview"
+                ? "Hãy đối chiếu điểm danh ở trang Người tham gia, sau đó có thể chốt ngay."
+                : "Nút chốt điểm mở khi hoạt động kết thúc.")
+        </span>
         @if (Model.Phase == "AttendanceReview")
         {
             <form asp-action="FinalizePoints" asp-route-id="@Model.ActivityId" method="post"
-                  onsubmit="return confirm('Chốt điểm ngay và kết thúc đối chiếu điểm danh?');">
-                <button class="btn btn-primary" type="submit">Chốt điểm ngay</button>
+                  onsubmit="return confirm('Chốt điểm ngay? Sinh viên có điểm danh được cộng điểm, sinh viên vắng nhận quyết định vắng và có thể khiếu nại.');">
+                <button class="btn btn-primary btn-sm" type="submit">Chốt điểm ngay</button>
             </form>
         }
     </div>
 }
-@if (Model.EligibleCount > 0 && !Model.CanApprove)
+@if (Model.PointsFinalizedAt != null && Model.EligibleCount > 0 && !Model.CanApprove)
 {
-    <div class="alert alert-warning">@Model.BlockedReason</div>
+    <div class="alert alert-warning small">@Model.BlockedReason</div>
 }
 
 @if (Model.Candidates.Count == 0)
@@ -53,7 +58,7 @@ else if (Model.Phase is not ("Draft" or "Cancelled"))
 else
 {
     @* The approve form is empty and its fields point at it with form="…", so each row can keep its own transition form. *@
-    <div class="table-responsive card mb-3">
+    <div class="table-responsive card shadow-sm border-0 mb-3">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr><th></th><th>Sinh viên</th><th>Lớp</th><th class="text-center">Check-in</th><th>Điều kiện</th><th>Quyết định điểm</th></tr>

@@ -6,11 +6,13 @@
     var groupOptions = new[] { ("class", "Theo lớp"), ("academicYear", "Theo khóa"), ("campus", "Theo cơ sở") };
     string RateText(double? rate) => rate.HasValue ? $"{rate.Value:0.#}%" : "–";
 }
-<h1 class="h3 mb-1">Báo cáo hoạt động và điểm rèn luyện</h1>
-<p class="text-muted">
-    Số liệu theo kỳ đánh giá: hoạt động kết thúc trong kỳ (không tính Nháp và Đã hủy). Tỷ lệ tham gia = đã tham gia / đăng ký còn hiệu lực.
-    Điểm chỉ tính các quyết định đã ghi. Nguy cơ thiếu điểm = điểm trong kỳ thấp hơn điểm mục tiêu.
-</p>
+<div class="mb-3">
+    <h1 class="h3 mb-1">Báo cáo hoạt động và điểm rèn luyện</h1>
+    <p class="text-muted mb-0">
+        Số liệu theo kỳ đánh giá: hoạt động kết thúc trong kỳ (không tính Nháp và Đã hủy). Tỷ lệ tham gia = đã tham gia / đăng ký còn hiệu lực.
+        Điểm chỉ tính các quyết định đã ghi. Nguy cơ thiếu điểm = điểm trong kỳ thấp hơn điểm mục tiêu.
+    </p>
+</div>
 
 <form asp-action="Index" method="get" class="d-flex flex-wrap gap-2 mb-3">
     <select name="periodId" class="form-select w-auto" aria-label="Kỳ đánh giá">
@@ -27,7 +29,7 @@
             <option value="@campus" selected="@(filter.Campus == campus)">@campus</option>
         }
     </select>
-    <input name="academicYear" value="@filter.AcademicYear" class="form-control w-auto" style="max-width:8rem" placeholder="Khóa (K21)" aria-label="Khóa" />
+    <input name="academicYear" value="@filter.AcademicYear" class="form-control w-auto flex-grow-1" placeholder="Khóa (K21)" aria-label="Khóa" />
     <select name="classId" class="form-select w-auto" aria-label="Lớp">
         <option value="">Mọi lớp</option>
         @foreach (var item in Model.Classes)
@@ -41,7 +43,7 @@
             <option value="@value" selected="@((filter.GroupBy ?? "class") == value)">@label</option>
         }
     </select>
-    <button class="btn btn-primary" type="submit">Xem báo cáo</button>
+    <button class="btn btn-outline-primary" type="submit">Lọc</button>
 </form>
 
 @if (overview != null)
@@ -96,7 +98,7 @@ else
     </div>
 
     <h2 class="h5">@groupOptions.First(option => option.Item1 == overview.GroupBy).Item2</h2>
-    <div class="table-responsive card shadow-sm border-0 mb-4">
+    <div class="table-responsive card shadow-sm border-0 mb-3">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light"><tr><th>Nhóm</th><th class="text-center">Sinh viên</th><th class="text-center">Đăng ký</th><th class="text-center">Tham gia</th><th style="min-width:10rem">Tỷ lệ tham gia</th><th class="text-center">Điểm TB</th><th class="text-center">Nguy cơ thiếu điểm</th></tr></thead>
             <tbody>
@@ -131,7 +133,7 @@ else
     }
     else
     {
-        <div class="table-responsive card shadow-sm border-0 mb-4">
+        <div class="table-responsive card shadow-sm border-0 mb-3">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light"><tr><th>Hoạt động</th><th>Kết thúc</th><th>Trạng thái</th><th class="text-center">Đăng ký</th><th class="text-center">Tham gia</th><th class="text-center">Tỷ lệ</th><th class="text-center">Đã ghi điểm</th></tr></thead>
                 <tbody>

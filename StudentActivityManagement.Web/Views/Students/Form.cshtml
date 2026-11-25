@@ -4,9 +4,12 @@
     ViewData["Title"] = isEdit ? "Sửa sinh viên" : "Thêm sinh viên";
 }
 <a asp-action="Index" class="btn-back">&larr; Danh sách sinh viên</a>
-<h1 class="h3 mt-2 mb-3">@ViewData["Title"]</h1>
+<div class="mt-2 mb-3">
+    <h1 class="h3 mb-1">@ViewData["Title"]</h1>
+    <p class="text-muted mb-0">Cập nhật thông tin học vụ và liên hệ của sinh viên.</p>
+</div>
 
-<form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" novalidate>
+<form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" class="col-lg-8" novalidate>
     <div asp-validation-summary="All" class="alert alert-danger py-2 small empty-hidden"></div>
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-body row g-3">
