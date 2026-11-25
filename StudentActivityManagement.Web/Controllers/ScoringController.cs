@@ -86,7 +86,7 @@ public sealed class ScoringController : WebControllerBase
         {
             var label = result.Data?.Status switch
             {
-                "Approved" => "Đã ghi điểm", "Pending" => "Chờ kiểm tra", "Rejected" => "Từ chối", "Revoked" => "Thu hồi điểm",
+                "Approved" => "Đã ghi điểm", "Pending" => "Chờ kiểm tra", "Rejected" => "Từ chối", "Revoked" => "Hủy điểm",
                 var other => other
             };
             FlashSuccess($"Đã chuyển quyết định điểm sang \"{label}\" và lưu lý do vào lịch sử.");

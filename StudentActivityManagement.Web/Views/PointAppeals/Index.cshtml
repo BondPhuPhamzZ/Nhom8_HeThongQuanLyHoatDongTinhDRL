@@ -4,6 +4,7 @@
     var status = ViewBag.Status as string;
     var periodId = (int?)ViewBag.PeriodId;
     var periods = ViewBag.Periods as List<EvaluationPeriod> ?? [];
+    var logs = ViewBag.CheckInLogs as Dictionary<int, ApiResult<List<CheckInLogEntry>>> ?? [];
     string StatusLabel(string value) => value switch
     {
         "Pending" => "Đang chờ",
@@ -14,7 +15,7 @@
     };
 }
 <h1 class="h3">Khiếu nại điểm</h1>
-<p class="text-muted">Xem quyết định điểm bị từ chối và phản hồi khiếu nại của sinh viên.</p>
+<p class="text-muted">Đối chiếu điểm danh và phản hồi khiếu nại của sinh viên.</p>
 
 <form asp-action="Index" method="get" class="row g-2 align-items-end mb-4">
     <div class="col-md-4">
@@ -57,7 +58,28 @@ else
                     </div>
                     <div class="small text-muted">@StatusLabel(item.Status) · <vn-time value="@item.CreatedAt" /></div>
                 </div>
-                <p class="pre-line mt-2 mb-2">@item.Reason</p>
+                <div class="small mt-2">
+                    @if (item.Status != "Accepted")
+                    {
+                        <strong>@(item.IsAbsence ? "Bị ghi vắng" : "Bị từ chối")</strong>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(item.RecordReason))
+                    {
+                        <span> · @item.RecordReason</span>
+                    }
+                </div>
+                <p class="pre-line mt-1 mb-2">@item.Reason</p>
+                <details class="mb-3">
+                    <summary>Đối chiếu nhật ký điểm danh</summary>
+                    @if (logs.TryGetValue(item.RegistrationId, out var log) && log.Success)
+                    {
+                        <partial name="_CheckInLog" model="@(log.Data ?? new List<CheckInLogEntry>())" />
+                    }
+                    else
+                    {
+                        <p class="text-danger small mt-2">@(log?.Message ?? "Không tải được nhật ký điểm danh.")</p>
+                    }
+                </details>
                 @if (item.Status == "Pending")
                 {
                     <form asp-action="Resolve" asp-route-id="@item.Id" method="post">

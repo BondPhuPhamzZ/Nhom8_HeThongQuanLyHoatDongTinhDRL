@@ -49,6 +49,7 @@ public sealed class StudentActivityHistoryDto
     public string? AppealStatus { get; set; }
     /// <summary>US-37: the API decides whether this decision can be appealed now.</summary>
     public bool CanAppeal { get; set; }
+    public bool IsAbsence { get; set; }
     public int? PointsAwarded { get; set; }
     public string? PointReason { get; set; }
     public DateTime? PointDecidedAt { get; set; }
@@ -66,6 +67,9 @@ public sealed class PointAppealDto
 {
     public int Id { get; set; }
     public int PointRecordId { get; set; }
+    public int RegistrationId { get; set; }
+    public string? RecordReason { get; set; }
+    public bool IsAbsence { get; set; }
     public string StudentCode { get; set; } = string.Empty;
     public string StudentName { get; set; } = string.Empty;
     public string? ClassCode { get; set; }

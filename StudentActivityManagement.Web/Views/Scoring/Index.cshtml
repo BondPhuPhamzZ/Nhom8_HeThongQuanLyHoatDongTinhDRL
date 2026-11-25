@@ -3,7 +3,7 @@
     ViewData["Title"] = $"Ghi điểm – {Model.ActivityName}";
     string StatusOption(string status) => status switch
     {
-        "Approved" => "Đã ghi điểm", "Pending" => "Chờ kiểm tra", "Rejected" => "Từ chối", "Revoked" => "Thu hồi điểm", _ => status
+        "Approved" => "Đã ghi điểm", "Pending" => "Chờ kiểm tra", "Rejected" => "Từ chối", "Revoked" => "Hủy điểm", _ => status
     };
 }
 <a asp-controller="ManageActivities" asp-action="Details" asp-route-id="@Model.ActivityId" class="btn-back">&larr; @Model.ActivityName</a>
@@ -85,9 +85,13 @@ else
                                    asp-route-student="@($"{candidate.StudentCode} – {candidate.FullName}")">Lịch sử</a>
                                 @if (record.AllowedNextStatuses.Count > 0)
                                 {
-                                    <form asp-action="Transition" asp-route-id="@Model.ActivityId" method="post" class="mt-2 transition-form">
+                                    <form asp-action="Transition" asp-route-id="@Model.ActivityId" method="post" class="mt-2 transition-form"
+                                          onsubmit="return this.elements.status.value !== 'Revoked' || confirm(this.dataset.revokeWarning);"
+                                          data-revoke-warning="Không thể hoàn tác và sinh viên không thể khiếu nại. Nếu cần đối chiếu, hãy dùng 'Chờ kiểm tra' hoặc 'Từ chối'.">
                                         <input type="hidden" name="pointRecordId" value="@record.Id" />
-                                        <select name="status" class="form-select form-select-sm mb-1" aria-label="Trạng thái điểm mới">
+                                        <select name="status" class="form-select form-select-sm mb-1" aria-label="Trạng thái điểm mới" required
+                                                onchange="this.form.querySelector('button[type=submit]').textContent = this.value === 'Revoked' ? 'Hủy điểm' : 'Cập nhật quyết định';">
+                                            <option value="" selected disabled>Chọn trạng thái</option>
                                             @foreach (var nextStatus in record.AllowedNextStatuses)
                                             {
                                                 <option value="@nextStatus">@StatusOption(nextStatus)</option>
