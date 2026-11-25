@@ -11,6 +11,7 @@ public static class ApiErrorCodes
     public const string AccessDenied = "access_denied";
     public const string ResourceNotFound = "resource_not_found";
     public const string ResourceConflict = "resource_conflict";
+    public const string FinalizationBlocked = "finalization_blocked";
     public const string AttendanceLocked = "attendance_locked";
     public const string ActivityPhaseNotReached = "activity_phase_not_reached";
     public const string BusinessRuleViolation = "business_rule_violation";

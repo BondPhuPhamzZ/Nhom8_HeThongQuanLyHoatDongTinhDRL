@@ -23,6 +23,7 @@ namespace StudentActivityManagement.API.DTOs.Activity
         public DateTime CheckInClosesAt { get; set; }
         public DateTime PointsFinalizeDueAt { get; set; }
         public DateTime? PointsFinalizedAt { get; set; }
+        public bool PointsFinalizationBlocked { get; set; }
         /// <summary>Statuses the activity may move to next (staff endpoints only; null for students).</summary>
         public List<string>? AllowedNextStatuses { get; set; }
         public DateTime CreatedAt { get; set; }

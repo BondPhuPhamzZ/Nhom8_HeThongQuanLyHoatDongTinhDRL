@@ -19,6 +19,7 @@ public sealed class CheckInResultDto
     public string Method { get; set; } = string.Empty;
     /// <summary>Registration status after check-in (Attended).</summary>
     public string RegistrationStatus { get; set; } = string.Empty;
+    public DateTime PointsFinalizeDueAt { get; set; }
 }
 
 /// <summary>What the signed-in student sees about check-in for one activity.</summary>

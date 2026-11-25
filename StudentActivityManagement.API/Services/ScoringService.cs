@@ -3,6 +3,7 @@ using StudentActivityManagement.API.Data;
 using StudentActivityManagement.API.DTOs.Common;
 using StudentActivityManagement.API.DTOs.Scoring;
 using StudentActivityManagement.API.Models;
+using StudentActivityManagement.API.Services.Settings;
 
 namespace StudentActivityManagement.API.Services;
 
@@ -10,16 +11,19 @@ public sealed class ScoringService : IScoringService
 {
     private readonly AppDbContext _context;
     private readonly TimeProvider _time;
+    private readonly ICheckInConfigProvider _configProvider;
 
-    public ScoringService(AppDbContext context, TimeProvider time)
+    public ScoringService(AppDbContext context, TimeProvider time, ICheckInConfigProvider configProvider)
     {
         _context = context;
         _time = time;
+        _configProvider = configProvider;
     }
 
     public async Task<ApiResponseDto<ActivityScoringDto>> GetActivityScoringAsync(int activityId)
     {
-        var activity = await _context.Activities.AsNoTracking().FirstOrDefaultAsync(item => item.Id == activityId);
+        var activity = await _context.Activities.AsNoTracking().Include(item => item.Sessions)
+            .FirstOrDefaultAsync(item => item.Id == activityId);
         if (activity == null)
         {
             return Fail<ActivityScoringDto>("Không tìm thấy hoạt động.", StatusCodes.Status404NotFound, ApiErrorCodes.ResourceNotFound);
@@ -36,13 +40,18 @@ public sealed class ScoringService : IScoringService
             TargetPoints = period.TargetPoints,
             Status = period.Status
         };
-        var blockedReason = BlockedReason(activity, period);
+        var config = await _configProvider.GetAsync(activityId);
+        var dueAt = ActivityPhase.FinalizeDueAt(activity, activity.Sessions, config);
+        var blockedReason = BlockedReason(activity, period, dueAt);
 
         return ApiResponseDto<ActivityScoringDto>.Ok(new ActivityScoringDto
         {
             ActivityId = activity.Id,
             ActivityName = activity.ActivityName,
             ActivityStatus = activity.Status,
+            Phase = ActivityPhase.Resolve(activity, activity.Sessions, config, _time.GetUtcNow().UtcDateTime),
+            PointsFinalizeDueAt = dueAt,
+            PointsFinalizedAt = activity.PointsFinalizedAt,
             TrainingPoints = activity.TrainingPoints,
             Period = periodDto,
             CanApprove = blockedReason == null,
@@ -55,14 +64,17 @@ public sealed class ScoringService : IScoringService
 
     public async Task<ApiResponseDto<ApprovePointsResultDto>> ApproveAsync(int activityId, ApprovePointsRequestDto request, int staffId)
     {
-        var activity = await _context.Activities.AsNoTracking().FirstOrDefaultAsync(item => item.Id == activityId);
+        var activity = await _context.Activities.AsNoTracking().Include(item => item.Sessions)
+            .FirstOrDefaultAsync(item => item.Id == activityId);
         if (activity == null)
         {
             return Fail<ApprovePointsResultDto>("Không tìm thấy hoạt động.", StatusCodes.Status404NotFound, ApiErrorCodes.ResourceNotFound);
         }
 
         var period = await FindPeriodAsync(activity);
-        var blockedReason = BlockedReason(activity, period);
+        var config = await _configProvider.GetAsync(activityId);
+        var dueAt = ActivityPhase.FinalizeDueAt(activity, activity.Sessions, config);
+        var blockedReason = BlockedReason(activity, period, dueAt);
         if (blockedReason != null)
         {
             return Fail<ApprovePointsResultDto>(blockedReason, StatusCodes.Status409Conflict, ApiErrorCodes.BusinessRuleViolation);
@@ -249,11 +261,11 @@ public sealed class ScoringService : IScoringService
     private Task<EvaluationPeriod?> FindPeriodAsync(Activity activity) => _context.EvaluationPeriods.AsNoTracking()
         .FirstOrDefaultAsync(period => period.StartDate <= activity.EndTime && activity.EndTime <= period.EndDate);
 
-    private static string? BlockedReason(Activity activity, EvaluationPeriod? period)
+    private static string? BlockedReason(Activity activity, EvaluationPeriod? period, DateTime dueAt)
     {
-        if (activity.Status != ActivityStatus.Completed)
+        if (activity.PointsFinalizedAt == null)
         {
-            return "Chỉ ghi điểm khi hoạt động đã kết thúc (trạng thái Completed).";
+            return $"Điểm sẽ được chốt tự động lúc {ActivityService.VietnamTime(dueAt)}. Bạn có thể bấm Chốt điểm ngay sau khi hoạt động kết thúc.";
         }
         if (period == null)
         {

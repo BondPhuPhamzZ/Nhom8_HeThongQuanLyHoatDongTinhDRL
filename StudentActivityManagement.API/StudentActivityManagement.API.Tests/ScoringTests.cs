@@ -24,7 +24,7 @@ public sealed class ScoringTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task Scoring_IsBlockedUntilActivityCompleted()
+    public async Task Scoring_IsBlockedUntilPointsAreFinalized()
     {
         var setup = await SetupAsync(complete: false);
 
@@ -37,38 +37,34 @@ public sealed class ScoringTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task Attendance_RecordsPointsAutomatically_AndApproveAllCoversTheRest_OnceWithHistory()
+    public async Task Finalization_RecordsAttendanceAndAbsenceOnce_AndKeepsHistory()
     {
-        var setup = await SetupAsync(complete: true);
+        var setup = await SetupAsync(complete: true, legacy: false);
+        var sheetUrl = ScoringUrl(setup.ActivityId);
+        var sheet = await DataAsync(await _api.GetAsync(sheetUrl, setup.Staff));
+        Assert.False(sheet.GetProperty("canApprove").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, Candidate(sheet, setup.AttendedRegistrationId).GetProperty("pointRecord").ValueKind);
 
-        // The manual check-in in setup already recorded the attended student's points.
-        var sheet = await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff));
-        Assert.True(sheet.GetProperty("canApprove").GetBoolean());
-        var auto = Candidate(sheet, setup.AttendedRegistrationId).GetProperty("pointRecord");
-        Assert.Equal("Approved", auto.GetProperty("status").GetString());
-        Assert.Equal("Tự động ghi điểm khi điểm danh.", auto.GetProperty("reason").GetString());
-        Assert.Equal(1, sheet.GetProperty("eligibleCount").GetInt32());
-        var absent = Candidate(sheet, setup.AbsentRegistrationId);
-        Assert.False(absent.GetProperty("eligible").GetBoolean());
+        var activity = await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{setup.ActivityId}", setup.Staff));
+        using var clock = _factory.Time.At(activity.GetProperty("checkInClosesAt").GetDateTime().AddSeconds(1));
+        var result = await DataAsync(await _api.SendAsync(HttpMethod.Post, $"{sheetUrl}/finalize", setup.Staff, null));
+        Assert.Equal(1, result.GetProperty("approvedCount").GetInt32());
+        Assert.Equal(2, result.GetProperty("absentCount").GetInt32());
 
-        var approved = await ApproveAsync(setup, null);
-        Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
-        Assert.Equal(1, (await DataAsync(approved)).GetProperty("approvedCount").GetInt32());
-
-        var after = await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff));
-        Assert.Equal(2, after.GetProperty("approvedCount").GetInt32());
+        var after = await DataAsync(await _api.GetAsync(sheetUrl, setup.Staff));
         var record = Candidate(after, setup.AttendedRegistrationId).GetProperty("pointRecord");
         Assert.Equal("Approved", record.GetProperty("status").GetString());
         Assert.Equal(7, record.GetProperty("points").GetInt32());
         Assert.Equal(7, await RegistrationPointsAsync(setup.AttendedRegistrationId));
-        Assert.Equal("Approved", Candidate(after, setup.EvidenceRegistrationId).GetProperty("pointRecord").GetProperty("status").GetString());
-        Assert.Equal(JsonValueKind.Null, Candidate(after, setup.AbsentRegistrationId).GetProperty("pointRecord").ValueKind);
+        foreach (var id in new[] { setup.EvidenceRegistrationId, setup.AbsentRegistrationId })
+        {
+            Assert.Equal("Rejected", Candidate(after, id).GetProperty("pointRecord").GetProperty("status").GetString());
+            Assert.Equal(0, await RegistrationPointsAsync(id));
+        }
 
-        // Approving the same registrations again records nothing new.
-        var again = await DataAsync(await ApproveAsync(setup, [setup.AttendedRegistrationId, setup.AbsentRegistrationId]));
-        Assert.Equal(0, again.GetProperty("approvedCount").GetInt32());
-        Assert.Equal(2, again.GetProperty("skipped").GetArrayLength());
-
+        var repeated = await DataAsync(await _api.SendAsync(HttpMethod.Post, $"{sheetUrl}/finalize", setup.Staff, null));
+        Assert.Equal(0, repeated.GetProperty("approvedCount").GetInt32());
+        Assert.Equal(0, repeated.GetProperty("absentCount").GetInt32());
         var history = await DataAsync(await _api.GetAsync($"/api/v1/admin/point-records/{record.GetProperty("id").GetInt32()}/history", setup.Staff));
         var entry = Assert.Single(history.EnumerateArray());
         Assert.Equal(JsonValueKind.Null, entry.GetProperty("fromStatus").ValueKind);
@@ -77,43 +73,30 @@ public sealed class ScoringTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task VoidingAttendance_IsLockedOnceThePointsExist_AndKeepsTheRecord()
+    public async Task Attendance_CanBeCorrectedBeforeFinalization_AndIsLockedAfter()
     {
-        var setup = await SetupAsync(complete: true);
+        var setup = await SetupAsync(complete: true, legacy: false);
         var checkInUrl = $"/api/v1/admin/activities/{setup.ActivityId}/sessions/{setup.SessionId}/check-ins";
-
         var activity = await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{setup.ActivityId}", setup.Staff));
         using var clock = _factory.Time.At(activity.GetProperty("checkInClosesAt").GetDateTime().AddSeconds(1));
         var voidUrl = $"{checkInUrl}/{setup.AttendedRegistrationId}/void";
         var body = new { reason = "Cần xác minh lại điểm danh." };
-        var sheet = await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff));
-        var before = Candidate(sheet, setup.AttendedRegistrationId).GetProperty("pointRecord");
-        var recordId = before.GetProperty("id").GetInt32();
 
-        var blocked = await _api.SendAsync(HttpMethod.Post, voidUrl, setup.Staff, body);
-        await AccountTestClient.AssertProblemAsync(blocked, HttpStatusCode.Conflict, "attendance_locked");
-        var after = Candidate(await DataAsync(await _api.GetAsync(ScoringUrl(setup.ActivityId), setup.Staff)),
-            setup.AttendedRegistrationId).GetProperty("pointRecord");
-        Assert.Equal(recordId, after.GetProperty("id").GetInt32());
-        Assert.Equal(before.GetProperty("status").GetString(), after.GetProperty("status").GetString());
-        Assert.Equal(before.GetProperty("points").GetInt32(), after.GetProperty("points").GetInt32());
+        Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Post, voidUrl, setup.Staff, body)).StatusCode);
+        var corrected = new { registrationId = setup.AttendedRegistrationId, note = "Đã đối chiếu đủ điều kiện." };
+        Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Post, checkInUrl, setup.Staff, corrected)).StatusCode);
+        Assert.Equal(0, await RegistrationPointsAsync(setup.AttendedRegistrationId));
+        Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Post, $"{ScoringUrl(setup.ActivityId)}/finalize", setup.Staff, null)).StatusCode);
         Assert.Equal(7, await RegistrationPointsAsync(setup.AttendedRegistrationId));
 
-        using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var checkIn = await db.ActivityCheckIns.IgnoreQueryFilters()
-            .SingleAsync(item => item.RegistrationId == setup.AttendedRegistrationId);
-        Assert.Null(checkIn.VoidedAt);
-
-        Assert.Equal(HttpStatusCode.OK, (await TransitionAsync(setup, recordId, "Pending", "Cần xác minh lại điểm danh")).StatusCode);
-        var undo = await _api.SendAsync(HttpMethod.Post, voidUrl, setup.Staff, body);
-        await AccountTestClient.AssertProblemAsync(undo, HttpStatusCode.Conflict, "attendance_locked");
-
-        // The other registration is not scored yet, so its evidence can still be reviewed.
-        Assert.Equal(HttpStatusCode.OK, (await ReviewAsync(setup, setup.EvidenceId, "Pending")).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await ReviewAsync(setup, setup.EvidenceId, "Accepted")).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await ApproveAsync(setup, [setup.EvidenceRegistrationId])).StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, (await ReviewAsync(setup, setup.EvidenceId, "Rejected", "Thử đổi sau khi ghi điểm")).StatusCode);
+        await AccountTestClient.AssertProblemAsync(await _api.SendAsync(HttpMethod.Post, voidUrl, setup.Staff, body),
+            HttpStatusCode.Conflict, "attendance_locked");
+        await AccountTestClient.AssertProblemAsync(await _api.SendAsync(HttpMethod.Post, checkInUrl, setup.Staff, corrected),
+            HttpStatusCode.Conflict, "attendance_locked");
+        var log = await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{setup.ActivityId}/check-in-log", setup.Staff));
+        Assert.Equal(2, log.GetArrayLength());
+        Assert.NotEqual(JsonValueKind.Null, log[0].GetProperty("voidedAt").ValueKind);
+        Assert.Equal(JsonValueKind.Null, log[1].GetProperty("voidedAt").ValueKind);
     }
 
     [Fact]
@@ -244,7 +227,7 @@ public sealed class ScoringTests : IClassFixture<CustomWebApplicationFactory>
     /// Activity worth 7 points: SV210002 attends (manual check-in), SV210001 only submits a confirmation code that
     /// is accepted, and a third student registers but never attends. Optionally moved to Completed.
     /// </summary>
-    private async Task<Setup> SetupAsync(bool complete, DateTime? sessionStart = null)
+    private async Task<Setup> SetupAsync(bool complete, DateTime? sessionStart = null, bool legacy = true)
     {
         var staff = await _api.LoginAsync(AccountTestClient.HssvCode, AccountTestClient.HssvPassword);
         await EnsureCurrentPeriodAsync(staff);
@@ -311,6 +294,16 @@ public sealed class ScoringTests : IClassFixture<CustomWebApplicationFactory>
             using var clock = _factory.Time.At(activity.GetProperty("checkInClosesAt").GetDateTime().AddSeconds(1));
             Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Patch,
                 $"/api/v1/admin/activities/{activityId}/status", staff, new { status = "Completed" })).StatusCode);
+
+            // Older scoring-transition tests exercise the original approve endpoint against migrated activities.
+            if (legacy)
+            {
+                using var scope = _factory.Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var finalizedAt = _factory.Time.GetUtcNow().UtcDateTime;
+                await db.Activities.Where(item => item.Id == activityId)
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.PointsFinalizedAt, finalizedAt));
+            }
         }
 
         return new Setup(staff, attended, activityId, sessionId, attendedId, evidenceRegistrationId, absentId, evidenceId);

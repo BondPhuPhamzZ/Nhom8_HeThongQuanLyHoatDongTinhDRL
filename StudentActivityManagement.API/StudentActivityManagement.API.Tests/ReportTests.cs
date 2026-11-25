@@ -57,8 +57,11 @@ public sealed class ReportTests : IClassFixture<CustomWebApplicationFactory>
         {
             using var clock = _time.At(lifecycle.GetProperty(field).GetDateTime().AddSeconds(1));
             Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Patch, $"/api/v1/admin/activities/{activityId}/status", staff, new { status })).StatusCode);
+            if (status == "Completed")
+                Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Post,
+                    $"/api/v1/admin/activities/{activityId}/scoring/finalize", staff, null)).StatusCode);
         }
-        // Both check-ins recorded 7 points automatically; staff revoke SV210001's, so only SV210002's count.
+        // Finalization records both check-ins and marks the third student Absent. Staff revoke SV210001's points.
         var scoring = (await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{activityId}/scoring", staff)))
             .GetProperty("candidates").EnumerateArray()
             .Single(item => item.GetProperty("registrationId").GetInt32() == registrations["SV210001"]);

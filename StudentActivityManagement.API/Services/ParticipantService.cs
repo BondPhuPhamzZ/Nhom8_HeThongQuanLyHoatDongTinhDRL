@@ -11,7 +11,7 @@ namespace StudentActivityManagement.API.Services;
 public sealed class ParticipantService : IParticipantService
 {
     private static readonly string[] RegistrationStatuses =
-        [RegistrationStatus.Registered, RegistrationStatus.Attended, RegistrationStatus.Cancelled];
+        [RegistrationStatus.Registered, RegistrationStatus.Attended, RegistrationStatus.Absent, RegistrationStatus.Cancelled];
 
     private readonly AppDbContext _context;
     private readonly ICheckInConfigProvider _configProvider;
@@ -44,7 +44,7 @@ public sealed class ParticipantService : IParticipantService
             if (statusFilter == null)
             {
                 return Fail<ActivityParticipantsDto>(
-                    "Trạng thái đăng ký chỉ nhận Registered, Attended hoặc Cancelled.",
+                    "Trạng thái đăng ký chỉ nhận Registered, Attended, Absent hoặc Cancelled.",
                     StatusCodes.Status400BadRequest,
                     ApiErrorCodes.ValidationFailed);
             }
@@ -108,7 +108,8 @@ public sealed class ParticipantService : IParticipantService
                 Registered = statusCounts.GetValueOrDefault(RegistrationStatus.Registered),
                 Attended = statusCounts.GetValueOrDefault(RegistrationStatus.Attended),
                 Cancelled = statusCounts.GetValueOrDefault(RegistrationStatus.Cancelled),
-                Active = statusCounts.GetValueOrDefault(RegistrationStatus.Registered) + statusCounts.GetValueOrDefault(RegistrationStatus.Attended),
+                Active = statusCounts.GetValueOrDefault(RegistrationStatus.Registered) + statusCounts.GetValueOrDefault(RegistrationStatus.Attended) +
+                    statusCounts.GetValueOrDefault(RegistrationStatus.Absent),
                 PendingEvidence = pendingEvidence
             },
             Sessions = activity.Sessions.OrderBy(session => session.SortOrder).Select(session => new SessionAttendanceDto
@@ -177,9 +178,6 @@ public sealed class ParticipantService : IParticipantService
                 registration.Status = RegistrationStatus.Attended;
                 registration.CheckInTime ??= now;
             }
-            var activity = await _context.Activities.AsNoTracking().FirstAsync(item => item.Id == activityId);
-            await AttendancePoints.AwardAsync(_context, registration, activity, staffId, now);
-
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
         }
@@ -376,7 +374,7 @@ public sealed class ParticipantService : IParticipantService
                 return (Conflict<T>("Hoạt động không ở giai đoạn cho phép điểm danh."), null, phase);
             if (now < config.OpensAt(session))
                 return (Conflict<T>($"Buổi này chưa đến giờ điểm danh (mở lúc {ActivityService.VietnamTime(config.OpensAt(session))})."), null, phase);
-            if (await AttendancePoints.IsDecidedByStaffAsync(_context, registrationId))
+            if (await HasScoreDecisionAsync(registrationId))
                 return (AttendanceLocked<T>(ScoredMessage), null, phase);
         }
 

@@ -926,9 +926,18 @@ public sealed class ActivityService : IActivityService
             value.Equals(source.ParticipationType.Trim(), StringComparison.OrdinalIgnoreCase))
     };
 
-    private async Task<ActivityResponseDto> MapSingleAsync(Activity activity, User? student = null, string? registrationStatus = null) =>
-        MapToResponse(activity, await _checkInConfig.GetAsync(activity.Id),
+    private async Task<ActivityResponseDto> MapSingleAsync(Activity activity, User? student = null, string? registrationStatus = null)
+    {
+        var response = MapToResponse(activity, await _checkInConfig.GetAsync(activity.Id),
             student == null && await HasActiveRegistrationsAsync(activity.Id), student, registrationStatus);
+        if (student != null && registrationStatus is not (null or RegistrationStatus.Cancelled) &&
+            response.Phase == ActivityPhase.AttendanceReview)
+        {
+            response.PointsFinalizationBlocked = !await _context.EvaluationPeriods.AsNoTracking().AnyAsync(period =>
+                period.Status == EvaluationPeriodStatus.Open && period.StartDate <= activity.EndTime && activity.EndTime <= period.EndDate);
+        }
+        return response;
+    }
 
     private ActivityResponseDto MapToResponse(Activity activity, EffectiveCheckInConfig config,
         bool hasActiveRegistrations, User? student, string? registrationStatus)

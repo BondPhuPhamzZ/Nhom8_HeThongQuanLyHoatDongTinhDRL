@@ -55,7 +55,8 @@ public sealed class CheckInService : ICheckInService
         var now = _time.GetUtcNow().UtcDateTime;
         var canUseCode = config.Method == CheckInMethods.Code &&
                          ActivityPhase.AllowsStudentCheckIn(ActivityPhase.Resolve(activity, activity.Sessions, config, now)) &&
-                         registration.Status != RegistrationStatus.Cancelled;
+                         registration.Status != RegistrationStatus.Cancelled &&
+                         !await _context.PointRecords.AnyAsync(item => item.RegistrationId == registration.Id);
 
         return ApiResponseDto<StudentCheckInStatusDto>.Ok(new StudentCheckInStatusDto
         {
@@ -129,6 +130,9 @@ public sealed class CheckInService : ICheckInService
         {
             return Fail<CheckInResultDto>("Bạn đã check-in buổi này rồi.", StatusCodes.Status409Conflict, ApiErrorCodes.ResourceConflict);
         }
+        if (await _context.PointRecords.AnyAsync(item => item.RegistrationId == registration.Id))
+            return Fail<CheckInResultDto>("Đăng ký đã có quyết định điểm rèn luyện nên không thể thay đổi điểm danh.",
+                StatusCodes.Status409Conflict, ApiErrorCodes.AttendanceLocked);
         if (string.IsNullOrEmpty(session.CheckInCode))
         {
             return Conflict<CheckInResultDto>("Ban tổ chức chưa phát mã check-in cho buổi này.");
@@ -153,7 +157,6 @@ public sealed class CheckInService : ICheckInService
                 registration.Status = RegistrationStatus.Attended;
                 registration.CheckInTime ??= now;
             }
-            await AttendancePoints.AwardAsync(_context, registration, activity, staffId: null, now);
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -165,6 +168,7 @@ public sealed class CheckInService : ICheckInService
             return Fail<CheckInResultDto>("Bạn đã check-in buổi này rồi.", StatusCodes.Status409Conflict, ApiErrorCodes.ResourceConflict);
         }
 
+        var dueAt = ActivityPhase.FinalizeDueAt(activity, activity.Sessions, config);
         return ApiResponseDto<CheckInResultDto>.Ok(new CheckInResultDto
         {
             ActivityId = activityId,
@@ -172,8 +176,9 @@ public sealed class CheckInService : ICheckInService
             SessionName = session.SessionName,
             CheckedInAt = now,
             Method = CheckInMethods.Code,
-            RegistrationStatus = registration.Status
-        }, $"Check-in thành công buổi \"{session.SessionName}\".");
+            RegistrationStatus = registration.Status,
+            PointsFinalizeDueAt = dueAt
+        }, $"Đã điểm danh buổi \"{session.SessionName}\", điểm sẽ được chốt lúc {ActivityService.VietnamTime(dueAt)}.");
     }
 
     public async Task<ApiResponseDto<ActivityCheckInCodesDto>> GetSessionCodesAsync(int activityId)

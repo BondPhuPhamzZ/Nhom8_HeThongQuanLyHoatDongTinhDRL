@@ -11,7 +11,7 @@ namespace StudentActivityManagement.API.Controllers;
 /// <summary>US-06: in-app reminders belonging to the signed-in student.</summary>
 [ApiController]
 [Route("api/v1/notifications")]
-[Authorize(Policy = AuthorizationPolicies.StudentOrMonitor)]
+[Authorize]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
 public sealed class NotificationsController : ApiControllerBase
@@ -21,6 +21,7 @@ public sealed class NotificationsController : ApiControllerBase
     public NotificationsController(INotificationService service) => _service = service;
 
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.StudentOrMonitor)]
     [ProducesResponseType(typeof(ApiResponseDto<PagedResultDto<UserNotificationDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMine([FromQuery] bool unreadOnly = false, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 20)
     {
@@ -30,6 +31,7 @@ public sealed class NotificationsController : ApiControllerBase
     }
 
     [HttpPost("{id:int}/read")]
+    [Authorize(Policy = AuthorizationPolicies.StudentOrMonitor)]
     [ProducesResponseType(typeof(ApiResponseDto<UserNotificationDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> MarkRead(int id)
@@ -38,6 +40,20 @@ public sealed class NotificationsController : ApiControllerBase
         var result = await _service.MarkReadAsync(userId, id);
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
+
+    /// <summary>Danh sách thông báo của cán bộ đang đăng nhập.</summary>
+    [HttpGet("/api/v1/admin/notifications")]
+    [Authorize(Policy = AuthorizationPolicies.BusinessAdmin)]
+    [ProducesResponseType(typeof(ApiResponseDto<PagedResultDto<UserNotificationDto>>), StatusCodes.Status200OK)]
+    public Task<IActionResult> GetStaffMine([FromQuery] bool unreadOnly = false, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 20) =>
+        GetMine(unreadOnly, pageIndex, pageSize);
+
+    /// <summary>Đánh dấu đã đọc một thông báo của chính cán bộ.</summary>
+    [HttpPost("/api/v1/admin/notifications/{id:int}/read")]
+    [Authorize(Policy = AuthorizationPolicies.BusinessAdmin)]
+    [ProducesResponseType(typeof(ApiResponseDto<UserNotificationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public Task<IActionResult> MarkStaffRead(int id) => MarkRead(id);
 
     private bool TryUserId(out int userId) => int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out userId);
 

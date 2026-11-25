@@ -260,9 +260,17 @@ public sealed class ParticipantTests : IClassFixture<CustomWebApplicationFactory
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var end = await db.Activities.Where(item => item.Id == setup.ActivityId).Select(item => item.EndTime).SingleAsync();
-        // Until US-47, a check-in must be outside any open evaluation period to test a successful void.
-        Assert.False(await db.EvaluationPeriods.AnyAsync(item => item.Status == EvaluationPeriodStatus.Open &&
-            item.StartDate <= end && end <= item.EndDate));
+        // US-47 allows corrections before finalization even when an evaluation period is open.
+        if (!await db.EvaluationPeriods.AnyAsync(item => item.Status == EvaluationPeriodStatus.Open &&
+            item.StartDate <= end && end <= item.EndDate))
+        {
+            db.EvaluationPeriods.Add(new EvaluationPeriod
+            {
+                Name = "Kỳ đối chiếu điểm danh", StartDate = end.AddDays(-7), EndDate = end.AddDays(7),
+                Status = EvaluationPeriodStatus.Open, TargetPoints = 20, CreatedAt = _factory.Time.GetUtcNow().UtcDateTime
+            });
+            await db.SaveChangesAsync();
+        }
         return setup;
     }
 

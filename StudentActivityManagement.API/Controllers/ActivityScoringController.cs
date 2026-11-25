@@ -17,10 +17,12 @@ namespace StudentActivityManagement.API.Controllers;
 public sealed class ActivityScoringController : ApiControllerBase
 {
     private readonly IScoringService _scoringService;
+    private readonly IActivityLifecycleService _lifecycle;
 
-    public ActivityScoringController(IScoringService scoringService)
+    public ActivityScoringController(IScoringService scoringService, IActivityLifecycleService lifecycle)
     {
         _scoringService = scoringService;
+        _lifecycle = lifecycle;
     }
 
     /// <summary>
@@ -52,6 +54,20 @@ public sealed class ActivityScoringController : ApiControllerBase
         }
 
         var result = await _scoringService.ApproveAsync(activityId, request, staffId);
+        return result.Success ? Ok(result) : ProblemFrom(result);
+    }
+
+    /// <summary>Chốt điểm rèn luyện sau khi cửa sổ điểm danh đã đóng.</summary>
+    [HttpPost("activities/{activityId:int}/scoring/finalize")]
+    [ProducesResponseType(typeof(ApiResponseDto<FinalizeResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> FinalizePoints(int activityId, CancellationToken ct)
+    {
+        if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var staffId))
+            return ApiProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.AuthenticationRequired, "Không xác định được người dùng.");
+
+        var result = await _lifecycle.FinalizeAsync(activityId, staffId, ct);
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
 

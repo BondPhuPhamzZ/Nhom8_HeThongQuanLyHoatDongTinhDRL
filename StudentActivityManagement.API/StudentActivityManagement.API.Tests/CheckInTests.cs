@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using StudentActivityManagement.API.Data;
 using StudentActivityManagement.API.Models;
+using StudentActivityManagement.API.Services;
 
 namespace StudentActivityManagement.API.Tests;
 
@@ -58,7 +59,7 @@ public sealed class CheckInTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task CheckIn_WithCode_RecordsTheActivityPointsInTheOpenPeriod()
+    public async Task CheckIn_WithCode_OnlyRecordsPointsWhenWorkerFinalizes()
     {
         var staff = await StaffAsync();
         var student = await _api.LoginAsync(MonitorCode, StudentPassword);
@@ -82,6 +83,10 @@ public sealed class CheckInTests : IClassFixture<CustomWebApplicationFactory>
 
         using var verify = _factory.Services.CreateScope();
         var db = verify.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.False(await db.PointRecords.AnyAsync(item => item.ActivityId == activityId));
+        var staffView = await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{activityId}", staff));
+        using var clock = _factory.Time.At(staffView.GetProperty("pointsFinalizeDueAt").GetDateTime().AddSeconds(1));
+        await verify.ServiceProvider.GetRequiredService<IActivityLifecycleService>().RunOnceAsync();
         var record = await db.PointRecords.AsNoTracking().Include(item => item.History)
             .SingleAsync(item => item.ActivityId == activityId);
         Assert.Equal(PointRecordStatus.Approved, record.Status);
