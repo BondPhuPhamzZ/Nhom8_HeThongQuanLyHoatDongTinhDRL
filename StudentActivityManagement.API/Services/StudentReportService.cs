@@ -137,13 +137,14 @@ public sealed class StudentReportService : IStudentReportService
             var blocked = phase == ActivityPhase.AttendanceReview &&
                 !openPeriods.Any(item => item.StartDate <= activity.EndTime && activity.EndTime <= item.EndDate);
             var canAppeal = PointAppealService.CanAppeal(pointRecord, period.Status, appealStatus, now, _appealWindowDays);
+            var isAbsence = registration.Status == RegistrationStatus.Absent;
             var label = pointRecord?.Status switch
             {
                 PointRecordStatus.Approved => $"Đã cộng {pointRecord.Points} điểm",
                 PointRecordStatus.Revoked => "Đã hủy điểm",
-                PointRecordStatus.Rejected when pointRecord.Reason == AttendancePoints.AbsentReason && canAppeal =>
+                PointRecordStatus.Rejected when isAbsence && canAppeal =>
                     $"Vắng: có thể khiếu nại đến {ActivityService.VietnamTime(pointRecord.DecidedAt.AddDays(_appealWindowDays))}",
-                PointRecordStatus.Rejected when pointRecord.Reason == AttendancePoints.AbsentReason => "Vắng khi chốt điểm",
+                PointRecordStatus.Rejected when isAbsence => "Vắng khi chốt điểm",
                 PointRecordStatus.Rejected => "Bị từ chối",
                 PointRecordStatus.Pending => "Chờ kiểm tra",
                 _ when registration.Status == RegistrationStatus.Cancelled || phase == ActivityPhase.Cancelled => null,
@@ -169,6 +170,7 @@ public sealed class StudentReportService : IStudentReportService
                 PointRecordId = pointRecord?.Id,
                 AppealStatus = appealStatus,
                 CanAppeal = canAppeal,
+                IsAbsence = isAbsence,
                 PointsAwarded = pointRecord?.Points,
                 PointReason = pointRecord?.Reason,
                 PointDecidedAt = pointRecord?.DecidedAt,

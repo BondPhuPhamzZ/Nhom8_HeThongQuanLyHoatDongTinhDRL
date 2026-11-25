@@ -73,7 +73,8 @@ public sealed class ActivityParticipantsController : ApiControllerBase
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
 
-    /// <summary>Trong pha đối chiếu, đánh dấu hủy một lượt điểm danh và lưu lý do.</summary>
+    [EndpointSummary("Hủy ghi nhận điểm danh trong pha đối chiếu")]
+    [EndpointDescription("Giữ lượt điểm danh trong nhật ký. Trả 409 attendance_locked khi điểm danh đã khóa.")]
     [HttpPost("sessions/{sessionId:int}/check-ins/{registrationId:int}/void")]
     [ProducesResponseType(typeof(ApiResponseDto<ParticipantDetailDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -86,7 +87,8 @@ public sealed class ActivityParticipantsController : ApiControllerBase
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
 
-    /// <summary>Nhật ký điểm danh, bao gồm cả các lượt đã hủy ghi nhận.</summary>
+    [EndpointSummary("Xem nhật ký điểm danh")]
+    [EndpointDescription("Gồm cả những lượt đã hủy. Có thể lọc theo buổi hoặc đăng ký.")]
     [HttpGet("check-in-log")]
     [ProducesResponseType(typeof(ApiResponseDto<List<CheckInLogEntryDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

@@ -100,7 +100,7 @@ public sealed class PointsFinalizationTests : IClassFixture<CustomWebApplication
     }
 
     [Fact]
-    public async Task ClosedPeriod_BlocksFinalizationOncePerStaff_AndWorkerRetriesAfterReopening()
+    public async Task ClosedPeriod_NotifiesOnlyActiveHssvOnce_AndWorkerRetriesAfterReopening()
     {
         var setup = await CreateAsync();
         var periodId = await FindOrCreatePeriodAsync(setup, false);
@@ -119,11 +119,11 @@ public sealed class PointsFinalizationTests : IClassFixture<CustomWebApplication
 
             using var scope = _factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var staffIds = await db.Users.Where(item => item.IsActive && Role.StaffRoles.Contains(item.Role))
+            var hssvIds = await db.Users.Where(item => item.IsActive && item.Role == Role.HSSV)
                 .Select(item => item.Id).ToListAsync();
             var receivers = await db.UserNotifications.Where(item => item.ActivityId == setup.Id && item.Kind == "FinalizationBlocked")
                 .Select(item => item.RecipientUserId).ToListAsync();
-            Assert.Equal(staffIds.Order(), receivers.Order());
+            Assert.Equal(hssvIds.Order(), receivers.Order());
             var staffInbox = await DataAsync(await _api.GetAsync("/api/v1/admin/notifications", setup.Staff));
             Assert.Single(staffInbox.GetProperty("items").EnumerateArray(), item =>
                 item.GetProperty("activityId").GetInt32() == setup.Id && item.GetProperty("kind").GetString() == "FinalizationBlocked");

@@ -57,7 +57,8 @@ public sealed class ActivityScoringController : ApiControllerBase
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
 
-    /// <summary>Chốt điểm rèn luyện sau khi cửa sổ điểm danh đã đóng.</summary>
+    [EndpointSummary("Chốt điểm rèn luyện sau khi cửa sổ điểm danh đóng")]
+    [EndpointDescription("Trả 409 finalization_blocked nếu chưa tới pha đối chiếu hoặc chưa có kỳ đánh giá mở.")]
     [HttpPost("activities/{activityId:int}/scoring/finalize")]
     [ProducesResponseType(typeof(ApiResponseDto<FinalizeResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

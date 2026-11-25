@@ -41,14 +41,14 @@ public sealed class NotificationsController : ApiControllerBase
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
 
-    /// <summary>Danh sách thông báo của cán bộ đang đăng nhập.</summary>
+    [EndpointSummary("Xem thông báo của cán bộ đang đăng nhập")]
     [HttpGet("/api/v1/admin/notifications")]
     [Authorize(Policy = AuthorizationPolicies.BusinessAdmin)]
     [ProducesResponseType(typeof(ApiResponseDto<PagedResultDto<UserNotificationDto>>), StatusCodes.Status200OK)]
     public Task<IActionResult> GetStaffMine([FromQuery] bool unreadOnly = false, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 20) =>
         GetMine(unreadOnly, pageIndex, pageSize);
 
-    /// <summary>Đánh dấu đã đọc một thông báo của chính cán bộ.</summary>
+    [EndpointSummary("Đánh dấu đã đọc thông báo của cán bộ đang đăng nhập")]
     [HttpPost("/api/v1/admin/notifications/{id:int}/read")]
     [Authorize(Policy = AuthorizationPolicies.BusinessAdmin)]
     [ProducesResponseType(typeof(ApiResponseDto<UserNotificationDto>), StatusCodes.Status200OK)]

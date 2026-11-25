@@ -347,6 +347,7 @@ app.UseStatusCodePages(async statusCodeContext =>
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
+    app.MapGet("/swagger", () => Results.Redirect("/")).ExcludeFromDescription();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Student Activity Management API v1");

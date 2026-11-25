@@ -108,7 +108,7 @@ public sealed class ActivityLifecycleService(
 
         if (period == null)
         {
-            var owners = await context.Users.AsNoTracking().Where(item => item.IsActive && Role.StaffRoles.Contains(item.Role))
+            var owners = await context.Users.AsNoTracking().Where(item => item.IsActive && item.Role == Role.HSSV)
                 .Select(item => item.Id).ToListAsync(ct);
             var keys = owners.Select(item => $"finalize-blocked:{activityId}:{item}").ToList();
             var existing = await context.UserNotifications.AsNoTracking().Where(item => keys.Contains(item.SourceKey))
