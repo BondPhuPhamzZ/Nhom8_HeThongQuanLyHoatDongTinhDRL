@@ -166,9 +166,16 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
 
   Widget _facts(Activity activity) => InfoPanel(children: [
         _Fact(icon: LucideIcons.users, label: 'Đã đăng ký', value: '${activity.currentParticipants}/${activity.maxParticipants} · còn ${activity.remainingSlots} chỗ'),
-        if (activity.holdsPlace && (activity.phase == 'Ongoing' || activity.phase == 'AttendanceReview') &&
-            activity.pointsFinalizeDueAt != null)
-          _Fact(icon: LucideIcons.clock, label: 'Điểm sẽ được chốt lúc', value: VnTime.dateTime(activity.pointsFinalizeDueAt)),
+        if (activity.pointsFinalizationBlocked)
+          const _Fact(icon: LucideIcons.clock, label: 'Chốt điểm', value: 'Đang chờ Phòng QL HSSV mở kỳ đánh giá')
+        else if (activity.pointsFinalizeDueAt != null && activity.pointsFinalizedAt == null &&
+            (activity.hasAttended && activity.phase != 'Cancelled' ||
+                activity.isRegistered && (activity.phase == 'Ongoing' || activity.phase == 'AttendanceReview')))
+          _Fact(
+            icon: LucideIcons.clock,
+            label: activity.hasAttended ? 'Đã điểm danh, điểm sẽ được chốt lúc' : 'Điểm sẽ được chốt lúc',
+            value: VnTime.dateTime(activity.pointsFinalizeDueAt),
+          ),
         _Fact(icon: LucideIcons.calendar, label: 'Mở đăng ký', value: VnTime.dateTime(activity.registrationOpenTime)),
         _Fact(icon: LucideIcons.calendarCheck, label: 'Đóng đăng ký', value: VnTime.dateTime(activity.registrationCloseTime)),
         _Fact(icon: LucideIcons.graduationCap, label: 'Đối tượng', value: activity.targetAudience),

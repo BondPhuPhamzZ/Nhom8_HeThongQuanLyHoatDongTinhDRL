@@ -27,6 +27,7 @@ class Activity {
     this.checkInClosesAt,
     this.pointsFinalizeDueAt,
     this.pointsFinalizedAt,
+    this.pointsFinalizationBlocked = false,
   });
 
   final int id;
@@ -50,6 +51,7 @@ class Activity {
   final DateTime? checkInClosesAt;
   final DateTime? pointsFinalizeDueAt;
   final DateTime? pointsFinalizedAt;
+  final bool pointsFinalizationBlocked;
   final List<ActivitySession> sessions;
   final Eligibility? eligibility;
 
@@ -97,6 +99,7 @@ class Activity {
         checkInClosesAt: json['checkInClosesAt'] == null ? null : VnTime.parse(json['checkInClosesAt']),
         pointsFinalizeDueAt: json['pointsFinalizeDueAt'] == null ? null : VnTime.parse(json['pointsFinalizeDueAt']),
         pointsFinalizedAt: json['pointsFinalizedAt'] == null ? null : VnTime.parse(json['pointsFinalizedAt']),
+        pointsFinalizationBlocked: json['pointsFinalizationBlocked'] as bool? ?? false,
         sessions: ((json['sessions'] as List?) ?? const [])
             .map((raw) => ActivitySession.fromJson((raw as Map).cast<String, dynamic>()))
             .toList(),

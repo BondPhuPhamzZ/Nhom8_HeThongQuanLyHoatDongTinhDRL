@@ -42,6 +42,9 @@ class ActivityHistoryItem {
     required this.registeredAt,
     required this.trainingPoints,
     required this.pointStatus,
+    this.pointStatusLabel,
+    this.pointsFinalizeDueAt,
+    this.pointsFinalizedAt,
     required this.pointsAwarded,
     required this.pointReason,
     this.pointRecordId,
@@ -58,6 +61,9 @@ class ActivityHistoryItem {
   final DateTime registeredAt;
   final int trainingPoints;
   final String? pointStatus;
+  final String? pointStatusLabel;
+  final DateTime? pointsFinalizeDueAt;
+  final DateTime? pointsFinalizedAt;
   final int? pointsAwarded;
   final String? pointReason;
   /// US-37: the decision to appeal, the latest appeal status and whether the API allows an appeal now.
@@ -75,6 +81,9 @@ class ActivityHistoryItem {
         registeredAt: VnTime.parse(json['registeredAt']),
         trainingPoints: json['trainingPoints'] as int? ?? 0,
         pointStatus: json['pointStatus'] as String?,
+        pointStatusLabel: json['pointStatusLabel'] as String?,
+        pointsFinalizeDueAt: VnTime.parseOrNull(json['pointsFinalizeDueAt']),
+        pointsFinalizedAt: VnTime.parseOrNull(json['pointsFinalizedAt']),
         pointsAwarded: json['pointsAwarded'] as int?,
         pointReason: json['pointReason'] as String?,
         pointRecordId: json['pointRecordId'] as int?,
