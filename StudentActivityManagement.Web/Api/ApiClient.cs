@@ -54,6 +54,10 @@ public sealed class ApiClient
         SendAsync<AssistantReplyDto>(HttpMethod.Post, "api/v1/assistant/chat", new { conversationId, message },
             client: _httpClientFactory.CreateClient(AssistantHttpClient));
 
+    public Task<ApiResult<AssistantUsageReport>> GetAssistantUsageAsync(DateOnly? from, DateOnly? to, string? keyword) =>
+        SendAsync<AssistantUsageReport>(HttpMethod.Get,
+            $"api/v1/admin/assistant-usage?{Query(("from", from?.ToString("yyyy-MM-dd")), ("to", to?.ToString("yyyy-MM-dd")), ("keyword", keyword))}");
+
     // ---- Auth
     public Task<ApiResult<AuthResponse>> LoginAsync(string usernameOrEmail, string password) =>
         SendAsync<AuthResponse>(HttpMethod.Post, "api/v1/auth/login", new { usernameOrEmail, password }, throwOn401: false);

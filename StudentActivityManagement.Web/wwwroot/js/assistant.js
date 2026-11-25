@@ -85,6 +85,8 @@
             }
             const remaining = document.getElementById('assistant-remaining');
             if (remaining) remaining.textContent = data.remainingToday;
+            const warning = document.getElementById('assistant-token-warning');
+            if (warning) warning.hidden = !(data.dailyTokenLimit > 0 && data.tokensUsedToday * 10 > data.dailyTokenLimit * 9);
             const row = addMessage('bot', data.reply);
             if (data.personalDataRedacted) {
                 row.append(element('div', 'assistant-tools small text-muted',

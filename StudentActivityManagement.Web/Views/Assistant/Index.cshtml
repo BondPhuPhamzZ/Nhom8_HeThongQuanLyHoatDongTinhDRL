@@ -119,6 +119,10 @@
         <p class="assistant-model small text-muted mb-0">
             Mô hình: @Model.Model · Còn <span id="assistant-remaining">@Model.RemainingToday</span>/@Model.DailyQuestionLimit câu hỏi hôm nay
         </p>
+        <p class="small text-warning mb-0" id="assistant-token-warning"
+           hidden="@(Model.DailyTokenLimit <= 0 || Model.TokensUsedToday * 10L <= Model.DailyTokenLimit * 9L)">
+            Sắp hết hạn mức hôm nay.
+        </p>
         }
     </section>
 }

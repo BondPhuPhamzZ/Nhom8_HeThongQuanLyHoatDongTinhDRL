@@ -59,6 +59,8 @@ public sealed class AssistantController : WebControllerBase
             StatusMessage = status.Success ? null : status.Message,
             DailyQuestionLimit = status.Data?.DailyQuestionLimit ?? 0,
             RemainingToday = status.Data?.RemainingToday ?? 0,
+            DailyTokenLimit = status.Data?.DailyTokenLimit ?? 0,
+            TokensUsedToday = status.Data?.TokensUsedToday ?? 0,
             Conversations = history,
             Current = current,
             NewChat = newChat
@@ -84,6 +86,8 @@ public sealed class AssistantController : WebControllerBase
             conversationId = data.ConversationId,
             personalDataRedacted = data.PersonalDataRedacted,
             remainingToday = data.RemainingToday,
+            dailyTokenLimit = data.DailyTokenLimit,
+            tokensUsedToday = data.TokensUsedToday,
             toolsUsed = data.ToolsUsed.Select(ToolLabel),
             activities = data.Activities.Select(activity => new
             {

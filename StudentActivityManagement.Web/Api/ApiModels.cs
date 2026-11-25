@@ -691,6 +691,8 @@ public sealed class AssistantStatusDto
     public int RequestsPerMinute { get; set; }
     public int DailyQuestionLimit { get; set; }
     public int RemainingToday { get; set; }
+    public int DailyTokenLimit { get; set; }
+    public int TokensUsedToday { get; set; }
 }
 
 public class AssistantConversation
@@ -729,6 +731,8 @@ public sealed class AssistantReplyDto
     public int MessageId { get; set; }
     public bool PersonalDataRedacted { get; set; }
     public int RemainingToday { get; set; }
+    public int DailyTokenLimit { get; set; }
+    public int TokensUsedToday { get; set; }
 }
 
 public sealed class AssistantActivityDto
@@ -742,6 +746,14 @@ public sealed class AssistantActivityDto
     public bool? IsRegistrationOpen { get; set; }
     public string? MyRegistrationStatus { get; set; }
 }
+
+public sealed record AssistantUsageRow(DateOnly UsageDate, string Feature, string StudentCode, string FullName,
+    string Role, int QuestionCount, int TokenCount);
+
+public sealed record AssistantUsageDailyTotal(DateOnly UsageDate, long QuestionCount, long TokenCount);
+
+public sealed record AssistantUsageReport(DateOnly From, DateOnly To, List<AssistantUsageRow> Items,
+    List<AssistantUsageDailyTotal> DailyTotals);
 
 // ---- AI tools for Phòng QL HSSV (US-33, US-34)
 public sealed class ReportInsights

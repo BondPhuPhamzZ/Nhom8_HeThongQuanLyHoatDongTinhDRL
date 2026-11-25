@@ -283,6 +283,8 @@ public sealed class AssistantPageViewModel
     public string? StatusMessage { get; set; }
     public int DailyQuestionLimit { get; set; }
     public int RemainingToday { get; set; }
+    public int DailyTokenLimit { get; set; }
+    public int TokensUsedToday { get; set; }
     public bool NewChat { get; set; }
     public PagedResult<AssistantConversation> Conversations { get; set; } = new();
     public AssistantConversationDetail? Current { get; set; }

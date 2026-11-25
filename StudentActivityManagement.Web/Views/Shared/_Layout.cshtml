@@ -44,7 +44,13 @@
                                 <li class="nav-item"><a class="nav-link @NavActive("StaffEscalations")" asp-controller="StaffEscalations" asp-action="Index">Câu hỏi lớp</a></li>
                                 if (User.IsInRole("SystemAdmin"))
                                 {
-                                    <li class="nav-item"><a class="nav-link @NavActive("UserAccounts")" asp-controller="UserAccounts" asp-action="Index">Tài khoản</a></li>
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle @NavActive("UserAccounts")" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Tài khoản</a>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" asp-controller="UserAccounts" asp-action="Index">Danh sách tài khoản</a></li>
+                                            <li><a class="dropdown-item" asp-controller="UserAccounts" asp-action="AssistantUsage">Thống kê AI</a></li>
+                                        </ul>
+                                    </li>
                                 }
                             }
                             else
