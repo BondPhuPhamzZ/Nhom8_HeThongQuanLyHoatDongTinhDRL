@@ -85,7 +85,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
               ),
               if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
               const SizedBox(height: 16),
-              FilledButton(onPressed: _busy ? null : _save, child: Text(_busy ? 'Đang lưu…' : 'Lưu thông tin')),
+              BusyButton(label: 'Lưu thông tin', busy: _busy, onPressed: _save),
             ],
           ),
         ),
