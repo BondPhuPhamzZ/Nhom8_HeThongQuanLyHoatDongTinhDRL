@@ -126,9 +126,13 @@ class _CheckInSectionState extends State<CheckInSection> {
                   color: session.checkedInAt != null ? AppColors.success : AppColors.primary,
                 ),
                 title: Text(session.sessionName, style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text(session.checkedInAt != null
-                    ? 'Đã check-in lúc ${VnTime.dateTime(session.checkedInAt)}'
-                    : 'Mở ${VnTime.dateTime(session.opensAt)} – đóng ${VnTime.time(session.closesAt)}'),
+                subtitle: Text([
+                  if (session.checkedInAt != null)
+                    'Đã check-in lúc ${VnTime.dateTime(session.checkedInAt)}'
+                  else
+                    'Mở ${VnTime.dateTime(session.opensAt)} – đóng ${VnTime.time(session.closesAt)}',
+                  if (session.voidReason != null) 'Đã hủy ghi nhận: ${session.voidReason}',
+                ].join('\n')),
                 trailing: session.checkedInAt == null && status.usesCode && session.canCheckIn
                     ? FilledButton(
                         onPressed: _busySession == null ? () => _checkIn(session) : null,
