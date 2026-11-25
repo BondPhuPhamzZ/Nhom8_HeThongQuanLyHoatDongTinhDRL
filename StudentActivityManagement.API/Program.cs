@@ -43,6 +43,7 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 
 // 2. Add Dependency Injection Services
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IActivityEligibilityService, ActivityEligibilityService>();
