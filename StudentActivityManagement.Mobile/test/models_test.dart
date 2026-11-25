@@ -215,33 +215,34 @@ void main() {
       expect(ChatMessage.assistant(reply).toolLabels, ['điểm và mục tiêu của kỳ', 'hoạt động phù hợp']);
     });
 
-    test('reads the status and sends only answered turns back', () {
+    test('reads assistant availability and quota', () {
       expect(AssistantStatus.fromJson({'enabled': true, 'model': 'gemini-3.5-flash-lite'}).enabled, isTrue);
       expect(AssistantStatus.fromJson({}).enabled, isFalse);
-
-      final question = ChatMessage.user('Mình còn thiếu bao nhiêu điểm?');
-      expect(question.toJson(), {'role': 'user', 'content': 'Mình còn thiếu bao nhiêu điểm?'});
-      expect(question.inHistory, isTrue);
-      expect(question.withoutHistory().inHistory, isFalse);
-      final error = ChatMessage.error('Trợ lý đang quá tải.');
-      expect(error.isError, isTrue);
-      expect(error.inHistory, isFalse);
-      expect(const ChatMessage(role: ChatRole.assistant, text: 'Chào bạn').toJson()['role'], 'assistant');
+      expect(AssistantStatus.fromJson({'enabled': true, 'dailyQuestionLimit': 40, 'remainingToday': 12}).remainingToday, 12);
+      expect(ChatMessage.error('Trợ lý đang quá tải.').isError, isTrue);
     });
 
-    test('sends the API signature back with assistant answers only (US-32)', () {
-      final reply = AssistantReply.fromJson({
-        'reply': 'Bạn còn thiếu 50 điểm.',
-        'replySignature': 'sig-abc',
-        'personalDataRedacted': true,
-        'remainingToday': 38,
+    test('parses a saved conversation, activity cards and a failed question', () {
+      final conversation = AssistantConversation.fromJson({
+        'id': 7,
+        'title': 'Điểm kỳ này',
+        'createdAt': '2026-11-26T08:00:00Z',
+        'lastMessageAt': '2026-11-26T08:01:00Z',
+        'messageCount': 2,
+        'messages': [
+          {'role': 'assistant', 'content': 'Bạn có thể tham gia hoạt động này.', 'status': 'Answered',
+            'toolsUsed': ['search_activities'],
+            'activities': [{'id': 41, 'activityName': 'Sự kiện thử', 'trainingPoints': 3}]},
+          {'role': 'user', 'content': 'Khi nào?', 'status': 'Failed'},
+        ],
       });
-      final answer = ChatMessage.assistant(reply);
-      expect(answer.toJson(), {'role': 'assistant', 'content': 'Bạn còn thiếu 50 điểm.', 'signature': 'sig-abc'});
-      expect(answer.personalDataRedacted, isTrue);
-      expect(reply.remainingToday, 38);
-      expect(ChatMessage.user('Xin chào').toJson().containsKey('signature'), isFalse);
-      expect(AssistantStatus.fromJson({'enabled': true, 'dailyQuestionLimit': 40, 'remainingToday': 12}).remainingToday, 12);
+      expect(conversation.id, 7);
+      expect(conversation.messageCount, 2);
+      expect(conversation.messages.first.activities.first.id, 41);
+      expect(conversation.messages.first.toolLabels, ['hoạt động phù hợp']);
+      expect(conversation.messages.last.role, ChatRole.user);
+      expect(conversation.messages.last.isError, isTrue);
+      expect(AssistantReply.fromJson({'conversationId': 7, 'messageId': 12}).messageId, 12);
     });
   });
 }

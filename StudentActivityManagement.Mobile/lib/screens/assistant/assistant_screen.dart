@@ -36,6 +36,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
   String? _statusError;
   bool _busy = false;
   int? _remainingToday;
+  int? _conversationId;
 
   @override
   void initState() {
@@ -54,11 +55,19 @@ class _AssistantScreenState extends State<AssistantScreen> {
     setState(() => _statusError = null);
     try {
       final status = await _service.status();
+      final conversations = await _service.listConversations();
+      final latest = conversations.items.firstOrNull;
+      final detail = latest == null ? null : await _service.getConversation(latest.id);
       if (mounted) {
         setState(() {
           _status = status;
           _remainingToday = status.remainingToday;
+          _conversationId = detail?.id;
+          _messages
+            ..clear()
+            ..addAll(detail?.messages ?? const []);
         });
+        _scrollToEnd();
       }
     } on ApiException catch (error) {
       if (mounted) setState(() => _statusError = error.message);
@@ -76,9 +85,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
     _scrollToEnd();
 
     try {
-      final reply = await _service.chat(_messages);
+      final reply = await _service.chat(_conversationId, question);
       if (mounted) {
         setState(() {
+          _conversationId = reply.conversationId;
           _messages.add(ChatMessage.assistant(reply));
           _remainingToday = reply.remainingToday ?? _remainingToday;
         });
@@ -86,8 +96,6 @@ class _AssistantScreenState extends State<AssistantScreen> {
     } on ApiException catch (error) {
       if (mounted) {
         setState(() {
-          // The unanswered question is not sent again, so the next request stays question/answer alternating.
-          _messages[_messages.length - 1] = _messages.last.withoutHistory();
           _messages.add(ChatMessage.error(error.message));
         });
       }
@@ -97,7 +105,93 @@ class _AssistantScreenState extends State<AssistantScreen> {
     }
   }
 
-  void _reset() => setState(_messages.clear);
+  void _reset() => setState(() {
+        _conversationId = null;
+        _messages.clear();
+        _input.clear();
+      });
+
+  Future<void> _showConversations() async {
+    var future = _service.listConversations();
+    final id = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheet) => StatefulBuilder(
+        builder: (context, setSheetState) => FutureBuilder(
+          future: future,
+          builder: (context, snapshot) {
+            final page = snapshot.data;
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    Text('Cuộc trò chuyện đã lưu', style: Theme.of(context).textTheme.titleLarge),
+                    if (snapshot.hasError)
+                      const Expanded(child: Center(child: Text('Không tải được danh sách cuộc trò chuyện.')))
+                    else if (page == null)
+                      const Expanded(child: Center(child: CircularProgressIndicator()))
+                    else ...[
+                      Expanded(
+                        child: page.items.isEmpty
+                            ? const Center(child: Text('Chưa có cuộc trò chuyện.'))
+                            : ListView(
+                                children: [
+                                  for (final item in page.items)
+                                    ListTile(
+                                      title: Text(item.title),
+                                      subtitle: Text(VnTime.dateTime(item.lastMessageAt)),
+                                      selected: item.id == _conversationId,
+                                      onTap: () => Navigator.pop(sheet, item.id),
+                                    ),
+                                ],
+                              ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton(
+                            onPressed: page.pageIndex <= 1
+                                ? null
+                                : () => setSheetState(() => future = _service.listConversations(page: page.pageIndex - 1)),
+                            child: const Text('Trang trước'),
+                          ),
+                          TextButton(
+                            onPressed: !page.hasNextPage
+                                ? null
+                                : () => setSheetState(() => future = _service.listConversations(page: page.pageIndex + 1)),
+                            child: const Text('Trang sau'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    if (!mounted || id == null) return;
+    setState(() => _busy = true);
+    try {
+      final detail = await _service.getConversation(id);
+      if (!mounted) return;
+      setState(() {
+        _conversationId = detail.id;
+        _input.clear();
+        _messages
+          ..clear()
+          ..addAll(detail.messages);
+      });
+      _scrollToEnd();
+    } on ApiException catch (error) {
+      if (mounted) showMessage(context, error.message, error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   void _scrollToEnd() => WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scroll.hasClients) {
@@ -113,6 +207,12 @@ class _AssistantScreenState extends State<AssistantScreen> {
       appBar: AppBar(
         title: const Text('Trợ lý điểm rèn luyện'),
         actions: [
+          if (_status != null)
+            IconButton(
+              tooltip: 'Cuộc trò chuyện đã lưu',
+              icon: const Icon(Icons.history),
+              onPressed: _busy ? null : _showConversations,
+            ),
           if (_status?.enabled == true)
             IconButton(
               tooltip: 'Cuộc trò chuyện mới',
@@ -131,7 +231,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
     }
     final status = _status;
     if (status == null) return const Padding(padding: EdgeInsets.all(16), child: SkeletonList(count: 3, height: 72));
-    if (!status.enabled) {
+    if (!status.enabled && _messages.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(16),
         child: EmptyState(
@@ -156,7 +256,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
                       style: const TextStyle(color: AppColors.muted, fontSize: 12)),
                 ),
               const SizedBox(height: 12),
-              const ChatBubble(
+              if (_messages.isEmpty)
+                const ChatBubble(
                 message: ChatMessage(
                   role: ChatRole.assistant,
                   text: 'Chào bạn! Mình có thể tra điểm rèn luyện, số điểm còn thiếu, gợi ý hoạt động phù hợp và lịch check-in của bạn.',
@@ -165,7 +266,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
               for (final message in _messages) ChatBubble(message: message, onOpenActivity: _openActivity),
               if (_busy)
                 const ChatBubble(message: ChatMessage(role: ChatRole.assistant, text: 'Đang tra cứu dữ liệu của bạn…'), pending: true),
-              if (_messages.isEmpty)
+              if (status.enabled && _messages.isEmpty)
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -177,7 +278,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
             ],
           ),
         ),
-        _Composer(controller: _input, busy: _busy, onSend: () => _ask(_input.text)),
+        if (status.enabled) _Composer(controller: _input, busy: _busy, onSend: () => _ask(_input.text)),
       ],
     );
   }

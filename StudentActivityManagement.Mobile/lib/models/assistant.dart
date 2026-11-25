@@ -58,7 +58,8 @@ class AssistantReply {
     required this.activities,
     required this.toolsUsed,
     required this.droppedActivityReferences,
-    this.replySignature = '',
+    this.conversationId = 0,
+    this.messageId = 0,
     this.personalDataRedacted = false,
     this.remainingToday,
   });
@@ -68,8 +69,8 @@ class AssistantReply {
   final List<String> toolsUsed;
   final int droppedActivityReferences;
 
-  /// API signature of this answer (US-32); sent back with it, or the API rejects the conversation.
-  final String replySignature;
+  final int conversationId;
+  final int messageId;
 
   /// True when the API hid personal data (name, student code, email, phone) before calling Gemini.
   final bool personalDataRedacted;
@@ -82,7 +83,8 @@ class AssistantReply {
             .toList(),
         toolsUsed: ((json['toolsUsed'] as List?) ?? const []).map((item) => item.toString()).toList(),
         droppedActivityReferences: json['droppedActivityReferences'] as int? ?? 0,
-        replySignature: json['replySignature'] as String? ?? '',
+        conversationId: json['conversationId'] as int? ?? 0,
+        messageId: json['messageId'] as int? ?? 0,
         personalDataRedacted: json['personalDataRedacted'] as bool? ?? false,
         remainingToday: json['remainingToday'] as int?,
       );
@@ -90,8 +92,36 @@ class AssistantReply {
 
 enum ChatRole { user, assistant }
 
-/// One bubble of the conversation. The app keeps the conversation (the API stores nothing) and sends the
-/// successful turns back with each question.
+class AssistantConversation {
+  const AssistantConversation({
+    required this.id,
+    required this.title,
+    required this.createdAt,
+    required this.lastMessageAt,
+    required this.messageCount,
+    required this.messages,
+  });
+
+  final int id;
+  final String title;
+  final DateTime createdAt;
+  final DateTime lastMessageAt;
+  final int messageCount;
+  final List<ChatMessage> messages;
+
+  factory AssistantConversation.fromJson(Map<String, dynamic> json) => AssistantConversation(
+        id: json['id'] as int,
+        title: json['title'] as String? ?? '',
+        createdAt: VnTime.parse(json['createdAt']),
+        lastMessageAt: VnTime.parse(json['lastMessageAt']),
+        messageCount: json['messageCount'] as int? ?? 0,
+        messages: ((json['messages'] as List?) ?? const [])
+            .map((raw) => ChatMessage.fromJson((raw as Map).cast<String, dynamic>()))
+            .toList(),
+      );
+}
+
+/// One bubble in a conversation stored by the API.
 class ChatMessage {
   const ChatMessage({
     required this.role,
@@ -99,8 +129,7 @@ class ChatMessage {
     this.activities = const [],
     this.toolsUsed = const [],
     this.isError = false,
-    this.inHistory = true,
-    this.signature,
+    this.createdAt,
     this.personalDataRedacted = false,
   });
 
@@ -112,12 +141,22 @@ class ChatMessage {
           text: reply.reply,
           activities: reply.activities,
           toolsUsed: reply.toolsUsed,
-          signature: reply.replySignature,
           personalDataRedacted: reply.personalDataRedacted,
         );
 
-  /// An error shown to the user; never sent back to the assistant.
-  ChatMessage.error(String text) : this(role: ChatRole.assistant, text: text, isError: true, inHistory: false);
+  ChatMessage.error(String text) : this(role: ChatRole.assistant, text: text, isError: true);
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
+        role: json['role'] == 'user' ? ChatRole.user : ChatRole.assistant,
+        text: json['content'] as String? ?? '',
+        createdAt: VnTime.parseOrNull(json['createdAt']),
+        isError: json['status'] == 'Failed',
+        personalDataRedacted: json['personalDataRedacted'] as bool? ?? false,
+        toolsUsed: ((json['toolsUsed'] as List?) ?? const []).cast<String>(),
+        activities: ((json['activities'] as List?) ?? const [])
+            .map((raw) => AssistantActivity.fromJson((raw as Map).cast<String, dynamic>()))
+            .toList(),
+      );
 
   final ChatRole role;
   final String text;
@@ -125,29 +164,8 @@ class ChatMessage {
   final List<String> toolsUsed;
   final bool isError;
 
-  /// False for errors and for a question that got no answer, so the next request stays user/assistant alternating.
-  final bool inHistory;
-
-  /// API signature of an assistant answer; the API only accepts assistant turns that carry it.
-  final String? signature;
+  final DateTime? createdAt;
   final bool personalDataRedacted;
-
-  ChatMessage withoutHistory() => ChatMessage(
-        role: role,
-        text: text,
-        activities: activities,
-        toolsUsed: toolsUsed,
-        isError: isError,
-        inHistory: false,
-        signature: signature,
-        personalDataRedacted: personalDataRedacted,
-      );
-
-  Map<String, String> toJson() => {
-        'role': role == ChatRole.user ? 'user' : 'assistant',
-        'content': text,
-        if (role == ChatRole.assistant && signature != null) 'signature': signature!,
-      };
 
   static const _toolLabels = {
     'get_points_summary': 'điểm và mục tiêu của kỳ',
