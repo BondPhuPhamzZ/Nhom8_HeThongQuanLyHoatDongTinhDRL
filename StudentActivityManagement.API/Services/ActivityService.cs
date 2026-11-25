@@ -331,6 +331,100 @@ public sealed class ActivityService : IActivityService
             $"Đã cập nhật trạng thái hoạt động thành '{normalizedStatus}'.");
     }
 
+    /// <summary>
+    /// Starts the activity now by moving its schedule, not just its status: registration closes and the
+    /// first session begins at this moment, so every phase rule stays consistent with the clock.
+    /// </summary>
+    public async Task<ApiResponseDto<ActivityResponseDto>> StartNowAsync(int id)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        var activity = await WithStructure(_context.Activities).FirstOrDefaultAsync(item => item.Id == id);
+        if (activity == null) return NotFoundActivity();
+
+        var config = await _checkInConfig.GetAsync(id);
+        var phase = _lifecycle.GetPhase(activity, activity.Sessions, config).Phase;
+        if (phase is not (ActivityPhase.Upcoming or ActivityPhase.RegistrationOpen or ActivityPhase.RegistrationClosed))
+            return ActivityConflict("Chỉ bắt đầu ngay được hoạt động đã công bố và chưa diễn ra.");
+
+        var now = _time.GetUtcNow().UtcDateTime;
+        var first = activity.Sessions.OrderBy(session => session.StartTime).ThenBy(session => session.SortOrder).First();
+        first.StartTime = now;
+        if (activity.RegistrationCloseTime > now) activity.RegistrationCloseTime = now;
+        if (activity.RegistrationOpenTime >= activity.RegistrationCloseTime)
+            activity.RegistrationOpenTime = activity.RegistrationCloseTime.AddMinutes(-1);
+        activity.StartTime = now;
+        activity.Status = ActivityStatus.Ongoing;
+        activity.UpdatedAt = now;
+
+        var registrations = await _context.ActivityRegistrations
+            .Where(item => item.ActivityId == id && item.Status != RegistrationStatus.Cancelled).ToListAsync();
+        AddRegistrationNotifications(activity, registrations, $"activity-started:{id}", "ActivityScheduleChanged",
+            "Hoạt động đã bắt đầu", now);
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+        return ApiResponseDto<ActivityResponseDto>.Ok(await MapSingleAsync(activity), "Hoạt động đã bắt đầu.");
+    }
+
+    /// <summary>
+    /// Ends the activity now: running sessions end at this moment and check-in closes immediately, so the
+    /// activity moves straight to attendance review where staff can correct attendance and finalize points.
+    /// </summary>
+    public async Task<ApiResponseDto<ActivityResponseDto>> EndNowAsync(int id, int staffId)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        var activity = await WithStructure(_context.Activities).FirstOrDefaultAsync(item => item.Id == id);
+        if (activity == null) return NotFoundActivity();
+
+        var config = await _checkInConfig.GetAsync(id);
+        var phase = _lifecycle.GetPhase(activity, activity.Sessions, config).Phase;
+        if (phase != ActivityPhase.Ongoing)
+            return ActivityConflict("Chỉ kết thúc ngay được hoạt động đang diễn ra.");
+
+        var now = _time.GetUtcNow().UtcDateTime;
+        var notStarted = activity.Sessions.Where(session => session.StartTime > now).OrderBy(session => session.SortOrder).ToList();
+        if (notStarted.Count > 0)
+            return ActivityConflict($"Buổi \"{notStarted[0].SessionName}\" chưa bắt đầu. Hãy xóa buổi đó trong Sửa hoạt động trước khi kết thúc.");
+
+        var running = activity.Sessions.Where(session => session.EndTime > now).ToList();
+        if (running.Any(session => session.StartTime == now))
+            return ActivityConflict("Buổi vừa bắt đầu. Hãy thử kết thúc lại sau.");
+
+        foreach (var session in running)
+        {
+            session.EndTime = now;
+        }
+        activity.EndTime = activity.Sessions.Max(session => session.EndTime);
+        activity.Status = ActivityStatus.Completed;
+        activity.UpdatedAt = now;
+
+        // Check-in closes now instead of CloseAfter minutes later; the other settings stay as they were.
+        var stored = await _context.ActivityCheckInConfigs.FirstOrDefaultAsync(item => item.ActivityId == id);
+        if (stored == null)
+        {
+            _context.ActivityCheckInConfigs.Add(new ActivityCheckInConfig
+            {
+                ActivityId = id,
+                Method = config.Method,
+                OpenBeforeMinutes = config.OpenBeforeMinutes,
+                CloseAfterMinutes = 0,
+                CorrectionWindowMinutes = config.CorrectionWindowMinutes,
+                UpdatedAt = now,
+                UpdatedById = staffId
+            });
+        }
+        else
+        {
+            stored.CloseAfterMinutes = 0;
+            stored.UpdatedAt = now;
+            stored.UpdatedById = staffId;
+        }
+
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+        return ApiResponseDto<ActivityResponseDto>.Ok(await MapSingleAsync(activity),
+            "Hoạt động đã kết thúc. Bạn có thể đối chiếu điểm danh rồi chốt điểm.");
+    }
+
     public async Task<ApiResponseDto<bool>> DeleteActivityAsync(int id)
     {
         var activity = await _context.Activities.FindAsync(id);

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using StudentActivityManagement.API.Data;
 using StudentActivityManagement.API.Models;
 using StudentActivityManagement.API.Services;
+using StudentActivityManagement.API.Services.Settings;
 
 namespace StudentActivityManagement.API.Tests;
 
@@ -17,6 +18,53 @@ public sealed class PointsFinalizationTests : IClassFixture<CustomWebApplication
     {
         _factory = factory;
         _api = new AccountTestClient(factory.CreateClient());
+    }
+
+    [Fact]
+    public async Task StartAndEndNow_AllowImmediateFinalizationAndAppealForAbsence()
+    {
+        var setup = await CreateAsync();
+        var periodId = await FindOrCreatePeriodAsync(setup, true);
+        var absentStudent = await _api.LoginAsync("SV210001", "123456");
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.False(await db.ActivityCheckInConfigs.AnyAsync(item => item.ActivityId == setup.Id));
+
+        var started = await DataAsync(await _api.SendAsync(HttpMethod.Post,
+            $"/api/v1/admin/activities/{setup.Id}/start-now", setup.Staff, null));
+        Assert.Equal(ActivityPhase.Ongoing, started.GetProperty("phase").GetString());
+        Assert.Equal(setup.SessionId, started.GetProperty("sessions")[0].GetProperty("id").GetInt32());
+        Assert.Equal(HttpStatusCode.OK, (await RecordAsync(setup)).StatusCode);
+
+        var ended = await DataAsync(await _api.SendAsync(HttpMethod.Post,
+            $"/api/v1/admin/activities/{setup.Id}/end-now", setup.Staff, null));
+        Assert.Equal(ActivityPhase.AttendanceReview, ended.GetProperty("phase").GetString());
+        Assert.Equal(started.GetProperty("startTime").GetDateTime(), ended.GetProperty("startTime").GetDateTime());
+        Assert.Equal(ended.GetProperty("endTime").GetDateTime(), ended.GetProperty("checkInClosesAt").GetDateTime());
+
+        var config = await db.ActivityCheckInConfigs.AsNoTracking().SingleAsync(item => item.ActivityId == setup.Id);
+        Assert.Equal(SettingDefaults.CheckInMethod, config.Method);
+        Assert.Equal(SettingDefaults.OpenBeforeMinutes, config.OpenBeforeMinutes);
+        Assert.Equal(0, config.CloseAfterMinutes);
+        Assert.Equal(SettingDefaults.CorrectionWindowMinutes, config.CorrectionWindowMinutes);
+
+        var finalized = await DataAsync(await FinalizeAsync(setup));
+        Assert.Equal(1, finalized.GetProperty("approvedCount").GetInt32());
+        Assert.Equal(1, finalized.GetProperty("absentCount").GetInt32());
+        var records = await db.PointRecords.AsNoTracking().Include(item => item.Registration)
+            .Where(item => item.ActivityId == setup.Id).ToListAsync();
+        Assert.Equal(2, records.Count);
+        var approved = Assert.Single(records, item => item.Status == PointRecordStatus.Approved);
+        Assert.Equal(RegistrationStatus.Attended, approved.Registration!.Status);
+        var absent = Assert.Single(records, item => item.Status == PointRecordStatus.Rejected);
+        Assert.Equal(RegistrationStatus.Absent, absent.Registration!.Status);
+
+        var history = await DataAsync(await _api.GetAsync(
+            $"/api/v1/student/reports/activity-history?periodId={periodId}", absentStudent));
+        var row = Assert.Single(history.GetProperty("activities").EnumerateArray(),
+            item => item.GetProperty("activityId").GetInt32() == setup.Id);
+        Assert.True(row.GetProperty("canAppeal").GetBoolean());
     }
 
     [Fact]

@@ -220,6 +220,84 @@ public sealed class ActivityLifecycleTests : IClassFixture<CustomWebApplicationF
         Assert.Contains("Không thể sửa giờ mở đăng ký.", (await moved.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("detail").GetString());
     }
 
+    [Fact]
+    public async Task StartNowAndEndNow_MoveTheScheduleSoPhaseAndStatusStayConsistent()
+    {
+        var admin = await AdminAsync();
+        var student = await _api.LoginAsync(StudentCode, StudentPassword);
+        var id = (await CreateAsync(admin, "Published")).GetProperty("id").GetInt32();
+        Assert.Equal(HttpStatusCode.OK,
+            (await _api.SendAsync(HttpMethod.Post, $"/api/v1/student-activities/{id}/register", student, null)).StatusCode);
+
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/activities/{id}/start-now", student, null)).StatusCode);
+        var endTooEarly = await _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/activities/{id}/end-now", admin, null);
+        Assert.Equal(HttpStatusCode.Conflict, endTooEarly.StatusCode);
+
+        var started = await _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/activities/{id}/start-now", admin, null);
+        Assert.Equal(HttpStatusCode.OK, started.StatusCode);
+        var ongoing = await DataAsync(started);
+        Assert.Equal("Ongoing", ongoing.GetProperty("status").GetString());
+        Assert.Equal("Ongoing", ongoing.GetProperty("phase").GetString());
+        var now = _time.GetUtcNow().UtcDateTime;
+        Assert.True(ongoing.GetProperty("registrationCloseTime").GetDateTime().ToUniversalTime() <= now.AddSeconds(1));
+        Assert.True(ongoing.GetProperty("startTime").GetDateTime().ToUniversalTime() <= now.AddSeconds(1));
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await _api.SendAsync(HttpMethod.Delete, $"/api/v1/student-activities/{id}/registration", student, null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/activities/{id}/start-now", admin, null)).StatusCode);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.Equal(1, await context.UserNotifications.CountAsync(item =>
+                item.ActivityId == id && item.SourceKey.StartsWith($"activity-started:{id}:")));
+        }
+
+        var ended = await _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/activities/{id}/end-now", admin, null);
+        Assert.Equal(HttpStatusCode.OK, ended.StatusCode);
+        var review = await DataAsync(ended);
+        Assert.Equal("Completed", review.GetProperty("status").GetString());
+        Assert.Equal("AttendanceReview", review.GetProperty("phase").GetString());
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/activities/{id}/end-now", admin, null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task EndNow_IsRefusedWhileALaterSessionHasNotStarted()
+    {
+        var admin = await AdminAsync();
+        var start = DateTime.UtcNow.AddDays(3);
+        var body = new
+        {
+            activityName = $"Lifecycle-{Guid.NewGuid():N}",
+            description = "Hai buổi",
+            requirements = "",
+            organizerName = "Phòng CTSV",
+            registrationOpenTime = Iso(DateTime.UtcNow.AddHours(-1)),
+            registrationCloseTime = Iso(DateTime.UtcNow.AddHours(6)),
+            maxParticipants = 10,
+            trainingPoints = 5,
+            targetAudience = "Tất cả sinh viên",
+            status = "Published",
+            sessions = new[]
+            {
+                new { sessionName = "Buổi 1", campus = "Cơ sở 1", location = "A", startTime = Iso(start), endTime = Iso(start.AddHours(2)), sortOrder = 1 },
+                new { sessionName = "Buổi 2", campus = "Cơ sở 1", location = "A", startTime = Iso(start.AddDays(1)), endTime = Iso(start.AddDays(1).AddHours(2)), sortOrder = 2 }
+            },
+            audienceRules = Array.Empty<object>()
+        };
+        var created = await _api.SendAsync(HttpMethod.Post, "/api/v1/admin/activities", admin, body);
+        var id = (await DataAsync(created)).GetProperty("id").GetInt32();
+
+        Assert.Equal(HttpStatusCode.OK,
+            (await _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/activities/{id}/start-now", admin, null)).StatusCode);
+        var ended = await _api.SendAsync(HttpMethod.Post, $"/api/v1/admin/activities/{id}/end-now", admin, null);
+
+        Assert.Equal(HttpStatusCode.Conflict, ended.StatusCode);
+        Assert.Contains("Buổi 2", await ended.Content.ReadAsStringAsync());
+    }
+
     private Task<string> AdminAsync() => _api.LoginAsync(AccountTestClient.HssvCode, AccountTestClient.HssvPassword);
 
     private async Task<JsonElement> CreateAsync(string token, string status, string requirements = "")
