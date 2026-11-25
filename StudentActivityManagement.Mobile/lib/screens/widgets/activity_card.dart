@@ -29,7 +29,7 @@ class ActivityCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  StatusBadge(activity.status),
+                  StatusBadge(activity.status, label: activity.phaseLabel),
                   if (type != null) ...[const SizedBox(width: 6), StatusBadge(type)],
                   const Spacer(),
                   PointsChip(activity.trainingPoints),

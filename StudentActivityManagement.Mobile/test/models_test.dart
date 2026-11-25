@@ -46,6 +46,25 @@ void main() {
       expect(activity.startTime.isUtc, isTrue);
     });
 
+    test('server phase and review times govern participation actions', () {
+      final payload = activityJson(myStatus: 'Registered')
+        ..addAll({
+          'phase': 'AttendanceReview',
+          'phaseLabel': 'Đã kết thúc, đang đối chiếu điểm danh',
+          'checkInClosesAt': '2026-11-10T05:30:00Z',
+          'pointsFinalizeDueAt': '2026-11-11T05:30:00Z',
+          'pointsFinalizedAt': null,
+        });
+      final activity = Activity.fromJson(payload);
+
+      expect(activity.phaseLabel, 'Đã kết thúc, đang đối chiếu điểm danh');
+      expect(activity.checkInClosesAt, DateTime.utc(2026, 11, 10, 5, 30));
+      expect(activity.pointsFinalizeDueAt, DateTime.utc(2026, 11, 11, 5, 30));
+      expect(activity.pointsFinalizedAt, isNull);
+      expect(activity.canCancelAt(inWindow), isFalse);
+      expect(Activity.fromJson({...payload, 'myRegistrationStatus': null}).canRegisterAt(inWindow), isFalse);
+    });
+
     test('registration follows the Web rule: published, in window, free place, no place held', () {
       expect(Activity.fromJson(activityJson()).canRegisterAt(inWindow), isTrue);
       expect(Activity.fromJson(activityJson(current: 5)).canRegisterAt(inWindow), isFalse);

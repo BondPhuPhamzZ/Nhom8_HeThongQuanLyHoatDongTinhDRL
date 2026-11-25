@@ -147,7 +147,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(spacing: 6, runSpacing: 6, children: [
-            StatusBadge(activity.status),
+            StatusBadge(activity.status, label: activity.phaseLabel),
             if (type != null) StatusBadge(type),
             if (activity.myRegistrationStatus != null && activity.myRegistrationStatus != 'Cancelled') StatusBadge(activity.myRegistrationStatus!),
             PointsChip(activity.trainingPoints),
@@ -166,6 +166,9 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
 
   Widget _facts(Activity activity) => InfoPanel(children: [
         _Fact(icon: LucideIcons.users, label: 'Đã đăng ký', value: '${activity.currentParticipants}/${activity.maxParticipants} · còn ${activity.remainingSlots} chỗ'),
+        if (activity.holdsPlace && (activity.phase == 'Ongoing' || activity.phase == 'AttendanceReview') &&
+            activity.pointsFinalizeDueAt != null)
+          _Fact(icon: LucideIcons.clock, label: 'Điểm sẽ được chốt lúc', value: VnTime.dateTime(activity.pointsFinalizeDueAt)),
         _Fact(icon: LucideIcons.calendar, label: 'Mở đăng ký', value: VnTime.dateTime(activity.registrationOpenTime)),
         _Fact(icon: LucideIcons.calendarCheck, label: 'Đóng đăng ký', value: VnTime.dateTime(activity.registrationCloseTime)),
         _Fact(icon: LucideIcons.graduationCap, label: 'Đối tượng', value: activity.targetAudience),
