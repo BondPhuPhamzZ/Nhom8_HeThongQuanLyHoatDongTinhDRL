@@ -1,0 +1,47 @@
+@model AccountDetailsViewModel
+@{
+    ViewData["Title"] = "Chi tiết tài khoản";
+    var account = Model.Account;
+}
+<a asp-action="Index" class="btn-back">← Danh sách tài khoản</a>
+<h1 class="h3 mt-2">@account.FullName</h1>
+<p class="text-muted">@account.StudentCode · @WebPolicies.RoleLabel(account.Role)</p>
+<section class="card p-3">
+    <dl class="row">
+        <dt class="col-sm-4">Email</dt><dd class="col-sm-8">@account.Email</dd>
+        <dt class="col-sm-4">Trạng thái</dt><dd class="col-sm-8">@(account.IsActive ? "Hoạt động" : "Đã khóa")</dd>
+    </dl>
+    @if (Model.TemporaryPassword != null)
+    {
+        <label for="temporary-password" class="form-label">Mật khẩu tạm</label>
+        <div class="input-group">
+            <input id="temporary-password" class="form-control font-monospace" readonly value="@Model.TemporaryPassword" autocomplete="off" />
+            <button id="copy-temporary-password" class="btn btn-outline-primary" type="button">Sao chép</button>
+        </div>
+        <p class="form-text">Mật khẩu chỉ xuất hiện tại đây. Người dùng phải đổi khi đăng nhập.</p>
+    }
+    else
+    {
+        <form asp-action="IssueTemporaryPassword" asp-route-id="@account.Id" method="post"
+              onsubmit="return confirm('Cấp mật khẩu tạm sẽ đăng xuất tài khoản trên mọi thiết bị. Tiếp tục?');">
+            <button class="btn btn-outline-primary" type="submit">Cấp mật khẩu tạm</button>
+        </form>
+    }
+</section>
+@section Scripts {
+    @if (Model.TemporaryPassword != null)
+    {
+        <script>
+            document.getElementById('copy-temporary-password').addEventListener('click', async (event) => {
+                const input = document.getElementById('temporary-password');
+                try {
+                    await navigator.clipboard.writeText(input.value);
+                    event.target.textContent = 'Đã sao chép';
+                } catch {
+                    input.select();
+                    input.focus();
+                }
+            });
+        </script>
+    }
+}

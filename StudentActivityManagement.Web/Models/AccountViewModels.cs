@@ -3,6 +3,35 @@ using StudentActivityManagement.Web.Api;
 
 namespace StudentActivityManagement.Web.Models;
 
+public sealed class ForgotPasswordViewModel
+{
+    [Required, StringLength(150)]
+    [Display(Name = "Mã tài khoản hoặc email")]
+    public string Login { get; set; } = string.Empty;
+}
+
+public sealed class ResetPasswordViewModel
+{
+    [Required, StringLength(150)]
+    [Display(Name = "Mã tài khoản hoặc email")]
+    public string Login { get; set; } = string.Empty;
+
+    [Required]
+    [Display(Name = "Mã xác nhận")]
+    public string Code { get; set; } = string.Empty;
+
+    [Required]
+    [Display(Name = "Mật khẩu mới")]
+    public string NewPassword { get; set; } = string.Empty;
+
+    [Required]
+    [Compare(nameof(NewPassword), ErrorMessage = "Mật khẩu nhập lại không khớp.")]
+    [Display(Name = "Nhập lại mật khẩu mới")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+
+public sealed record AccountDetailsViewModel(AccountDto Account, string? TemporaryPassword = null);
+
 public sealed class ProfilePageViewModel
 {
     public PersonalProfile? Details { get; set; }

@@ -96,6 +96,7 @@ public sealed class AuthResponse
 
 public sealed class UserInfo
 {
+    public bool MustChangePassword { get; set; }
     public int Id { get; set; }
     public string StudentCode { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
@@ -419,6 +420,8 @@ public sealed class StudentWriteRequest
 }
 
 // ---- Accounts (US-25, SystemAdmin only)
+
+public sealed record TemporaryPasswordDto(string TemporaryPassword);
 
 public sealed class AccountDto
 {

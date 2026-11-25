@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudentActivityManagement.Web.Api;
+using StudentActivityManagement.Web.Infrastructure;
 using StudentActivityManagement.Web.Models;
 
 namespace StudentActivityManagement.Web.Controllers;
@@ -43,6 +44,8 @@ public sealed class AccountController : WebControllerBase
 
         var user = result.Data.User;
         await SignInSessionAsync(result.Data);
+        if (user.MustChangePassword)
+            return RedirectToAction(nameof(ChangePassword));
         FlashSuccess($"Xin chào {user.FullName}!");
         if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
         {
@@ -60,6 +63,45 @@ public sealed class AccountController : WebControllerBase
         var result = await _api.LogoutAsync();
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         FlashSuccess(result.Success ? "Đã đăng xuất khỏi mọi trình duyệt và thiết bị." : "Đã đăng xuất.");
+        return RedirectToAction(nameof(Login));
+    }
+
+    [AllowAnonymous, HttpGet]
+    public IActionResult ForgotPassword() => View(new ForgotPasswordViewModel());
+
+    [AllowAnonymous, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+    {
+        if (!ModelState.IsValid) return View(model);
+        var result = await _api.ForgotPasswordAsync(model.Login);
+        if (!result.Success)
+        {
+            AddApiErrors(result);
+            return View(model);
+        }
+        TempData["PasswordResetLogin"] = model.Login.Trim();
+        FlashSuccess(result.Message);
+        return RedirectToAction(nameof(ResetPassword));
+    }
+
+    [AllowAnonymous, HttpGet]
+    public IActionResult ResetPassword() => View(new ResetPasswordViewModel
+    {
+        Login = TempData["PasswordResetLogin"] as string ?? string.Empty
+    });
+
+    [AllowAnonymous, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+    {
+        if (!ModelState.IsValid) return View(model);
+        var result = await _api.ResetPasswordAsync(model.Login, model.Code, model.NewPassword);
+        if (!result.Success)
+        {
+            AddApiErrors(result);
+            return View(model);
+        }
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        FlashSuccess(result.Message);
         return RedirectToAction(nameof(Login));
     }
 
@@ -124,6 +166,8 @@ public sealed class AccountController : WebControllerBase
             new("class_code", user.ClassCode ?? string.Empty),
             new(BearerTokenHandler.TokenClaim, session.Token),
         };
+        if (user.MustChangePassword)
+            claims.Add(new Claim(PasswordChangeRequiredFilter.ClaimType, "1"));
         // The Web session ends with the API token, so an expired token never lingers in the browser.
         await HttpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,

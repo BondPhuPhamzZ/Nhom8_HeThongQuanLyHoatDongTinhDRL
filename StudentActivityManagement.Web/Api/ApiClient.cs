@@ -67,6 +67,12 @@ public sealed class ApiClient
     public Task<ApiResult<AuthResponse>> ChangePasswordAsync(string currentPassword, string newPassword) =>
         SendAsync<AuthResponse>(HttpMethod.Post, "api/v1/me/change-password", new { currentPassword, newPassword });
 
+    public Task<ApiResult<object>> ForgotPasswordAsync(string login) =>
+        SendAsync<object>(HttpMethod.Post, "api/v1/auth/forgot-password", new { login }, throwOn401: false);
+
+    public Task<ApiResult<object>> ResetPasswordAsync(string login, string code, string newPassword) =>
+        SendAsync<object>(HttpMethod.Post, "api/v1/auth/reset-password", new { login, code, newPassword }, throwOn401: false);
+
     // ---- Auth
     public Task<ApiResult<AuthResponse>> LoginAsync(string usernameOrEmail, string password) =>
         SendAsync<AuthResponse>(HttpMethod.Post, "api/v1/auth/login", new { usernameOrEmail, password }, throwOn401: false);
@@ -346,6 +352,11 @@ public sealed class ApiClient
         SendAsync<bool>(HttpMethod.Delete, $"api/v1/admin/students/{id}");
 
     // ---- Accounts (US-25, SystemAdmin only)
+    public Task<ApiResult<AccountDto>> GetAccountAsync(int id) =>
+        SendAsync<AccountDto>(HttpMethod.Get, $"api/v1/admin/accounts/{id}");
+
+    public Task<ApiResult<TemporaryPasswordDto>> IssueTemporaryPasswordAsync(int id) =>
+        SendAsync<TemporaryPasswordDto>(HttpMethod.Post, $"api/v1/admin/accounts/{id}/reset-password");
     public Task<ApiResult<PagedResult<AccountDto>>> GetAccountsAsync(string? search, string? role, bool? isActive, int page, int pageSize = 15) =>
         SendAsync<PagedResult<AccountDto>>(HttpMethod.Get, $"api/v1/admin/accounts?{Query(
             ("search", search), ("role", role), ("isActive", isActive?.ToString().ToLowerInvariant()),
