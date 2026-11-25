@@ -84,6 +84,9 @@ public sealed class PointAppealDto
     public DateTime? ResolvedAt { get; set; }
 }
 
+public sealed record PersonalProfile(string StudentCode, string FullName, string Role, string? ClassCode, string Campus,
+    string AcademicYear, string Email, string Phone, DateTime? UpdatedAt);
+
 public sealed class AuthResponse
 {
     public string Token { get; set; } = string.Empty;
@@ -93,6 +96,7 @@ public sealed class AuthResponse
 
 public sealed class UserInfo
 {
+    public bool MustChangePassword { get; set; }
     public int Id { get; set; }
     public string StudentCode { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
@@ -417,6 +421,8 @@ public sealed class StudentWriteRequest
 
 // ---- Accounts (US-25, SystemAdmin only)
 
+public sealed record TemporaryPasswordDto(string TemporaryPassword);
+
 public sealed class AccountDto
 {
     public int Id { get; set; }
@@ -691,16 +697,33 @@ public sealed class AssistantStatusDto
     public int RequestsPerMinute { get; set; }
     public int DailyQuestionLimit { get; set; }
     public int RemainingToday { get; set; }
+    public int DailyTokenLimit { get; set; }
+    public int TokensUsedToday { get; set; }
 }
 
-/// <summary>One turn of the conversation the browser keeps: <c>user</c> or <c>assistant</c>.</summary>
-public sealed class AssistantChatMessage
+public class AssistantConversation
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public DateTime LastMessageAt { get; set; }
+    public int MessageCount { get; set; }
+}
+
+public sealed class AssistantConversationDetail : AssistantConversation
+{
+    public List<AssistantMessage> Messages { get; set; } = [];
+}
+
+public sealed class AssistantMessage
 {
     public string Role { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
-
-    /// <summary>API signature of an assistant turn (US-32); the API rejects assistant turns without it.</summary>
-    public string? Signature { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public List<string> ToolsUsed { get; set; } = [];
+    public List<AssistantActivityDto> Activities { get; set; } = [];
+    public bool PersonalDataRedacted { get; set; }
 }
 
 public sealed class AssistantReplyDto
@@ -710,9 +733,12 @@ public sealed class AssistantReplyDto
     public List<string> ToolsUsed { get; set; } = [];
     public int DroppedActivityReferences { get; set; }
     public string Model { get; set; } = string.Empty;
-    public string ReplySignature { get; set; } = string.Empty;
+    public int ConversationId { get; set; }
+    public int MessageId { get; set; }
     public bool PersonalDataRedacted { get; set; }
     public int RemainingToday { get; set; }
+    public int DailyTokenLimit { get; set; }
+    public int TokensUsedToday { get; set; }
 }
 
 public sealed class AssistantActivityDto
@@ -726,6 +752,14 @@ public sealed class AssistantActivityDto
     public bool? IsRegistrationOpen { get; set; }
     public string? MyRegistrationStatus { get; set; }
 }
+
+public sealed record AssistantUsageRow(DateOnly UsageDate, string Feature, string StudentCode, string FullName,
+    string Role, int QuestionCount, int TokenCount);
+
+public sealed record AssistantUsageDailyTotal(DateOnly UsageDate, long QuestionCount, long TokenCount);
+
+public sealed record AssistantUsageReport(DateOnly From, DateOnly To, List<AssistantUsageRow> Items,
+    List<AssistantUsageDailyTotal> DailyTotals);
 
 // ---- AI tools for Phòng QL HSSV (US-33, US-34)
 public sealed class ReportInsights

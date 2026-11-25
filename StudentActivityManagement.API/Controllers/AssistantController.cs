@@ -34,7 +34,29 @@ public sealed class AssistantController : ApiControllerBase
         return Ok(ApiResponseDto<AssistantStatusDto>.Ok(await _assistant.GetStatusAsync(studentId)));
     }
 
-    /// <summary>Answers the last user message of the conversation from the signed-in student's own data.</summary>
+    [HttpGet("conversations")]
+    public async Task<IActionResult> Conversations([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        if (!TryGetStudentId(out var studentId)) return InvalidSession();
+        return Ok(ApiResponseDto<PagedResultDto<AssistantConversationDto>>.Ok(
+            await _assistant.ListConversationsAsync(studentId, page, pageSize, HttpContext.RequestAborted)));
+    }
+
+    [HttpGet("conversations/{id:int}")]
+    public async Task<IActionResult> Conversation(int id)
+    {
+        if (!TryGetStudentId(out var studentId)) return InvalidSession();
+        var result = await _assistant.GetConversationAsync(studentId, id, HttpContext.RequestAborted);
+        return result.Success ? Ok(result) : ProblemFrom(result);
+    }
+
+    private bool TryGetStudentId(out int studentId) =>
+        int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out studentId);
+
+    private ObjectResult InvalidSession() =>
+        ApiProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.AuthenticationRequired, "Không xác định được sinh viên.");
+
+    /// <summary>Answers a new question using the signed-in student's saved conversation and own data.</summary>
     [HttpPost("chat")]
     [EnableRateLimiting(AssistantService.RateLimitPolicy)]
     [RequestBodyLimit(AssistantOptions.MaxRequestBytes)]

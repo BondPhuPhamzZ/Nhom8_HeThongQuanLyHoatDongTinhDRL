@@ -89,18 +89,7 @@ namespace StudentActivityManagement.API.Services
                 await _context.SaveChangesAsync();
             }
 
-            var (token, expiresAt) = _jwtTokenGenerator.GenerateToken(user);
-
-            var userDto = MapToUserDto(user);
-
-            var response = new AuthResponseDto
-            {
-                Token = token,
-                ExpiresAt = expiresAt,
-                User = userDto
-            };
-
-            return ApiResponseDto<AuthResponseDto>.Ok(response, "Đăng nhập thành công.");
+            return ApiResponseDto<AuthResponseDto>.Ok(CreateSession(user, _jwtTokenGenerator), "Đăng nhập thành công.");
         }
 
         public async Task<ApiResponseDto<object>> LogoutAsync(int userId)
@@ -133,6 +122,12 @@ namespace StudentActivityManagement.API.Services
             return ApiResponseDto<UserDto>.Ok(MapToUserDto(user));
         }
 
+        internal static AuthResponseDto CreateSession(User user, IJwtTokenGenerator jwt)
+        {
+            var (token, expiresAt) = jwt.GenerateToken(user);
+            return new AuthResponseDto { Token = token, ExpiresAt = expiresAt, User = MapToUserDto(user) };
+        }
+
         private static UserDto MapToUserDto(User user)
         {
             return new UserDto
@@ -149,7 +144,8 @@ namespace StudentActivityManagement.API.Services
                 ClassCode = user.Class?.ClassCode,
                 ClassName = user.Class?.ClassName,
                 IsClassMonitor = user.IsClassMonitor,
-                AccumulatedPoints = user.AccumulatedPoints
+                AccumulatedPoints = user.AccumulatedPoints,
+                MustChangePassword = user.MustChangePassword
             };
         }
     }

@@ -18,9 +18,21 @@ public sealed class AccountsController : ApiControllerBase
 {
     private readonly IAccountService _accountService;
 
-    public AccountsController(IAccountService accountService)
+    private readonly IPasswordResetService _passwordReset;
+
+    public AccountsController(IAccountService accountService, IPasswordResetService passwordReset)
     {
         _accountService = accountService;
+        _passwordReset = passwordReset;
+    }
+
+    [HttpPost("{id:int}/reset-password")]
+    public async Task<IActionResult> ResetPassword(int id)
+    {
+        if (!TryGetActorId(out _)) return InvalidSession();
+        Response.Headers.CacheControl = "no-store";
+        var result = await _passwordReset.IssueTemporaryAsync(id, HttpContext.RequestAborted);
+        return result.Success ? Ok(result) : ProblemFrom(result);
     }
 
     /// <summary>

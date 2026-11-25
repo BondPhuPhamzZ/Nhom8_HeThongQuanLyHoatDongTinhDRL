@@ -41,7 +41,9 @@ public sealed class StaffEscalationsController : ApiControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> DraftAnswer(int id)
     {
-        var result = await _staffAi.DraftEscalationAnswerAsync(id, HttpContext.RequestAborted);
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var staffId))
+            return ApiProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.AuthenticationRequired, "Không xác định được cán bộ.");
+        var result = await _staffAi.DraftEscalationAnswerAsync(staffId, id, HttpContext.RequestAborted);
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
 

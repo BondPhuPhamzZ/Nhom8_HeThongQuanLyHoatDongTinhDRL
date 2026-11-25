@@ -1,0 +1,27 @@
+@model ProfilePageViewModel
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+}
+<h1 class="h3 mb-3">Hồ sơ cá nhân</h1>
+@if (Model.Details is { } profile)
+{
+    <section class="card p-3 mb-3">
+        <h2 class="h5">Thông tin do nhà trường quản lý</h2>
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Họ và tên</dt><dd class="col-sm-8">@profile.FullName</dd>
+            <dt class="col-sm-4">Mã tài khoản</dt><dd class="col-sm-8">@profile.StudentCode</dd>
+            <dt class="col-sm-4">Vai trò</dt><dd class="col-sm-8">@(profile.Role switch { "HSSV" => "Phòng QL HSSV", "SystemAdmin" => "Quản trị hệ thống", "Monitor" => "Lớp trưởng", _ => "Sinh viên" })</dd>
+            <dt class="col-sm-4">Lớp</dt><dd class="col-sm-8">@(profile.ClassCode ?? "—")</dd>
+            <dt class="col-sm-4">Cơ sở</dt><dd class="col-sm-8">@profile.Campus</dd>
+            <dt class="col-sm-4">Khóa</dt><dd class="col-sm-8">@profile.AcademicYear</dd>
+        </dl>
+    </section>
+    <form asp-action="Profile" method="post" class="card p-3">
+        <h2 class="h5">Thông tin liên hệ</h2>
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="mb-3"><label asp-for="Email" class="form-label"></label><input asp-for="Email" type="email" class="form-control" maxlength="150" autocomplete="email" /><span asp-validation-for="Email" class="text-danger"></span></div>
+        <div class="mb-3"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" type="tel" class="form-control" autocomplete="tel" /><span asp-validation-for="Phone" class="text-danger"></span></div>
+        <div class="mb-3"><label asp-for="CurrentPassword" class="form-label"></label><input asp-for="CurrentPassword" type="password" class="form-control" autocomplete="current-password" /><span asp-validation-for="CurrentPassword" class="text-danger"></span></div>
+        <div><button class="btn btn-primary" type="submit">Lưu thông tin</button></div>
+    </form>
+}

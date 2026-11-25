@@ -10,6 +10,7 @@ import 'providers/notification_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/main_page.dart';
+import 'screens/profile/change_password_screen.dart';
 import 'services/preference_service.dart';
 
 Future<void> main() async {
@@ -47,8 +48,10 @@ class Nhom8App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = context.watch<AuthProvider>().status;
+    final auth = context.watch<AuthProvider>();
+    final status = auth.status;
     return MaterialApp(
+      key: ValueKey((status, auth.requiresPasswordChange)),
       title: 'Hoạt động & Điểm rèn luyện',
       debugShowCheckedModeBanner: false,
       theme: AppStyles.theme,
@@ -62,8 +65,33 @@ class Nhom8App extends StatelessWidget {
       home: switch (status) {
         AuthStatus.unknown => const SplashScreen(),
         AuthStatus.signedOut => const LoginScreen(),
+        AuthStatus.signedIn when auth.requiresPasswordChange => const _PasswordChangeGate(),
         AuthStatus.signedIn => const MainPage(),
       },
     );
   }
+}
+
+class _PasswordChangeGate extends StatefulWidget {
+  const _PasswordChangeGate();
+
+  @override
+  State<_PasswordChangeGate> createState() => _PasswordChangeGateState();
+}
+
+class _PasswordChangeGateState extends State<_PasswordChangeGate> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const ChangePasswordScreen(requiredChange: true)),
+        (_) => false,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const SplashScreen();
 }

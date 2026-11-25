@@ -37,6 +37,7 @@ class ApiClient {
 
   /// Called when the API rejects the token (expired, account locked or role changed).
   void Function()? onUnauthorized;
+  void Function()? onPasswordChangeRequired;
 
   String get baseUrl => PreferenceService.instance.baseUrl;
 
@@ -70,12 +71,16 @@ class ApiClient {
         timeout: timeout,
       );
 
+  Future<ApiResult> put(String path, Object body) =>
+      _send(() => _http.put(uri(path), headers: _headers(), body: jsonEncode(body)));
+
   Future<ApiResult> patch(String path, [Object? body]) =>
       _send(() => _http.patch(uri(path), headers: _headers(), body: body == null ? null : jsonEncode(body)));
 
   Future<ApiResult> delete(String path) => _send(() => _http.delete(uri(path), headers: _headers()));
 
   Future<ApiResult> _send(Future<http.Response> Function() call, {Duration? timeout}) async {
+    final requestToken = PreferenceService.instance.token;
     final http.Response response;
     try {
       response = await call().timeout(timeout ?? ApiConfig.requestTimeout);
@@ -104,8 +109,9 @@ class ApiClient {
       errorCode: body['errorCode'] as String?,
       fieldErrors: _fieldErrors(body['errors']),
     );
-    if (error.isUnauthorized && PreferenceService.instance.token != null) {
-      onUnauthorized?.call();
+    if (requestToken != null && PreferenceService.instance.token == requestToken) {
+      if (error.isUnauthorized) onUnauthorized?.call();
+      if (error.errorCode == 'password_change_required') onPasswordChangeRequired?.call();
     }
     throw error;
   }

@@ -1,3 +1,5 @@
+using System.Data;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +15,10 @@ public interface IAssistantService
 {
     Task<AssistantStatusDto> GetStatusAsync(int studentId);
 
+    Task<PagedResultDto<AssistantConversationDto>> ListConversationsAsync(int studentId, int page, int pageSize, CancellationToken ct);
+
+    Task<ApiResponseDto<AssistantConversationDetailDto>> GetConversationAsync(int studentId, int id, CancellationToken ct);
+
     Task<ApiResponseDto<AssistantReplyDto>> ChatAsync(int studentId, string role, AssistantChatRequestDto request, CancellationToken cancellationToken);
 }
 
@@ -25,13 +31,10 @@ public sealed partial class AssistantService : IAssistantService
     public const string RateLimitPolicy = "assistant";
 
     private const int MaxActivityCards = 5;
-    private const string UserRole = "user";
-    private const string AssistantRole = "assistant";
-
 
     private readonly GeminiClient _gemini;
     private readonly AssistantTools _tools;
-    private readonly AssistantHistorySigner _signer;
+    private readonly TimeProvider _time;
     private readonly AssistantDailyQuota _quota;
     private readonly AppDbContext _context;
     private readonly IOptions<AssistantOptions> _options;
@@ -41,7 +44,7 @@ public sealed partial class AssistantService : IAssistantService
     public AssistantService(
         GeminiClient gemini,
         AssistantTools tools,
-        AssistantHistorySigner signer,
+        TimeProvider time,
         AssistantDailyQuota quota,
         AppDbContext context,
         IOptions<AssistantOptions> options,
@@ -50,7 +53,7 @@ public sealed partial class AssistantService : IAssistantService
     {
         _gemini = gemini;
         _tools = tools;
-        _signer = signer;
+        _time = time;
         _quota = quota;
         _context = context;
         _options = options;
@@ -60,23 +63,31 @@ public sealed partial class AssistantService : IAssistantService
 
     private bool IsEnabled => _options.Value.Enabled && _geminiOptions.Value.IsConfigured;
 
-    public async Task<AssistantStatusDto> GetStatusAsync(int studentId) => new()
+    public async Task<AssistantStatusDto> GetStatusAsync(int studentId)
     {
-        Enabled = IsEnabled,
-        Model = IsEnabled ? _geminiOptions.Value.Model : null,
-        RequestsPerMinute = _options.Value.RequestsPerMinute,
-        DailyQuestionLimit = _quota.Limit,
-        RemainingToday = await _quota.RemainingAsync(studentId)
-    };
+        var usage = await _quota.GetStudentStatusAsync(studentId);
+        return new AssistantStatusDto
+        {
+            Enabled = IsEnabled,
+            Model = IsEnabled ? _geminiOptions.Value.Model : null,
+            RequestsPerMinute = _options.Value.RequestsPerMinute,
+            DailyQuestionLimit = _quota.Limit,
+            RemainingToday = usage.Remaining,
+            DailyTokenLimit = _quota.TokenLimit,
+            TokensUsedToday = usage.TokensUsed
+        };
+    }
 
     public async Task<ApiResponseDto<AssistantReplyDto>> ChatAsync(
         int studentId, string role, AssistantChatRequestDto request, CancellationToken cancellationToken)
     {
         var options = _options.Value;
-        var invalid = Validate(request, options);
-        if (invalid != null)
+        var question = request.Message?.Trim();
+        if (string.IsNullOrEmpty(question) || question.Length > options.MaxMessageLength)
         {
-            return ApiResponseDto<AssistantReplyDto>.Fail(invalid, StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationFailed);
+            return ApiResponseDto<AssistantReplyDto>.Fail(
+                $"Câu hỏi phải dài từ 1 đến {options.MaxMessageLength} ký tự.",
+                StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationFailed);
         }
 
         if (!IsEnabled)
@@ -86,20 +97,10 @@ public sealed partial class AssistantService : IAssistantService
                 StatusCodes.Status503ServiceUnavailable, ApiErrorCodes.AssistantUnavailable);
         }
 
-        // Only answers this API produced for this student may appear as assistant turns (US-32).
-        if (request.Messages.Any(message => message.Role == AssistantRole && !_signer.Verify(studentId, message.Content, message.Signature)))
+        if (request.ConversationId is int id &&
+            !await _context.AssistantConversations.AnyAsync(item => item.Id == id && item.UserId == studentId, cancellationToken))
         {
-            _logger.LogWarning("Assistant request rejected: an assistant turn was not signed by the API.");
-            return ApiResponseDto<AssistantReplyDto>.Fail(
-                "Lịch sử trò chuyện không hợp lệ hoặc đã bị sửa. Hãy bắt đầu cuộc trò chuyện mới.",
-                StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationFailed);
-        }
-
-        if (!await _quota.TryConsumeAsync(studentId))
-        {
-            return ApiResponseDto<AssistantReplyDto>.Fail(
-                $"Bạn đã dùng hết {_quota.Limit} câu hỏi của hôm nay. Trợ lý sẽ trả lời tiếp vào ngày mai.",
-                StatusCodes.Status429TooManyRequests, ApiErrorCodes.AssistantRateLimited);
+            return ConversationNotFound<AssistantReplyDto>();
         }
 
         // Personal data typed by the student never leaves the API (free-tier terms, US-32).
@@ -107,20 +108,37 @@ public sealed partial class AssistantService : IAssistantService
             .Where(user => user.Id == studentId)
             .Select(user => new PersonalDataRedactor.KnownValues(user.FullName, user.StudentCode, user.Email, user.Phone))
             .FirstOrDefaultAsync(cancellationToken);
-        var redactedAny = false;
+        question = PersonalDataRedactor.Redact(question, known, out var redacted);
         var contents = new JsonArray();
-        foreach (var message in request.Messages)
+        if (request.ConversationId is int conversationId)
         {
-            var text = PersonalDataRedactor.Redact(message.Content.Trim(), known, out var redacted);
-            redactedAny |= redacted;
-            contents.Add(TextContent(message.Role == AssistantRole ? "model" : "user", text));
+            var recent = await _context.AssistantMessages.AsNoTracking()
+                .Where(item => item.ConversationId == conversationId && item.Status == AssistantMessage.Answered)
+                .OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id)
+                .Take(Math.Max(0, options.MaxMessages - 1))
+                .ToListAsync(cancellationToken);
+            recent.Reverse();
+            foreach (var message in recent.SkipWhile(item => item.Role == AssistantMessage.AssistantRole))
+            {
+                var text = PersonalDataRedactor.Redact(message.Content, known, out _);
+                contents.Add(TextContent(message.Role == AssistantMessage.AssistantRole ? "model" : "user", text));
+            }
         }
+        contents.Add(TextContent(AssistantMessage.UserRole, question));
+
+        var askedAt = _time.GetUtcNow().UtcDateTime;
+        var promptTokens = 0;
+        var outputTokens = 0;
 
         var system = new JsonObject { ["parts"] = new JsonArray(new JsonObject { ["text"] = SystemInstruction(role) }) };
         var seenActivities = new Dictionary<int, AssistantActivityDto>();
         var toolsUsed = new List<string>();
         var maxRounds = Math.Max(0, options.MaxToolRounds);
         GeminiResponse? answer = null;
+        var reservation = await _quota.TryConsumeAsync(studentId, AssistantDailyUsage.Assistant, cancellationToken);
+        if (!reservation.Success || reservation.Data is not { } lease)
+            return ApiResponseDto<AssistantReplyDto>.Fail(reservation.Message, reservation.HttpStatusCode, reservation.ErrorCode);
+        var successfulRound = false;
 
         try
         {
@@ -139,6 +157,9 @@ public sealed partial class AssistantService : IAssistantService
                 };
 
                 var response = await _gemini.GenerateContentAsync(body, cancellationToken);
+                successfulRound = true;
+                promptTokens += response.PromptTokens;
+                outputTokens += response.OutputTokens;
                 if (response.FunctionCalls.Count == 0 || round == maxRounds || response.Content == null)
                 {
                     answer = response;
@@ -165,7 +186,8 @@ public sealed partial class AssistantService : IAssistantService
         catch (GeminiException exception)
         {
             _logger.LogWarning("Assistant question failed: {Failure} ({Message})", exception.Failure, exception.Message);
-            await _quota.RefundAsync(studentId);
+            await SaveConversationAsync(studentId, request.ConversationId, question, redacted, askedAt,
+                null, promptTokens, outputTokens, cancellationToken);
             return exception.Failure switch
             {
                 GeminiFailure.RateLimited => ApiResponseDto<AssistantReplyDto>.Fail(
@@ -180,12 +202,109 @@ public sealed partial class AssistantService : IAssistantService
             };
         }
 
+        finally
+        {
+            await _quota.FinishAsync(lease, successfulRound, promptTokens + outputTokens);
+        }
+
         var reply = BuildReply(answer, seenActivities, toolsUsed);
-        reply.ReplySignature = _signer.Sign(studentId, reply.Reply);
-        reply.PersonalDataRedacted = redactedAny;
-        reply.RemainingToday = await _quota.RemainingAsync(studentId);
+        reply.Reply = Truncate(PersonalDataRedactor.Redact(reply.Reply, known, out var replyRedacted), 8000);
+        reply.PersonalDataRedacted = redacted || replyRedacted;
+        var saved = await SaveConversationAsync(studentId, request.ConversationId, question, redacted, askedAt,
+            reply, promptTokens, outputTokens, cancellationToken);
+        reply.ConversationId = saved.ConversationId;
+        reply.MessageId = saved.MessageId;
+        var usage = await _quota.GetStudentStatusAsync(studentId);
+        reply.RemainingToday = usage.Remaining;
+        reply.DailyTokenLimit = _quota.TokenLimit;
+        reply.TokensUsedToday = usage.TokensUsed;
         return ApiResponseDto<AssistantReplyDto>.Ok(reply);
     }
+
+    public async Task<PagedResultDto<AssistantConversationDto>> ListConversationsAsync(
+        int studentId, int page, int pageSize, CancellationToken ct)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        var query = _context.AssistantConversations.AsNoTracking().Where(item => item.UserId == studentId);
+        var total = await query.CountAsync(ct);
+        var offset = (long)(page - 1) * pageSize;
+        var items = offset < total
+            ? await query.OrderByDescending(item => item.LastMessageAt).ThenByDescending(item => item.Id)
+                .Skip((int)offset).Take(pageSize)
+                .Select(item => new AssistantConversationDto(item.Id, item.Title, item.CreatedAt, item.LastMessageAt, item.MessageCount))
+                .ToListAsync(ct)
+            : [];
+        return new PagedResultDto<AssistantConversationDto>
+        {
+            Items = items, TotalCount = total, PageIndex = page, PageSize = pageSize
+        };
+    }
+
+    public async Task<ApiResponseDto<AssistantConversationDetailDto>> GetConversationAsync(int studentId, int id, CancellationToken ct)
+    {
+        var conversation = await _context.AssistantConversations.AsNoTracking()
+            .Include(item => item.Messages.OrderBy(message => message.CreatedAt).ThenBy(message => message.Id))
+            .SingleOrDefaultAsync(item => item.Id == id && item.UserId == studentId, ct);
+        if (conversation == null) return ConversationNotFound<AssistantConversationDetailDto>();
+
+        var messages = conversation.Messages.Select(message => new AssistantMessageDto(
+            message.Id, message.Role, message.Content, message.CreatedAt, message.Status,
+            [.. message.ToolsUsed.Split(',', StringSplitOptions.RemoveEmptyEntries)],
+            message.ActivitiesJson == null ? [] : JsonSerializer.Deserialize<List<AssistantActivityDto>>(message.ActivitiesJson) ?? [],
+            message.PersonalDataRedacted)).ToList();
+        return ApiResponseDto<AssistantConversationDetailDto>.Ok(new AssistantConversationDetailDto(
+            conversation.Id, conversation.Title, conversation.CreatedAt, conversation.LastMessageAt, conversation.MessageCount, messages));
+    }
+
+    private static ApiResponseDto<T> ConversationNotFound<T>() =>
+        ApiResponseDto<T>.Fail("Không tìm thấy cuộc trò chuyện.", StatusCodes.Status404NotFound, ApiErrorCodes.ResourceNotFound);
+
+    private async Task<(int ConversationId, int MessageId)> SaveConversationAsync(
+        int studentId, int? id, string question, bool redacted, DateTime askedAt, AssistantReplyDto? reply,
+        int promptTokens, int outputTokens, CancellationToken ct)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        var answeredAt = _time.GetUtcNow().UtcDateTime;
+        var conversation = id.HasValue
+            ? await _context.AssistantConversations.SingleAsync(item => item.Id == id && item.UserId == studentId, ct)
+            : new AssistantConversation { UserId = studentId, Title = Truncate(question, 80), CreatedAt = askedAt };
+        if (!id.HasValue) _context.AssistantConversations.Add(conversation);
+        // Keep both turns together if two questions finish out of order.
+        if (askedAt < conversation.LastMessageAt) askedAt = conversation.LastMessageAt;
+        if (answeredAt < askedAt) answeredAt = askedAt;
+
+        var questionMessage = new AssistantMessage
+        {
+            Conversation = conversation, Role = AssistantMessage.UserRole, Content = question,
+            CreatedAt = askedAt, Model = _gemini.Model, PersonalDataRedacted = redacted,
+            Status = reply == null ? AssistantMessage.Failed : AssistantMessage.Answered,
+            PromptTokens = reply == null ? promptTokens : 0, OutputTokens = reply == null ? outputTokens : 0
+        };
+        _context.AssistantMessages.Add(questionMessage);
+        AssistantMessage? answerMessage = null;
+        if (reply != null)
+        {
+            answerMessage = new AssistantMessage
+            {
+                Conversation = conversation, Role = AssistantMessage.AssistantRole, Content = reply.Reply,
+                CreatedAt = answeredAt, Model = reply.Model, PersonalDataRedacted = reply.PersonalDataRedacted,
+                PromptTokens = promptTokens, OutputTokens = outputTokens, ToolsUsed = string.Join(',', reply.ToolsUsed),
+                ActivitiesJson = reply.Activities.Count == 0 ? null : JsonSerializer.Serialize(reply.Activities)
+            };
+            _context.AssistantMessages.Add(answerMessage);
+        }
+
+        conversation.MessageCount += reply == null ? 1 : 2;
+        var latest = reply == null ? askedAt : answeredAt;
+        if (latest > conversation.LastMessageAt) conversation.LastMessageAt = latest;
+        await _context.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        return (conversation.Id, answerMessage?.Id ?? questionMessage.Id);
+    }
+
+    private static string Truncate(string text, int length) =>
+        text.Length <= length ? text : text[..(char.IsHighSurrogate(text[length - 1]) ? length - 1 : length)];
 
     private AssistantReplyDto BuildReply(GeminiResponse? answer, Dictionary<int, AssistantActivityDto> seen, List<string> toolsUsed)
     {
@@ -237,38 +356,16 @@ public sealed partial class AssistantService : IAssistantService
         };
     }
 
-    private static string? Validate(AssistantChatRequestDto? request, AssistantOptions options)
-    {
-        var messages = request?.Messages;
-        if (messages == null || messages.Count == 0) return "Hãy nhập câu hỏi.";
-        if (messages.Count > options.MaxMessages)
-        {
-            return $"Cuộc trò chuyện quá dài (tối đa {options.MaxMessages} tin nhắn). Hãy bắt đầu cuộc trò chuyện mới.";
-        }
-
-        foreach (var message in messages)
-        {
-            if (message == null || (message.Role != UserRole && message.Role != AssistantRole)) return "Vai trò tin nhắn không hợp lệ.";
-            if (string.IsNullOrWhiteSpace(message.Content)) return "Tin nhắn không được để trống.";
-            if (message.Content.Trim().Length > options.MaxMessageLength)
-            {
-                return $"Mỗi tin nhắn tối đa {options.MaxMessageLength} ký tự.";
-            }
-        }
-
-        return messages[^1].Role == UserRole ? null : "Tin nhắn cuối cùng phải là câu hỏi của bạn.";
-    }
-
     private static JsonObject TextContent(string role, string text) => new()
     {
         ["role"] = role,
         ["parts"] = new JsonArray(new JsonObject { ["text"] = text })
     };
 
-    private static string SystemInstruction(string role)
+    private string SystemInstruction(string role)
     {
         var who = role == Role.Monitor ? "một lớp trưởng" : "một sinh viên";
-        var now = AssistantTools.VietnamTime(DateTime.UtcNow);
+        var now = AssistantTools.VietnamTime(_time.GetUtcNow().UtcDateTime);
         return $"""
             Bạn là "Trợ lý điểm rèn luyện" trong ứng dụng quản lý hoạt động và điểm rèn luyện của trường. Bạn đang trò chuyện với {who} đã đăng nhập.
             Thời điểm hiện tại: {now} (giờ Việt Nam, UTC+7). Mọi thời gian trong kết quả công cụ đều là giờ Việt Nam.

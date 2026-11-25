@@ -1,4 +1,4 @@
-// US-31: chat with the training-point assistant. The conversation lives only in this page; nothing is stored.
+// Send only the new question. The API loads the student's saved conversation.
 (() => {
     const root = document.querySelector('.assistant');
     if (!root) return;
@@ -8,12 +8,9 @@
     const input = document.getElementById('assistant-input');
     const send = document.getElementById('assistant-send');
     const suggestions = document.getElementById('assistant-suggestions');
-    const reset = document.getElementById('assistant-reset');
     const token = root.querySelector('input[name="__RequestVerificationToken"]').value;
-    const greeting = log.innerHTML;
-    // The API accepts 12 messages; an odd count keeps the window starting with a question.
-    const maxMessages = 11;
-    let history = [];
+    let conversationId = Number(root.dataset.conversationId) || null;
+    log.scrollTop = log.scrollHeight;
     let busy = false;
 
     function element(tag, className, text) {
@@ -59,13 +56,12 @@
         addMessage('user', question);
         const pending = addMessage('bot', 'Đang tra cứu dữ liệu của bạn…');
         pending.classList.add('assistant-pending');
-        const messages = history.concat([{ role: 'user', content: question }]).slice(-maxMessages);
 
         try {
             const response = await fetch(root.dataset.chatUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
-                body: JSON.stringify({ messages })
+                body: JSON.stringify({ conversationId, message: question })
             });
             if (response.redirected) {
                 // The session expired: the Web app redirects to the login page.
@@ -80,10 +76,17 @@
                 return;
             }
 
-            // The API signs each answer; it only accepts assistant turns sent back with that signature.
-            history = messages.concat([{ role: 'assistant', content: data.reply, signature: data.replySignature }]);
+            if (conversationId !== data.conversationId) {
+                conversationId = data.conversationId;
+                const url = new URL(window.location.href);
+                url.searchParams.delete('newChat');
+                url.searchParams.set('conversationId', String(conversationId));
+                window.history.replaceState(null, '', url);
+            }
             const remaining = document.getElementById('assistant-remaining');
             if (remaining) remaining.textContent = data.remainingToday;
+            const warning = document.getElementById('assistant-token-warning');
+            if (warning) warning.hidden = !(data.dailyTokenLimit > 0 && data.tokensUsedToday * 10 > data.dailyTokenLimit * 9);
             const row = addMessage('bot', data.reply);
             if (data.personalDataRedacted) {
                 row.append(element('div', 'assistant-tools small text-muted',
@@ -122,12 +125,5 @@
     suggestions.addEventListener('click', event => {
         const button = event.target.closest('button[data-question]');
         if (button) ask(button.dataset.question);
-    });
-    reset?.addEventListener('click', () => {
-        if (busy) return;
-        history = [];
-        log.innerHTML = greeting;
-        suggestions.hidden = false;
-        input.focus();
     });
 })();

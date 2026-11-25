@@ -283,11 +283,17 @@ public sealed class AssistantPageViewModel
     public string? StatusMessage { get; set; }
     public int DailyQuestionLimit { get; set; }
     public int RemainingToday { get; set; }
+    public int DailyTokenLimit { get; set; }
+    public int TokensUsedToday { get; set; }
+    public bool NewChat { get; set; }
+    public PagedResult<AssistantConversation> Conversations { get; set; } = new();
+    public AssistantConversationDetail? Current { get; set; }
 }
 
 public sealed class AssistantChatInput
 {
-    public List<AssistantChatMessage>? Messages { get; set; }
+    public int? ConversationId { get; set; }
+    public string? Message { get; set; }
 }
 
 /// <summary>US-35: projected QR page for one session's check-in code.</summary>

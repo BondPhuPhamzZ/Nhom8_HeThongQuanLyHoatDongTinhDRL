@@ -28,6 +28,9 @@ namespace StudentActivityManagement.API.Data
         public DbSet<ThreadEscalation> ThreadEscalations { get; set; } = null!;
         public DbSet<UserNotification> UserNotifications { get; set; } = null!;
         public DbSet<AssistantDailyUsage> AssistantDailyUsages { get; set; } = null!;
+        public DbSet<AssistantConversation> AssistantConversations { get; set; } = null!;
+        public DbSet<AssistantMessage> AssistantMessages { get; set; } = null!;
+        public DbSet<PasswordResetCode> PasswordResetCodes { get; set; } = null!;
 
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
@@ -167,10 +170,32 @@ namespace StudentActivityManagement.API.Data
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
+            modelBuilder.Entity<PasswordResetCode>(entity =>
+            {
+                entity.HasIndex(item => new { item.UserId, item.CreatedAt });
+                entity.HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<AssistantConversation>(entity =>
+            {
+                entity.HasIndex(item => new { item.UserId, item.LastMessageAt });
+                entity.HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<AssistantMessage>(entity =>
+            {
+                entity.HasIndex(item => new { item.ConversationId, item.CreatedAt });
+                entity.HasOne(item => item.Conversation).WithMany(item => item.Messages)
+                    .HasForeignKey(item => item.ConversationId).OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<AssistantDailyUsage>(entity =>
             {
-                // One counter per student and day; the unique index makes concurrent first questions safe.
-                entity.HasIndex(usage => new { usage.StudentId, usage.UsageDate }).IsUnique();
+                entity.HasIndex(usage => new { usage.StudentId, usage.UsageDate, usage.Feature }).IsUnique();
+                entity.HasIndex(usage => usage.UsageDate);
+                entity.Property(usage => usage.Feature).HasDefaultValue(AssistantDailyUsage.Assistant);
                 entity.HasOne(usage => usage.Student)
                       .WithMany()
                       .HasForeignKey(usage => usage.StudentId)

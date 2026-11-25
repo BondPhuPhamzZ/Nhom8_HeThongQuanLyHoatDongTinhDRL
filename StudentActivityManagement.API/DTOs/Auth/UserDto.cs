@@ -15,6 +15,7 @@ namespace StudentActivityManagement.API.DTOs.Auth
         public string? ClassName { get; set; }
         public bool IsClassMonitor { get; set; }
         public int AccumulatedPoints { get; set; }
+        public bool MustChangePassword { get; set; }
     }
 
     public class AuthResponseDto

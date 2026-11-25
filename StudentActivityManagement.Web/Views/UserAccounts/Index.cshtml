@@ -46,7 +46,7 @@ else
                     var isTemporarilyLocked = account.LockoutEndUtc > DateTime.UtcNow;
                     <tr>
                         <td>
-                            <div class="fw-semibold">@account.FullName @(isSelf ? "(bạn)" : "")</div>
+                            <a asp-action="Details" asp-route-id="@account.Id" class="fw-semibold">@account.FullName @(isSelf ? "(bạn)" : "")</a>
                             <div class="small text-muted">@account.StudentCode@(account.ClassCode is string code ? $" · {code}" : "")</div>
                         </td>
                         <td class="small">@account.Email</td>

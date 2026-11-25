@@ -7,7 +7,11 @@ var builder = WebApplication.CreateBuilder(args);
 // The Web app never touches the database: every feature goes through the shared RESTful API.
 var apiBaseUrl = builder.Configuration["Api:BaseUrl"] ?? "http://localhost:5210";
 
-builder.Services.AddControllersWithViews(options => options.Filters.Add<ApiUnauthorizedFilter>());
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add<ApiUnauthorizedFilter>();
+    options.Filters.Add<PasswordChangeRequiredFilter>();
+});
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<BearerTokenHandler>();
 builder.Services.AddHttpClient<ApiClient>(client =>

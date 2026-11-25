@@ -40,7 +40,7 @@ public sealed class AssistantOptions
     /// <summary>Rounds of tool calls per question; the round after the last one must answer in text.</summary>
     public int MaxToolRounds { get; set; } = 4;
 
-    /// <summary>Messages of the conversation the client may send back (user and assistant turns).</summary>
+    /// <summary>Stored turns sent to Gemini, including the new question.</summary>
     public int MaxMessages { get; set; } = 12;
 
     public int MaxMessageLength { get; set; } = 1000;
@@ -50,7 +50,10 @@ public sealed class AssistantOptions
 
     /// <summary>Questions one student may ask per Vietnam calendar day (US-32).</summary>
     public int DailyQuestionLimit { get; set; } = 40;
+    public int DailyTokenLimit { get; set; } = 200000;
+    public int StaffDailyRequestLimit { get; set; } = 30;
+    public int GlobalDailyRequestLimit { get; set; } = 1500;
 
-    /// <summary>Largest chat request body accepted (bytes): 12 messages of 1000 characters plus signatures fit easily.</summary>
+    /// <summary>Largest chat request body accepted in bytes before JSON binding.</summary>
     public const int MaxRequestBytes = 64 * 1024;
 }

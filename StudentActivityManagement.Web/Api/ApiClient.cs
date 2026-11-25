@@ -44,9 +44,34 @@ public sealed class ApiClient
     public Task<ApiResult<AssistantStatusDto>> GetAssistantStatusAsync() =>
         SendAsync<AssistantStatusDto>(HttpMethod.Get, "api/v1/assistant/status");
 
-    public Task<ApiResult<AssistantReplyDto>> AssistantChatAsync(IEnumerable<AssistantChatMessage> messages) =>
-        SendAsync<AssistantReplyDto>(HttpMethod.Post, "api/v1/assistant/chat", new { messages },
+    public Task<ApiResult<PagedResult<AssistantConversation>>> ListAssistantConversationsAsync(int page) =>
+        SendAsync<PagedResult<AssistantConversation>>(HttpMethod.Get, $"api/v1/assistant/conversations?page={page}");
+
+    public Task<ApiResult<AssistantConversationDetail>> GetAssistantConversationAsync(int id) =>
+        SendAsync<AssistantConversationDetail>(HttpMethod.Get, $"api/v1/assistant/conversations/{id}");
+
+    public Task<ApiResult<AssistantReplyDto>> AssistantChatAsync(int? conversationId, string? message) =>
+        SendAsync<AssistantReplyDto>(HttpMethod.Post, "api/v1/assistant/chat", new { conversationId, message },
             client: _httpClientFactory.CreateClient(AssistantHttpClient));
+
+    public Task<ApiResult<AssistantUsageReport>> GetAssistantUsageAsync(DateOnly? from, DateOnly? to, string? keyword) =>
+        SendAsync<AssistantUsageReport>(HttpMethod.Get,
+            $"api/v1/admin/assistant-usage?{Query(("from", from?.ToString("yyyy-MM-dd")), ("to", to?.ToString("yyyy-MM-dd")), ("keyword", keyword))}");
+
+    public Task<ApiResult<PersonalProfile>> GetProfileAsync() =>
+        SendAsync<PersonalProfile>(HttpMethod.Get, "api/v1/me/profile");
+
+    public Task<ApiResult<PersonalProfile>> UpdateContactAsync(string email, string phone, string currentPassword) =>
+        SendAsync<PersonalProfile>(HttpMethod.Put, "api/v1/me/profile", new { email, phone, currentPassword });
+
+    public Task<ApiResult<AuthResponse>> ChangePasswordAsync(string currentPassword, string newPassword) =>
+        SendAsync<AuthResponse>(HttpMethod.Post, "api/v1/me/change-password", new { currentPassword, newPassword });
+
+    public Task<ApiResult<object>> ForgotPasswordAsync(string login) =>
+        SendAsync<object>(HttpMethod.Post, "api/v1/auth/forgot-password", new { login }, throwOn401: false);
+
+    public Task<ApiResult<object>> ResetPasswordAsync(string login, string code, string newPassword) =>
+        SendAsync<object>(HttpMethod.Post, "api/v1/auth/reset-password", new { login, code, newPassword }, throwOn401: false);
 
     // ---- Auth
     public Task<ApiResult<AuthResponse>> LoginAsync(string usernameOrEmail, string password) =>
@@ -327,6 +352,11 @@ public sealed class ApiClient
         SendAsync<bool>(HttpMethod.Delete, $"api/v1/admin/students/{id}");
 
     // ---- Accounts (US-25, SystemAdmin only)
+    public Task<ApiResult<AccountDto>> GetAccountAsync(int id) =>
+        SendAsync<AccountDto>(HttpMethod.Get, $"api/v1/admin/accounts/{id}");
+
+    public Task<ApiResult<TemporaryPasswordDto>> IssueTemporaryPasswordAsync(int id) =>
+        SendAsync<TemporaryPasswordDto>(HttpMethod.Post, $"api/v1/admin/accounts/{id}/reset-password");
     public Task<ApiResult<PagedResult<AccountDto>>> GetAccountsAsync(string? search, string? role, bool? isActive, int page, int pageSize = 15) =>
         SendAsync<PagedResult<AccountDto>>(HttpMethod.Get, $"api/v1/admin/accounts?{Query(
             ("search", search), ("role", role), ("isActive", isActive?.ToString().ToLowerInvariant()),

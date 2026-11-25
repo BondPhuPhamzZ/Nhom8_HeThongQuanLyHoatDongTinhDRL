@@ -39,6 +39,54 @@ public sealed class UserAccountsController : WebControllerBase
     }
 
     [HttpGet]
+    public async Task<IActionResult> AssistantUsage(DateOnly? from, DateOnly? to, string? keyword)
+    {
+        ViewData["Keyword"] = keyword;
+        if (!ModelState.IsValid)
+        {
+            FlashError("Khoảng ngày không hợp lệ.");
+            return View();
+        }
+
+        var result = await _api.GetAssistantUsageAsync(from, to, keyword);
+        if (!result.Success) FlashError(result.Message);
+        return View(result.Data);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Details(int id)
+    {
+        var result = await _api.GetAccountAsync(id);
+        if (!result.Success || result.Data == null)
+        {
+            FlashError(result.Message);
+            return RedirectToAction(nameof(Index));
+        }
+        return View(new AccountDetailsViewModel(result.Data));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> IssueTemporaryPassword(int id)
+    {
+        var account = await _api.GetAccountAsync(id);
+        if (!account.Success || account.Data == null)
+        {
+            FlashError(account.Message);
+            return RedirectToAction(nameof(Index));
+        }
+
+        var result = await _api.IssueTemporaryPasswordAsync(id);
+        if (!result.Success || result.Data == null)
+        {
+            FlashError(result.Message);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        Response.Headers.CacheControl = "no-store";
+        return View(nameof(Details), new AccountDetailsViewModel(account.Data, result.Data.TemporaryPassword));
+    }
+
+    [HttpGet]
     public IActionResult Create() => View(new AccountCreateViewModel());
 
     [HttpPost, ValidateAntiForgeryToken]

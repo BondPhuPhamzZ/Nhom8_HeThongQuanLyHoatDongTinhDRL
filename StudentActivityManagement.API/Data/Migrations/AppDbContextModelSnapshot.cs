@@ -401,11 +401,48 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.ToTable("ActivitySessions");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.AssistantConversation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("LastMessageAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("MessageCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "LastMessageAt");
+
+                    b.ToTable("AssistantConversations");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.AssistantDailyUsage", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Feature")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Assistant");
 
                     b.Property<int>("QuestionCount")
                         .HasColumnType("INTEGER");
@@ -413,15 +450,76 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Property<int>("StudentId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("TokenCount")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateOnly>("UsageDate")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("StudentId", "UsageDate")
+                    b.HasIndex("UsageDate");
+
+                    b.HasIndex("StudentId", "UsageDate", "Feature")
                         .IsUnique();
 
                     b.ToTable("AssistantDailyUsages");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.AssistantMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ActivitiesJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OutputTokens")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("PersonalDataRedacted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("PromptTokens")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ToolsUsed")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId", "CreatedAt");
+
+                    b.ToTable("AssistantMessages");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.Class", b =>
@@ -574,6 +672,43 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("EvaluationPeriods");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.PasswordResetCode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RequestedIp")
+                        .HasMaxLength(45)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("PasswordResetCodes");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.PointAppeal", b =>
@@ -826,6 +961,9 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Property<DateTime?>("LockoutEndUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -1060,6 +1198,17 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Navigation("Activity");
                 });
 
+            modelBuilder.Entity("StudentActivityManagement.API.Models.AssistantConversation", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("StudentActivityManagement.API.Models.AssistantDailyUsage", b =>
                 {
                     b.HasOne("StudentActivityManagement.API.Models.User", "Student")
@@ -1069,6 +1218,17 @@ namespace StudentActivityManagement.API.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.AssistantMessage", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.AssistantConversation", "Conversation")
+                        .WithMany("Messages")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.Class", b =>
@@ -1117,6 +1277,17 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Navigation("Author");
 
                     b.Navigation("Thread");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.PasswordResetCode", b =>
+                {
+                    b.HasOne("StudentActivityManagement.API.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.PointAppeal", b =>
@@ -1265,6 +1436,11 @@ namespace StudentActivityManagement.API.Data.Migrations
                     b.Navigation("Registrations");
 
                     b.Navigation("Sessions");
+                });
+
+            modelBuilder.Entity("StudentActivityManagement.API.Models.AssistantConversation", b =>
+                {
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("StudentActivityManagement.API.Models.Class", b =>

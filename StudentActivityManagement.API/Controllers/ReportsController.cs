@@ -61,7 +61,9 @@ public sealed class ReportsController : ApiControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> GetAiInsights([FromQuery] ReportQueryDto query)
     {
-        var result = await _staffAi.GetReportInsightsAsync(query, HttpContext.RequestAborted);
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var staffId))
+            return ApiProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.AuthenticationRequired, "Không xác định được cán bộ.");
+        var result = await _staffAi.GetReportInsightsAsync(staffId, query, HttpContext.RequestAborted);
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
 
