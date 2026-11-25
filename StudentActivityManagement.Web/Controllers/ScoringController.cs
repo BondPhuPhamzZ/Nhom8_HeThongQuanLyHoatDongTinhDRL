@@ -27,6 +27,14 @@ public sealed class ScoringController : WebControllerBase
         return View(result.Data);
     }
 
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> FinalizePoints(int id)
+    {
+        var result = await _api.FinalizePointsAsync(id);
+        if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
+        return RedirectToAction(nameof(Index), new { id });
+    }
+
     /// <summary>Approves the ticked registrations, or every eligible one when <paramref name="all"/> is set.</summary>
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Approve(int id, List<int>? registrationIds, bool all, string? note)
@@ -78,7 +86,7 @@ public sealed class ScoringController : WebControllerBase
         {
             var label = result.Data?.Status switch
             {
-                "Approved" => "Đã ghi điểm", "Pending" => "Chờ kiểm tra", "Rejected" => "Từ chối", "Revoked" => "Thu hồi điểm",
+                "Approved" => "Đã ghi điểm", "Pending" => "Chờ kiểm tra", "Rejected" => "Từ chối", "Revoked" => "Hủy điểm",
                 var other => other
             };
             FlashSuccess($"Đã chuyển quyết định điểm sang \"{label}\" và lưu lý do vào lịch sử.");

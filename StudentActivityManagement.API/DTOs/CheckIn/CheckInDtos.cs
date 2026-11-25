@@ -19,6 +19,7 @@ public sealed class CheckInResultDto
     public string Method { get; set; } = string.Empty;
     /// <summary>Registration status after check-in (Attended).</summary>
     public string RegistrationStatus { get; set; } = string.Empty;
+    public DateTime PointsFinalizeDueAt { get; set; }
 }
 
 /// <summary>What the signed-in student sees about check-in for one activity.</summary>
@@ -43,6 +44,8 @@ public sealed class SessionCheckInStatusDto
     /// <summary>True when the student can check in to this session right now.</summary>
     public bool CanCheckIn { get; set; }
     public DateTime? CheckedInAt { get; set; }
+    public DateTime? VoidedAt { get; set; }
+    public string? VoidReason { get; set; }
 }
 
 /// <summary>Check-in codes of an activity for Phòng QL HSSV.</summary>

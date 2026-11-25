@@ -1,4 +1,4 @@
-﻿@{
+@{
     // Design system: the active navigation item carries the accent indicator.
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
@@ -55,8 +55,8 @@
                                 <li class="nav-item"><a class="nav-link @ReportsActive(true)" asp-controller="StudentReports" asp-action="Appeals">Khiếu nại điểm</a></li>
                                 <li class="nav-item"><a class="nav-link @NavActive("Assistant")" asp-controller="Assistant" asp-action="Index">Trợ lý AI</a></li>
                                 <li class="nav-item"><a class="nav-link @NavActive("ClassSpace")" asp-controller="ClassSpace" asp-action="Index">Trao đổi lớp</a></li>
-                                <li class="nav-item"><a class="nav-link @NavActive("Notifications")" asp-controller="Notifications" asp-action="Index">Thông báo</a></li>
                             }
+                            <li class="nav-item"><a class="nav-link @NavActive("Notifications")" asp-controller="Notifications" asp-action="Index">Thông báo</a></li>
                         }
                     </ul>
                     @await Component.InvokeAsync("UserPanel")

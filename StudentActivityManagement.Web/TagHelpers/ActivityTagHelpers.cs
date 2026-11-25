@@ -9,6 +9,7 @@ namespace StudentActivityManagement.Web.TagHelpers;
 public sealed class StatusBadgeTagHelper : TagHelper
 {
     public string? Value { get; set; }
+    public string? Label { get; set; }
 
     public override void Process(TagHelperContext context, TagHelperOutput output)
     {
@@ -41,7 +42,7 @@ public sealed class StatusBadgeTagHelper : TagHelper
         output.TagName = "span";
         output.TagMode = TagMode.StartTagAndEndTag;
         output.Attributes.SetAttribute("class", $"badge {css}");
-        output.Content.SetContent(label);
+        output.Content.SetContent(Label ?? label);
     }
 }
 

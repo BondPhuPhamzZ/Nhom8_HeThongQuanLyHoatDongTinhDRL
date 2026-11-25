@@ -1,6 +1,10 @@
 using System.Globalization;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using StudentActivityManagement.API.Data;
 
 namespace StudentActivityManagement.API.Tests;
 
@@ -13,10 +17,14 @@ public sealed class ActivityLifecycleTests : IClassFixture<CustomWebApplicationF
     private const string StudentCode = "SV210002";
     private const string StudentPassword = "123456";
     private readonly AccountTestClient _api;
+    private readonly TestTimeProvider _time;
+    private readonly CustomWebApplicationFactory _factory;
 
     public ActivityLifecycleTests(CustomWebApplicationFactory factory)
     {
         _api = new AccountTestClient(factory.CreateClient());
+        _time = factory.Time;
+        _factory = factory;
     }
 
     [Fact]
@@ -60,14 +68,26 @@ public sealed class ActivityLifecycleTests : IClassFixture<CustomWebApplicationF
         Assert.Equal("business_rule_violation", await ErrorCodeAsync(skip));
 
         Assert.Equal(HttpStatusCode.OK, (await PatchStatusAsync(admin, id, "Published")).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await PatchStatusAsync(admin, id, "Ongoing")).StatusCode);
-        var completed = await PatchStatusAsync(admin, id, "Completed");
-        Assert.Equal(HttpStatusCode.OK, completed.StatusCode);
-        Assert.Empty(NextStatuses(await DataAsync(completed)));
+        var toStart = draft.GetProperty("startTime").GetDateTime().AddSeconds(1) - _time.GetUtcNow().UtcDateTime;
+        var toClose = TimeSpan.Zero;
+        _time.Advance(toStart);
+        try
+        {
+            Assert.Equal(HttpStatusCode.OK, (await PatchStatusAsync(admin, id, "Ongoing")).StatusCode);
+            toClose = draft.GetProperty("checkInClosesAt").GetDateTime().AddSeconds(1) - _time.GetUtcNow().UtcDateTime;
+            _time.Advance(toClose);
+            var completed = await PatchStatusAsync(admin, id, "Completed");
+            Assert.Equal(HttpStatusCode.OK, completed.StatusCode);
+            Assert.Empty(NextStatuses(await DataAsync(completed)));
 
-        Assert.Equal(HttpStatusCode.Conflict, (await PatchStatusAsync(admin, id, "Published")).StatusCode);
-        var edit = await _api.SendAsync(HttpMethod.Put, $"/api/v1/admin/activities/{id}", admin, Body("Completed"));
-        Assert.Equal(HttpStatusCode.Conflict, edit.StatusCode);
+            Assert.Equal(HttpStatusCode.Conflict, (await PatchStatusAsync(admin, id, "Published")).StatusCode);
+            var edit = await _api.SendAsync(HttpMethod.Put, $"/api/v1/admin/activities/{id}", admin, Body("Completed"));
+            Assert.Equal(HttpStatusCode.Conflict, edit.StatusCode);
+        }
+        finally
+        {
+            _time.Advance(-toStart - toClose);
+        }
     }
 
     [Fact]
@@ -144,6 +164,60 @@ public sealed class ActivityLifecycleTests : IClassFixture<CustomWebApplicationF
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Equal(code, (await DataAsync(response)).GetProperty("classCode").GetString());
+    }
+
+    [Fact]
+    public async Task Update_AfterRegistration_ToleratesMinutePrecisionWithoutMovingTheSchedule()
+    {
+        var staff = await AdminAsync();
+        var student = await _api.LoginAsync(StudentCode, StudentPassword);
+        var created = await CreateAsync(staff, "Published");
+        var id = created.GetProperty("id").GetInt32();
+        Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Post,
+            $"/api/v1/student-activities/{id}/register", student, null)).StatusCode);
+
+        var originalOpen = created.GetProperty("registrationOpenTime").GetDateTime();
+        var session = created.GetProperty("sessions")[0];
+        object UpdateBody(int seconds) => new
+        {
+            activityName = created.GetProperty("activityName").GetString(),
+            organizerName = created.GetProperty("organizerName").GetString(),
+            description = "Cập nhật mô tả.",
+            registrationOpenTime = Iso(originalOpen.AddSeconds(seconds)),
+            registrationCloseTime = created.GetProperty("registrationCloseTime").GetString(),
+            maxParticipants = 10,
+            trainingPoints = 5,
+            status = "Published",
+            sessions = new[]
+            {
+                new
+                {
+                    id = session.GetProperty("id").GetInt32(),
+                    sessionName = session.GetProperty("sessionName").GetString(),
+                    campus = session.GetProperty("campus").GetString(),
+                    location = session.GetProperty("location").GetString(),
+                    startTime = Iso(session.GetProperty("startTime").GetDateTime().AddSeconds(30)),
+                    endTime = Iso(session.GetProperty("endTime").GetDateTime().AddSeconds(-30)),
+                    sortOrder = 1
+                }
+            }
+        };
+
+        var update = await _api.SendAsync(HttpMethod.Put, $"/api/v1/admin/activities/{id}", staff, UpdateBody(30));
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        var edited = await DataAsync(update);
+        Assert.Equal("Cập nhật mô tả.", edited.GetProperty("description").GetString());
+        Assert.Equal(originalOpen, edited.GetProperty("registrationOpenTime").GetDateTime());
+        Assert.Equal(session.GetProperty("startTime").GetDateTime(), edited.GetProperty("sessions")[0].GetProperty("startTime").GetDateTime());
+        Assert.Equal(session.GetProperty("endTime").GetDateTime(), edited.GetProperty("sessions")[0].GetProperty("endTime").GetDateTime());
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.False(await db.UserNotifications.AnyAsync(item => item.ActivityId == id && item.Kind == "ActivityScheduleChanged"));
+
+        var moved = await _api.SendAsync(HttpMethod.Put, $"/api/v1/admin/activities/{id}", staff, UpdateBody(120));
+        await AccountTestClient.AssertProblemAsync(moved, HttpStatusCode.Conflict, "business_rule_violation");
+        Assert.Contains("Không thể sửa giờ mở đăng ký.", (await moved.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("detail").GetString());
     }
 
     private Task<string> AdminAsync() => _api.LoginAsync(AccountTestClient.HssvCode, AccountTestClient.HssvPassword);

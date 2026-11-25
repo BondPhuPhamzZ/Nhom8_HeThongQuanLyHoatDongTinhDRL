@@ -10,12 +10,14 @@ namespace StudentActivityManagement.API.Services;
 public sealed class PointAppealService : IPointAppealService
 {
     private readonly AppDbContext _context;
+    private readonly TimeProvider _time;
     private readonly IScoringService _scoring;
     private readonly int _windowDays;
 
-    public PointAppealService(AppDbContext context, IScoringService scoring, IConfiguration configuration)
+    public PointAppealService(AppDbContext context, IScoringService scoring, IConfiguration configuration, TimeProvider time)
     {
         _context = context;
+        _time = time;
         _scoring = scoring;
         _windowDays = WindowDays(configuration);
     }
@@ -40,10 +42,10 @@ public sealed class PointAppealService : IPointAppealService
             .FirstOrDefaultAsync(item => item.Id == pointRecordId && item.StudentId == studentId);
         if (record == null) return NotFound();
         if (record.Status != PointRecordStatus.Rejected)
-            return Conflict("Chỉ khiếu nại được quyết định điểm bị từ chối.");
+            return Conflict("Chỉ khiếu nại được quyết định điểm bị từ chối hoặc bị ghi vắng.");
         if (record.Period?.Status != EvaluationPeriodStatus.Open)
             return Conflict("Kỳ đánh giá đã khóa.");
-        if (DateTime.UtcNow > record.DecidedAt.AddDays(_windowDays))
+        if (_time.GetUtcNow().UtcDateTime > record.DecidedAt.AddDays(_windowDays))
             return Conflict($"Chỉ được khiếu nại trong {_windowDays} ngày kể từ quyết định điểm.");
         if (await _context.PointAppeals.AnyAsync(item => item.PointRecordId == pointRecordId && item.Status == PointAppealStatus.Pending))
             return Conflict("Bản ghi điểm đã có khiếu nại đang chờ xử lý.");
@@ -51,7 +53,7 @@ public sealed class PointAppealService : IPointAppealService
         var appeal = new PointAppeal
         {
             PointRecordId = pointRecordId, StudentId = studentId, Reason = normalized,
-            Status = PointAppealStatus.Pending, CreatedAt = DateTime.UtcNow
+            Status = PointAppealStatus.Pending, CreatedAt = _time.GetUtcNow().UtcDateTime
         };
         _context.PointAppeals.Add(appeal);
         try { await _context.SaveChangesAsync(); }
@@ -120,9 +122,14 @@ public sealed class PointAppealService : IPointAppealService
             var approved = await _scoring.TransitionAsync(appeal.PointRecordId,
                 new PointRecordTransitionDto { Status = PointRecordStatus.Approved, Reason = transitionReason }, staffId);
             if (!approved.Success) return FromScoring(approved);
+
+            var registrationId = appeal.PointRecord!.RegistrationId;
+            await _context.ActivityRegistrations
+                .Where(item => item.Id == registrationId && item.Status == RegistrationStatus.Absent)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.Status, RegistrationStatus.Attended));
         }
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var updated = await _context.PointAppeals.Where(item => item.Id == appealId && item.Status == PointAppealStatus.Pending)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(item => item.Status, accept ? PointAppealStatus.Accepted : PointAppealStatus.Rejected)
@@ -148,7 +155,8 @@ public sealed class PointAppealService : IPointAppealService
 
     private IQueryable<PointAppeal> Query() => _context.PointAppeals.AsNoTracking()
         .Include(item => item.Student).ThenInclude(student => student!.Class)
-        .Include(item => item.PointRecord).ThenInclude(record => record!.Activity);
+        .Include(item => item.PointRecord).ThenInclude(record => record!.Activity)
+        .Include(item => item.PointRecord).ThenInclude(record => record!.Registration);
 
     private Task<PointAppealDto> LoadDtoAsync(int id) => Query().Where(item => item.Id == id)
         .Select(item => Map(item)).SingleAsync();
@@ -161,6 +169,8 @@ public sealed class PointAppealService : IPointAppealService
         ActivityId = item.PointRecord!.ActivityId,
         ActivityName = item.PointRecord.Activity != null ? item.PointRecord.Activity.ActivityName : string.Empty,
         PeriodId = item.PointRecord.PeriodId, Points = item.PointRecord.Points,
+        RegistrationId = item.PointRecord.RegistrationId, RecordReason = item.PointRecord.Reason,
+        IsAbsence = item.PointRecord.Registration?.Status == RegistrationStatus.Absent,
         Reason = item.Reason, Status = item.Status, StaffResponse = item.StaffResponse,
         CreatedAt = item.CreatedAt, ResolvedAt = item.ResolvedAt
     };

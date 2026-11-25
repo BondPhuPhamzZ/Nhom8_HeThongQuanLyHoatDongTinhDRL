@@ -21,11 +21,15 @@ public sealed class StudentActivityHistoryDto
     public DateTime RegisteredAt { get; set; }
     public int TrainingPoints { get; set; }
     public string? PointStatus { get; set; }
+    public string? PointStatusLabel { get; set; }
+    public DateTime PointsFinalizeDueAt { get; set; }
+    public DateTime? PointsFinalizedAt { get; set; }
     public int? PointRecordId { get; set; }
     public string? AppealStatus { get; set; }
 
     /// <summary>True when this rejected point decision can be appealed now (US-37 rules evaluated by the API).</summary>
     public bool CanAppeal { get; set; }
+    public bool IsAbsence { get; set; }
     public int? PointsAwarded { get; set; }
     public string? PointReason { get; set; }
     public DateTime? PointDecidedAt { get; set; }

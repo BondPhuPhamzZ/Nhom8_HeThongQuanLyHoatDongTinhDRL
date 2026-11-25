@@ -1,0 +1,35 @@
+@model IReadOnlyList<CheckInLogEntry>
+<h2 class="h5 mt-4">Nhật ký điểm danh</h2>
+@if (Model.Count == 0)
+{
+    <p class="text-muted">Chưa có lượt điểm danh.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead><tr><th>Sinh viên</th><th>Buổi</th><th>Thời gian</th><th>Ghi nhận</th><th>Ghi chú</th><th>Thông tin hủy</th></tr></thead>
+            <tbody>
+                @foreach (var entry in Model)
+                {
+                    var style = entry.VoidedAt.HasValue ? "text-decoration-line-through text-muted" : "";
+                    <tr>
+                        <td class="@style">@entry.StudentCode · @entry.StudentName</td>
+                        <td class="@style">@entry.SessionName</td>
+                        <td class="@style"><vn-time value="@entry.CheckedInAt" /></td>
+                        <td class="@style">@(entry.RecordedByName ?? (entry.Method == "Manual" ? "Thủ công" : "Sinh viên tự check-in"))</td>
+                        <td class="@style">@entry.Note</td>
+                        <td>
+                            @if (entry.VoidedAt is DateTime voidedAt)
+                            {
+                                <strong>Đã hủy ghi nhận</strong><br />
+                                <span><vn-time value="@voidedAt" /> · @entry.VoidedByName</span>
+                                <div>@entry.VoidReason</div>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

@@ -3,6 +3,7 @@ using StudentActivityManagement.API.Data;
 using StudentActivityManagement.API.DTOs.Common;
 using StudentActivityManagement.API.DTOs.Student;
 using StudentActivityManagement.API.Models;
+using StudentActivityManagement.API.Services.Settings;
 
 namespace StudentActivityManagement.API.Services;
 
@@ -12,11 +13,13 @@ public sealed class StudentReportService : IStudentReportService
         [RegistrationStatus.Registered, RegistrationStatus.Attended, RegistrationStatus.Cancelled, RegistrationStatus.Absent];
 
     private readonly AppDbContext _context;
+    private readonly TimeProvider _time;
     private readonly int _appealWindowDays;
 
-    public StudentReportService(AppDbContext context, IConfiguration configuration)
+    public StudentReportService(AppDbContext context, IConfiguration configuration, TimeProvider time)
     {
         _context = context;
+        _time = time;
         _appealWindowDays = PointAppealService.WindowDays(configuration);
     }
 
@@ -55,7 +58,7 @@ public sealed class StudentReportService : IStudentReportService
             }
         }
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var period = periodId.HasValue
             ? await _context.EvaluationPeriods.AsNoTracking().FirstOrDefaultAsync(item => item.Id == periodId.Value)
             : await _context.EvaluationPeriods.AsNoTracking()
@@ -97,6 +100,12 @@ public sealed class StudentReportService : IStudentReportService
         var checkInsByRegistration = checkIns.GroupBy(item => item.RegistrationId)
             .ToDictionary(group => group.Key, group => group.ToDictionary(item => item.SessionId));
 
+        var activityIds = registrations.Select(item => item.ActivityId).Distinct().ToList();
+        var configs = await _context.ActivityCheckInConfigs.AsNoTracking()
+            .Where(item => activityIds.Contains(item.ActivityId)).ToDictionaryAsync(item => item.ActivityId);
+        var openPeriods = await _context.EvaluationPeriods.AsNoTracking().Where(item => item.Status == EvaluationPeriodStatus.Open)
+            .Select(item => new { item.StartDate, item.EndDate }).ToListAsync();
+
         var history = registrations.Select(registration =>
         {
             records.TryGetValue(registration.Id, out var pointRecord);
@@ -121,6 +130,30 @@ public sealed class StudentReportService : IStudentReportService
                     };
                 }).ToList();
 
+            var activity = registration.Activity;
+            var config = EffectiveCheckInConfig.From(activity.Id, configs.GetValueOrDefault(activity.Id));
+            var dueAt = ActivityPhase.FinalizeDueAt(activity, activity.Sessions, config);
+            var phase = ActivityPhase.Resolve(activity, activity.Sessions, config, now);
+            var blocked = phase == ActivityPhase.AttendanceReview &&
+                !openPeriods.Any(item => item.StartDate <= activity.EndTime && activity.EndTime <= item.EndDate);
+            var canAppeal = PointAppealService.CanAppeal(pointRecord, period.Status, appealStatus, now, _appealWindowDays);
+            var isAbsence = registration.Status == RegistrationStatus.Absent;
+            var label = pointRecord?.Status switch
+            {
+                PointRecordStatus.Approved => $"Đã cộng {pointRecord.Points} điểm",
+                PointRecordStatus.Revoked => "Đã hủy điểm",
+                PointRecordStatus.Rejected when isAbsence && canAppeal =>
+                    $"Vắng: có thể khiếu nại đến {ActivityService.VietnamTime(pointRecord.DecidedAt.AddDays(_appealWindowDays))}",
+                PointRecordStatus.Rejected when isAbsence => "Vắng khi chốt điểm",
+                PointRecordStatus.Rejected => "Bị từ chối",
+                PointRecordStatus.Pending => "Chờ kiểm tra",
+                _ when registration.Status == RegistrationStatus.Cancelled || phase == ActivityPhase.Cancelled => null,
+                _ when blocked => "Đang chờ Phòng QL HSSV mở kỳ đánh giá",
+                _ when activity.PointsFinalizedAt == null && registration.Status == RegistrationStatus.Attended =>
+                    $"Chờ chốt điểm (dự kiến {ActivityService.VietnamTime(dueAt)})",
+                _ => null
+            };
+
             return new StudentActivityHistoryDto
             {
                 RegistrationId = registration.Id,
@@ -131,9 +164,13 @@ public sealed class StudentReportService : IStudentReportService
                 RegisteredAt = registration.RegisteredAt,
                 TrainingPoints = registration.Activity.TrainingPoints,
                 PointStatus = pointRecord?.Status,
+                PointStatusLabel = label,
+                PointsFinalizeDueAt = dueAt,
+                PointsFinalizedAt = activity.PointsFinalizedAt,
                 PointRecordId = pointRecord?.Id,
                 AppealStatus = appealStatus,
-                CanAppeal = PointAppealService.CanAppeal(pointRecord, period.Status, appealStatus, now, _appealWindowDays),
+                CanAppeal = canAppeal,
+                IsAbsence = isAbsence,
                 PointsAwarded = pointRecord?.Points,
                 PointReason = pointRecord?.Reason,
                 PointDecidedAt = pointRecord?.DecidedAt,

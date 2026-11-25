@@ -42,10 +42,14 @@ public sealed class StudentActivityHistoryDto
     public DateTime RegisteredAt { get; set; }
     public int TrainingPoints { get; set; }
     public string? PointStatus { get; set; }
+    public string? PointStatusLabel { get; set; }
+    public DateTime PointsFinalizeDueAt { get; set; }
+    public DateTime? PointsFinalizedAt { get; set; }
     public int? PointRecordId { get; set; }
     public string? AppealStatus { get; set; }
     /// <summary>US-37: the API decides whether this decision can be appealed now.</summary>
     public bool CanAppeal { get; set; }
+    public bool IsAbsence { get; set; }
     public int? PointsAwarded { get; set; }
     public string? PointReason { get; set; }
     public DateTime? PointDecidedAt { get; set; }
@@ -63,6 +67,9 @@ public sealed class PointAppealDto
 {
     public int Id { get; set; }
     public int PointRecordId { get; set; }
+    public int RegistrationId { get; set; }
+    public string? RecordReason { get; set; }
+    public bool IsAbsence { get; set; }
     public string StudentCode { get; set; } = string.Empty;
     public string StudentName { get; set; } = string.Empty;
     public string? ClassCode { get; set; }
@@ -117,6 +124,13 @@ public sealed class ActivityDto
     public int TrainingPoints { get; set; }
     public string TargetAudience { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public string Phase { get; set; } = string.Empty;
+    public string? PhaseLabel { get; set; }
+    public DateTime CheckInClosesAt { get; set; }
+    public DateTime PointsFinalizeDueAt { get; set; }
+    public DateTime? PointsFinalizedAt { get; set; }
+    public bool PointsFinalizationBlocked { get; set; }
+    public bool CanEdit => Phase is not ("AttendanceReview" or "Finalized" or "Cancelled");
     public List<string>? AllowedNextStatuses { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<SessionDto> Sessions { get; set; } = [];
@@ -133,6 +147,7 @@ public sealed class CheckInConfigDto
     public string Method { get; set; } = "Code";
     public int OpenBeforeMinutes { get; set; }
     public int CloseAfterMinutes { get; set; }
+    public int CorrectionWindowMinutes { get; set; } = 1440;
     public bool IsDefault { get; set; }
     public bool HasCheckIns { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -260,6 +275,8 @@ public sealed class SessionCheckInStatus
     public DateTime ClosesAt { get; set; }
     public bool CanCheckIn { get; set; }
     public DateTime? CheckedInAt { get; set; }
+    public DateTime? VoidedAt { get; set; }
+    public string? VoidReason { get; set; }
 }
 
 public sealed class ActivityCheckInCodes
@@ -300,9 +317,25 @@ public sealed class ActivityParticipants
     public int ActivityId { get; set; }
     public string ActivityName { get; set; } = string.Empty;
     public string ActivityStatus { get; set; } = string.Empty;
+    public string Phase { get; set; } = string.Empty;
+    public DateTime CheckInClosesAt { get; set; }
     public ParticipantSummary Summary { get; set; } = new();
     public List<SessionAttendance> Sessions { get; set; } = [];
     public PagedResult<Participant> Participants { get; set; } = new();
+}
+
+public sealed class CheckInLogEntry
+{
+    public string StudentCode { get; set; } = string.Empty;
+    public string StudentName { get; set; } = string.Empty;
+    public string SessionName { get; set; } = string.Empty;
+    public DateTime CheckedInAt { get; set; }
+    public string Method { get; set; } = string.Empty;
+    public string? RecordedByName { get; set; }
+    public string? Note { get; set; }
+    public DateTime? VoidedAt { get; set; }
+    public string? VoidedByName { get; set; }
+    public string? VoidReason { get; set; }
 }
 
 public sealed class ParticipantSummary
@@ -424,6 +457,8 @@ public sealed class EvaluationPeriod
     public int PointRecordCount { get; set; }
 }
 
+public sealed record FinalizePointsResult(int ApprovedCount, int AbsentCount, int SkippedExistingCount, DateTime PointsFinalizedAt);
+
 public sealed class ActivityScoring
 {
     public int ActivityId { get; set; }
@@ -431,6 +466,9 @@ public sealed class ActivityScoring
     public string ActivityStatus { get; set; } = string.Empty;
     public int TrainingPoints { get; set; }
     public EvaluationPeriod? Period { get; set; }
+    public string Phase { get; set; } = string.Empty;
+    public DateTime PointsFinalizeDueAt { get; set; }
+    public DateTime? PointsFinalizedAt { get; set; }
     public bool CanApprove { get; set; }
     public string? BlockedReason { get; set; }
     public int EligibleCount { get; set; }

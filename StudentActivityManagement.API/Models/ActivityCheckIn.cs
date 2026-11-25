@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace StudentActivityManagement.API.Models;
 
-/// <summary>Attendance of one registration at one session; at most one row per (registration, session).</summary>
+/// <summary>Attendance of one registration at one session; at most one active row per (registration, session).</summary>
 public class ActivityCheckIn
 {
     [Key]
@@ -31,4 +31,14 @@ public class ActivityCheckIn
 
     [ForeignKey(nameof(RecordedById))]
     public User? RecordedBy { get; set; }
+
+    [StringLength(500)]
+    public string? Note { get; set; }
+
+    public DateTime? VoidedAt { get; set; }
+    public int? VoidedById { get; set; }
+    public User? VoidedBy { get; set; }
+
+    [StringLength(500)]
+    public string? VoidReason { get; set; }
 }

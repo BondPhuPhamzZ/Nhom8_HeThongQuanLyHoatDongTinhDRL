@@ -2,9 +2,10 @@
 @{
     var data = Model.Data;
     ViewData["Title"] = $"Người tham gia – {data.ActivityName}";
-    var statuses = new[] { ("", "Mọi trạng thái"), ("Registered", "Đã đăng ký"), ("Attended", "Đã tham gia"), ("Cancelled", "Đã hủy") };
+    var statuses = new[] { ("", "Mọi trạng thái"), ("Registered", "Đã đăng ký"), ("Attended", "Đã tham gia"), ("Absent", "Vắng mặt"), ("Cancelled", "Đã hủy") };
     var returnTo = Context.Request.Path + Context.Request.QueryString;
     var paged = data.Participants;
+    var review = data.Phase == "AttendanceReview";
 }
 <a asp-controller="ManageActivities" asp-action="Details" asp-route-id="@data.ActivityId" class="btn-back">&larr; @data.ActivityName</a>
 <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-2 mb-3">
@@ -14,6 +15,10 @@
     </div>
 </div>
 
+@if (data.Phase == "Ongoing")
+{
+    <p class="alert alert-light border">Đang diễn ra: chỉ được thêm điểm danh. Có thể hủy ghi nhận từ <vn-time value="@data.CheckInClosesAt" />.</p>
+}
 <div class="row g-3 mb-3">
     <div class="col-12 col-md-4"><div class="stat-tile"><div class="stat-value">@data.Summary.Active</div><div class="stat-label">Đang giữ chỗ</div></div></div>
     <div class="col-12 col-md-4"><div class="stat-tile"><div class="stat-value">@data.Summary.Attended</div><div class="stat-label">Đã tham gia</div></div></div>
@@ -64,16 +69,14 @@ else
                                 {
                                     <span class="text-success fw-semibold" title="@(checkIn.RecordedByName ?? "Sinh viên tự check-in")">&#10003; <vn-time value="@checkIn.CheckedInAt" /></span>
                                     <div class="small text-muted">@(checkIn.Method == "Manual" ? "Thủ công" : "Mã")</div>
+                                    @if (review && participant.RegistrationStatus != "Cancelled")
+                                    {
+                                        <partial name="_AttendanceAction" model="@(new AttendanceActionViewModel(data.ActivityId, session.SessionId, participant.RegistrationId, true, review, returnTo))" />
+                                    }
                                 }
                                 else if (Model.CanEditAttendance && participant.RegistrationStatus != "Cancelled")
                                 {
-                                    <form asp-action="RecordCheckIn" asp-route-id="@data.ActivityId" method="post" class="m-0">
-                                        <input type="hidden" name="sessionId" value="@session.SessionId" />
-                                        <input type="hidden" name="registrationId" value="@participant.RegistrationId" />
-                                        <input type="hidden" name="returnTo" value="@returnTo" />
-                                        <button type="submit" class="btn btn-sm btn-outline-success"
-                                                aria-label="Điểm danh @participant.FullName buổi @session.SessionName">Điểm danh</button>
-                                    </form>
+                                    <partial name="_AttendanceAction" model="@(new AttendanceActionViewModel(data.ActivityId, session.SessionId, participant.RegistrationId, false, review, returnTo))" />
                                 }
                                 else
                                 {
@@ -104,3 +107,5 @@ else
     }
     <p class="text-center text-muted small">Tổng cộng @paged.TotalCount sinh viên</p>
 }
+
+<partial name="_CheckInLog" model="Model.Log" />

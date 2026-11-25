@@ -42,11 +42,15 @@ class ActivityHistoryItem {
     required this.registeredAt,
     required this.trainingPoints,
     required this.pointStatus,
+    this.pointStatusLabel,
+    this.pointsFinalizeDueAt,
+    this.pointsFinalizedAt,
     required this.pointsAwarded,
     required this.pointReason,
     this.pointRecordId,
     this.appealStatus,
     this.canAppeal = false,
+    this.isAbsence = false,
     required this.checkInCount,
     required this.sessions,
   });
@@ -58,12 +62,16 @@ class ActivityHistoryItem {
   final DateTime registeredAt;
   final int trainingPoints;
   final String? pointStatus;
+  final String? pointStatusLabel;
+  final DateTime? pointsFinalizeDueAt;
+  final DateTime? pointsFinalizedAt;
   final int? pointsAwarded;
   final String? pointReason;
   /// US-37: the decision to appeal, the latest appeal status and whether the API allows an appeal now.
   final int? pointRecordId;
   final String? appealStatus;
   final bool canAppeal;
+  final bool isAbsence;
   final int checkInCount;
   final List<SessionHistory> sessions;
 
@@ -75,11 +83,15 @@ class ActivityHistoryItem {
         registeredAt: VnTime.parse(json['registeredAt']),
         trainingPoints: json['trainingPoints'] as int? ?? 0,
         pointStatus: json['pointStatus'] as String?,
+        pointStatusLabel: json['pointStatusLabel'] as String?,
+        pointsFinalizeDueAt: VnTime.parseOrNull(json['pointsFinalizeDueAt']),
+        pointsFinalizedAt: VnTime.parseOrNull(json['pointsFinalizedAt']),
         pointsAwarded: json['pointsAwarded'] as int?,
         pointReason: json['pointReason'] as String?,
         pointRecordId: json['pointRecordId'] as int?,
         appealStatus: json['appealStatus'] as String?,
         canAppeal: json['canAppeal'] as bool? ?? false,
+        isAbsence: json['isAbsence'] as bool? ?? false,
         checkInCount: json['checkInCount'] as int? ?? 0,
         sessions: ((json['sessions'] as List?) ?? const [])
             .map((raw) => SessionHistory.fromJson((raw as Map).cast<String, dynamic>()))

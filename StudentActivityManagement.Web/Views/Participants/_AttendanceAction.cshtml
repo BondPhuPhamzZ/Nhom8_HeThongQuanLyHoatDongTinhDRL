@@ -1,0 +1,22 @@
+@model AttendanceActionViewModel
+<details class="text-start">
+    <summary class="small @(Model.Existing ? "text-danger" : "text-success")">@(Model.Existing ? "Hủy ghi nhận" : "Điểm danh")</summary>
+    <form asp-action="@(Model.Existing ? "VoidCheckIn" : "RecordCheckIn")" asp-route-id="@Model.ActivityId" method="post" class="mt-2 d-grid gap-2">
+        <input type="hidden" name="sessionId" value="@Model.SessionId" />
+        <input type="hidden" name="registrationId" value="@Model.RegistrationId" />
+        <input type="hidden" name="returnTo" value="@Model.ReturnTo" />
+        @if (Model.Existing)
+        {
+            <label class="small">Lý do hủy ghi nhận
+                <textarea name="reason" class="form-control form-control-sm" required minlength="10" maxlength="500"></textarea>
+            </label>
+        }
+        else
+        {
+            <label class="small">Ghi chú @(Model.Review ? "(bắt buộc)" : "(tùy chọn)")
+                <textarea name="note" class="form-control form-control-sm" required="@Model.Review" minlength="@(Model.Review ? 10 : 0)" maxlength="500"></textarea>
+            </label>
+        }
+        <button type="submit" class="btn btn-sm @(Model.Existing ? "btn-outline-danger" : "btn-outline-success")">@(Model.Existing ? "Xác nhận hủy ghi nhận" : "Lưu điểm danh")</button>
+    </form>
+</details>

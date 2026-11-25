@@ -69,18 +69,32 @@ public sealed class ActivityParticipantsController : ApiControllerBase
             return InvalidSession();
         }
 
-        var result = await _participantService.RecordManualCheckInAsync(activityId, sessionId, request.RegistrationId, staffId);
+        var result = await _participantService.RecordManualCheckInAsync(activityId, sessionId, request.RegistrationId, staffId, request.Note);
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
 
-    /// <summary>Hủy ghi nhận tham gia một buổi (điểm danh nhầm). Không còn buổi nào thì đăng ký trở về Registered.</summary>
-    [HttpDelete("sessions/{sessionId:int}/check-ins/{registrationId:int}")]
+    [EndpointSummary("Hủy ghi nhận điểm danh trong pha đối chiếu")]
+    [EndpointDescription("Giữ lượt điểm danh trong nhật ký. Trả 409 attendance_locked khi điểm danh đã khóa.")]
+    [HttpPost("sessions/{sessionId:int}/check-ins/{registrationId:int}/void")]
     [ProducesResponseType(typeof(ApiResponseDto<ParticipantDetailDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> RemoveCheckIn(int activityId, int sessionId, int registrationId)
+    public async Task<IActionResult> VoidCheckIn(int activityId, int sessionId, int registrationId, [FromBody] VoidCheckInRequestDto request)
     {
-        var result = await _participantService.RemoveCheckInAsync(activityId, sessionId, registrationId);
+        if (!TryGetUserId(out var staffId)) return InvalidSession();
+        var result = await _participantService.VoidCheckInAsync(activityId, sessionId, registrationId, staffId, request.Reason);
+        return result.Success ? Ok(result) : ProblemFrom(result);
+    }
+
+    [EndpointSummary("Xem nhật ký điểm danh")]
+    [EndpointDescription("Gồm cả những lượt đã hủy. Có thể lọc theo buổi hoặc đăng ký.")]
+    [HttpGet("check-in-log")]
+    [ProducesResponseType(typeof(ApiResponseDto<List<CheckInLogEntryDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCheckInLog(int activityId, [FromQuery] int? sessionId, [FromQuery] int? registrationId)
+    {
+        var result = await _participantService.GetCheckInLogAsync(activityId, sessionId, registrationId);
         return result.Success ? Ok(result) : ProblemFrom(result);
     }
 

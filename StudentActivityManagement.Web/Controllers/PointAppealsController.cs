@@ -20,7 +20,12 @@ public sealed class PointAppealsController : WebControllerBase
         ViewBag.Status = status;
         ViewBag.PeriodId = periodId;
         ViewBag.Periods = periods.Data ?? [];
-        return View(result.Data ?? new PagedResult<PointAppealDto>());
+        var pageResult = result.Data ?? new PagedResult<PointAppealDto>();
+        var registrations = pageResult.Items.DistinctBy(item => item.RegistrationId);
+        var logs = await Task.WhenAll(registrations.Select(async item =>
+            (item.RegistrationId, Log: await _api.GetCheckInLogAsync(item.ActivityId, item.RegistrationId))));
+        ViewBag.CheckInLogs = logs.ToDictionary(item => item.RegistrationId, item => item.Log);
+        return View(pageResult);
     }
 
     [HttpPost, ValidateAntiForgeryToken]

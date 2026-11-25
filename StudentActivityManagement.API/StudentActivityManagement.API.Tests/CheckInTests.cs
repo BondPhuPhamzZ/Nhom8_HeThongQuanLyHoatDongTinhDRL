@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using StudentActivityManagement.API.Data;
 using StudentActivityManagement.API.Models;
+using StudentActivityManagement.API.Services;
 
 namespace StudentActivityManagement.API.Tests;
 
@@ -58,7 +59,7 @@ public sealed class CheckInTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task CheckIn_WithCode_RecordsTheActivityPointsInTheOpenPeriod()
+    public async Task CheckIn_WithCode_OnlyRecordsPointsWhenWorkerFinalizes()
     {
         var staff = await StaffAsync();
         var student = await _api.LoginAsync(MonitorCode, StudentPassword);
@@ -82,6 +83,10 @@ public sealed class CheckInTests : IClassFixture<CustomWebApplicationFactory>
 
         using var verify = _factory.Services.CreateScope();
         var db = verify.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.False(await db.PointRecords.AnyAsync(item => item.ActivityId == activityId));
+        var staffView = await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{activityId}", staff));
+        using var clock = _factory.Time.At(staffView.GetProperty("pointsFinalizeDueAt").GetDateTime().AddSeconds(1));
+        await verify.ServiceProvider.GetRequiredService<IActivityLifecycleService>().RunOnceAsync();
         var record = await db.PointRecords.AsNoTracking().Include(item => item.History)
             .SingleAsync(item => item.ActivityId == activityId);
         Assert.Equal(PointRecordStatus.Approved, record.Status);
@@ -238,12 +243,15 @@ public sealed class CheckInTests : IClassFixture<CustomWebApplicationFactory>
         var staff = await StaffAsync();
         var student = await _api.LoginAsync(StudentCode, StudentPassword);
         var (activityId, sessionId) = await CreateRegisteredActivityAsync(staff, student);
-        foreach (var status in new[] { "Ongoing", "Completed" })
+        var lifecycle = await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{activityId}", staff));
+        foreach (var (status, field) in new[] { ("Ongoing", "startTime"), ("Completed", "checkInClosesAt") })
         {
+            using var clock = _factory.Time.At(lifecycle.GetProperty(field).GetDateTime().AddSeconds(1));
             Assert.Equal(HttpStatusCode.OK,
                 (await _api.SendAsync(HttpMethod.Patch, $"/api/v1/admin/activities/{activityId}/status", staff, new { status })).StatusCode);
         }
 
+        using var afterClose = _factory.Time.At(lifecycle.GetProperty("checkInClosesAt").GetDateTime().AddSeconds(1));
         Assert.Equal(HttpStatusCode.Conflict, (await _api.SendAsync(HttpMethod.Post, CodeUrl(activityId, sessionId), staff, null)).StatusCode);
     }
 
@@ -258,6 +266,36 @@ public sealed class CheckInTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.Forbidden, (await _api.SendAsync(HttpMethod.Post, CodeUrl(activityId, sessionId), student, null)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await CheckInAsync(staff, activityId, sessionId, "ABCDEF")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await CheckInAsync(null, activityId, sessionId, "ABCDEF")).StatusCode);
+    }
+
+    [Fact]
+    public async Task CodeCheckIn_IgnoresVoidedRowsButRejectsDuplicateActiveAttendance()
+    {
+        var staff = await StaffAsync();
+        var student = await _api.LoginAsync(StudentCode, StudentPassword);
+        var (activityId, sessionId) = await CreateRegisteredActivityAsync(staff, student);
+        var code = await IssueCodeAsync(staff, activityId, sessionId);
+
+        // Model a historical void with a check-in window that is open. Normal void requests still require review.
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var registrationId = await db.ActivityRegistrations
+                .Where(item => item.ActivityId == activityId).Select(item => item.Id).SingleAsync();
+            var now = _factory.Time.GetUtcNow().UtcDateTime;
+            db.ActivityCheckIns.Add(new ActivityCheckIn
+            {
+                RegistrationId = registrationId, SessionId = sessionId,
+                CheckedInAt = now.AddMinutes(-1), VoidedAt = now, VoidReason = "Đã ghi nhận nhầm."
+            });
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Equal(HttpStatusCode.OK, (await CheckInAsync(student, activityId, sessionId, code)).StatusCode);
+        var duplicate = await CheckInAsync(student, activityId, sessionId, code);
+        await AccountTestClient.AssertProblemAsync(duplicate, HttpStatusCode.Conflict, "resource_conflict");
+        var log = await DataAsync(await _api.GetAsync($"/api/v1/admin/activities/{activityId}/check-in-log", staff));
+        Assert.Equal(2, log.GetArrayLength());
     }
 
     private Task<string> StaffAsync() => _api.LoginAsync(AccountTestClient.HssvCode, AccountTestClient.HssvPassword);

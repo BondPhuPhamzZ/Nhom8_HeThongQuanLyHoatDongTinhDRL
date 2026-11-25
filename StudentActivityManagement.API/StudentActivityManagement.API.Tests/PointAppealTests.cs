@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using StudentActivityManagement.API.Data;
 using StudentActivityManagement.API.Models;
+using StudentActivityManagement.API.Services;
 
 namespace StudentActivityManagement.API.Tests;
 
@@ -167,9 +168,127 @@ public sealed class PointAppealTests : IClassFixture<CustomWebApplicationFactory
             .SingleAsync(item => item.Id == appealId)).Status);
     }
 
+    [Fact]
+    public async Task Accept_FinalizedAbsence_RestoresParticipationAndPointsWithoutChangingCheckInLog()
+    {
+        var setup = await SetupAsync(finalizeAbsence: true);
+        var historyBefore = await ActivityHistoryAsync(setup);
+        Assert.True(historyBefore.GetProperty("canAppeal").GetBoolean());
+        Assert.True(historyBefore.GetProperty("isAbsence").GetBoolean());
+        Assert.Equal(RegistrationStatus.Absent, historyBefore.GetProperty("registrationStatus").GetString());
+        var activityId = historyBefore.GetProperty("activityId").GetInt32();
+        var registrationId = historyBefore.GetProperty("registrationId").GetInt32();
+        var logBefore = await LogAsync();
+        var pointsBefore = await PointsAsync(setup);
+
+        var created = await CreateAsync(setup);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var appeal = await DataAsync(created);
+        var appealId = appeal.GetProperty("id").GetInt32();
+        Assert.Equal(registrationId, appeal.GetProperty("registrationId").GetInt32());
+        Assert.Equal(AttendancePoints.AbsentReason, appeal.GetProperty("recordReason").GetString());
+        Assert.True(appeal.GetProperty("isAbsence").GetBoolean());
+        var inbox = await DataAsync(await _api.GetAsync(
+            $"/api/v1/admin/point-appeals?status=Pending&periodId={setup.PeriodId}", setup.Staff));
+        Assert.True(Assert.Single(inbox.GetProperty("items").EnumerateArray(),
+            item => item.GetProperty("id").GetInt32() == appealId).GetProperty("isAbsence").GetBoolean());
+
+        var resolved = await ResolveAsync(setup, appealId, true);
+        Assert.Equal(HttpStatusCode.OK, resolved.StatusCode);
+        Assert.Equal(PointAppealStatus.Accepted, (await DataAsync(resolved)).GetProperty("status").GetString());
+        var historyAfter = await ActivityHistoryAsync(setup);
+        Assert.Equal(PointRecordStatus.Approved, historyAfter.GetProperty("pointStatus").GetString());
+        Assert.Equal(RegistrationStatus.Attended, historyAfter.GetProperty("registrationStatus").GetString());
+        Assert.Equal(pointsBefore + historyBefore.GetProperty("trainingPoints").GetInt32(), await PointsAsync(setup));
+        Assert.Equal(logBefore, await LogAsync());
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Single(await db.UserNotifications.Where(item => item.RecipientUserId == setup.StudentId
+            && item.SourceKey == $"point-appeal:{appealId}:resolved").ToListAsync());
+
+        async Task<string> LogAsync() => (await DataAsync(await _api.GetAsync(
+            $"/api/v1/admin/activities/{activityId}/check-in-log?registrationId={registrationId}", setup.Staff))).GetRawText();
+    }
+
+    [Fact]
+    public async Task Accept_RejectedAbsenceWithChangedReason_RestoresParticipationAndPoints()
+    {
+        var setup = await SetupAsync(finalizeAbsence: true);
+        var pointsBefore = await PointsAsync(setup);
+        const string newReason = "Chưa có căn cứ xác nhận sinh viên đã tham gia.";
+        foreach (var status in new[] { PointRecordStatus.Pending, PointRecordStatus.Rejected })
+        {
+            var transition = await _api.SendAsync(HttpMethod.Post,
+                $"/api/v1/admin/point-records/{setup.RecordId}/transition", setup.Staff,
+                new { status, reason = newReason });
+            Assert.Equal(HttpStatusCode.OK, transition.StatusCode);
+        }
+
+        var historyBefore = await ActivityHistoryAsync(setup);
+        Assert.True(historyBefore.GetProperty("canAppeal").GetBoolean());
+        Assert.True(historyBefore.GetProperty("isAbsence").GetBoolean());
+        Assert.Equal(newReason, historyBefore.GetProperty("pointReason").GetString());
+
+        var created = await CreateAsync(setup);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var appeal = await DataAsync(created);
+        Assert.Equal(newReason, appeal.GetProperty("recordReason").GetString());
+        Assert.True(appeal.GetProperty("isAbsence").GetBoolean());
+        var mine = await DataAsync(await _api.GetAsync("/api/v1/student/point-appeals", setup.Student));
+        Assert.Contains(mine.EnumerateArray(), item => item.GetProperty("id").GetInt32() == appeal.GetProperty("id").GetInt32()
+            && item.GetProperty("isAbsence").GetBoolean());
+
+        var resolved = await ResolveAsync(setup, appeal.GetProperty("id").GetInt32(), true);
+        Assert.Equal(HttpStatusCode.OK, resolved.StatusCode);
+        Assert.False((await DataAsync(resolved)).GetProperty("isAbsence").GetBoolean());
+        var historyAfter = await ActivityHistoryAsync(setup);
+        Assert.Equal(RegistrationStatus.Attended, historyAfter.GetProperty("registrationStatus").GetString());
+        Assert.Equal(PointRecordStatus.Approved, historyAfter.GetProperty("pointStatus").GetString());
+        Assert.Equal(pointsBefore + historyBefore.GetProperty("trainingPoints").GetInt32(), await PointsAsync(setup));
+    }
+
+    [Fact]
+    public async Task Create_AfterAbsenceAppealWindowOrWhenRevoked_ReturnsConflict()
+    {
+        var setup = await SetupAsync(finalizeAbsence: true);
+        var decidedAt = (await ActivityHistoryAsync(setup)).GetProperty("pointDecidedAt").GetDateTime();
+        using (_factory.Time.At(decidedAt.AddDays(14).AddSeconds(-1)))
+            Assert.True((await ActivityHistoryAsync(setup)).GetProperty("canAppeal").GetBoolean());
+        using (_factory.Time.At(decidedAt.AddDays(14).AddSeconds(1)))
+        {
+            Assert.False((await ActivityHistoryAsync(setup)).GetProperty("canAppeal").GetBoolean());
+            await AccountTestClient.AssertProblemAsync(await CreateAsync(setup), HttpStatusCode.Conflict, "business_rule_violation");
+        }
+
+        await SetRecordAsync(setup.RecordId, status: PointRecordStatus.Revoked);
+        Assert.False((await ActivityHistoryAsync(setup)).GetProperty("canAppeal").GetBoolean());
+        await AccountTestClient.AssertProblemAsync(await CreateAsync(setup), HttpStatusCode.Conflict, "business_rule_violation");
+    }
+
+    [Fact]
+    public async Task Create_OrdinaryRejection_ReturnsDecisionReasonWithoutAbsenceFlag()
+    {
+        var setup = await SetupAsync();
+        var created = await CreateAsync(setup);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var appeal = await DataAsync(created);
+        Assert.False(appeal.GetProperty("isAbsence").GetBoolean());
+        Assert.Equal("Chưa đủ minh chứng", appeal.GetProperty("recordReason").GetString());
+    }
+
+    private async Task<System.Text.Json.JsonElement> ActivityHistoryAsync(Setup setup)
+    {
+        var history = await DataAsync(await _api.GetAsync(
+            $"/api/v1/student/reports/activity-history?periodId={setup.PeriodId}", setup.Student));
+        return history.GetProperty("activities").EnumerateArray()
+            .Single(item => item.GetProperty("pointRecordId").ValueKind == System.Text.Json.JsonValueKind.Number
+                && item.GetProperty("pointRecordId").GetInt32() == setup.RecordId);
+    }
+
     private sealed record Setup(string Staff, string Student, int StudentId, int RecordId, int PeriodId);
 
-    private async Task<Setup> SetupAsync()
+    private async Task<Setup> SetupAsync(bool finalizeAbsence = false)
     {
         var staff = await _api.LoginAsync(AccountTestClient.HssvCode, AccountTestClient.HssvPassword);
         var student = await _api.LoginAsync("SV210002", "123456");
@@ -188,9 +307,19 @@ public sealed class PointAppealTests : IClassFixture<CustomWebApplicationFactory
         db.ActivitySessions.Add(new ActivitySession { ActivityId = activity.Id, SessionName = "Buổi kiểm thử",
             Campus = "Cơ sở 1", Location = "Hội trường", StartTime = activity.StartTime, EndTime = activity.EndTime, SortOrder = 1 });
         var registration = new ActivityRegistration { ActivityId = activity.Id, StudentId = studentId,
-            Status = RegistrationStatus.Attended, RegisteredAt = now.AddDays(-2) };
+            Status = finalizeAbsence ? RegistrationStatus.Registered : RegistrationStatus.Attended,
+            RegisteredAt = now.AddDays(-2) };
         db.ActivityRegistrations.Add(registration);
         await db.SaveChangesAsync();
+        if (finalizeAbsence)
+        {
+            // Use the period selected by the real finalizer, including an existing open period.
+            var finalized = await _api.SendAsync(HttpMethod.Post,
+                $"/api/v1/admin/activities/{activity.Id}/scoring/finalize", staff, null);
+            Assert.True(finalized.IsSuccessStatusCode, await finalized.Content.ReadAsStringAsync());
+            var absence = await db.PointRecords.AsNoTracking().SingleAsync(item => item.RegistrationId == registration.Id);
+            return new Setup(staff, student, studentId, absence.Id, absence.PeriodId);
+        }
         var record = new PointRecord { ActivityId = activity.Id, RegistrationId = registration.Id,
             StudentId = studentId, PeriodId = period.Id, Points = 7, Status = PointRecordStatus.Rejected,
             Reason = "Chưa đủ minh chứng", DecidedAt = now, DecidedById = await db.Users

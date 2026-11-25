@@ -9,6 +9,8 @@ public sealed class ActivityParticipantsDto
     public int ActivityId { get; set; }
     public string ActivityName { get; set; } = string.Empty;
     public string ActivityStatus { get; set; } = string.Empty;
+    public string Phase { get; set; } = string.Empty;
+    public DateTime CheckInClosesAt { get; set; }
     public ParticipantSummaryDto Summary { get; set; } = new();
     public List<SessionAttendanceDto> Sessions { get; set; } = [];
     public PagedResultDto<ParticipantDto> Participants { get; set; } = new();
@@ -87,6 +89,12 @@ public sealed class ManualCheckInRequestDto
 {
     [Range(1, int.MaxValue, ErrorMessage = "Thiếu mã đăng ký.")]
     public int RegistrationId { get; set; }
+    public string? Note { get; set; }
+}
+
+public sealed class VoidCheckInRequestDto
+{
+    public string? Reason { get; set; }
 }
 
 public sealed class EvidenceReviewRequestDto

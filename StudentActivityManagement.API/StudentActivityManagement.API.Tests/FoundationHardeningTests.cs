@@ -12,9 +12,11 @@ public sealed class FoundationHardeningTests : IClassFixture<CustomWebApplicatio
     private const string StudentCode = "SV210002";
     private const string StudentPassword = "123456";
     private readonly AccountTestClient _api;
+    private readonly TestTimeProvider _time;
 
     public FoundationHardeningTests(CustomWebApplicationFactory factory)
     {
+        _time = factory.Time;
         _api = new AccountTestClient(factory.CreateClient());
     }
 
@@ -123,6 +125,7 @@ public sealed class FoundationHardeningTests : IClassFixture<CustomWebApplicatio
         var created = await CreateActivityAsync(admin, sessionCount: 1);
         var id = created.GetProperty("id").GetInt32();
         var name = created.GetProperty("activityName").GetString()!;
+        using var clock = _time.At(created.GetProperty("startTime").GetDateTime().AddSeconds(1));
         Assert.Equal(HttpStatusCode.OK,
             (await _api.SendAsync(HttpMethod.Patch, $"/api/v1/admin/activities/{id}/status", admin, new { status = "Ongoing" })).StatusCode);
 

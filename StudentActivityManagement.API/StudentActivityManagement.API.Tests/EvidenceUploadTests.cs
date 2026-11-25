@@ -567,7 +567,9 @@ public sealed class EvidenceUploadTests : IClassFixture<CustomWebApplicationFact
     {
         var setup = await SetupPublishedAsync(registerMonitor);
 
-        // HSSV switches activity to Ongoing
+        var lifecycle = await ReadDataAsync(await _api.GetAsync($"/api/v1/admin/activities/{setup.ActivityId}", setup.StaffToken));
+        using var clock = _factory.Time.At(lifecycle.GetProperty("startTime").GetDateTime().AddSeconds(1));
+        // HSSV synchronizes the status once the first session begins.
         var patchResponse = await _api.SendAsync(
             HttpMethod.Patch,
             $"/api/v1/admin/activities/{setup.ActivityId}/status",

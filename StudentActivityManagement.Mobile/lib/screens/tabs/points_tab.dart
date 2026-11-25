@@ -235,7 +235,10 @@ class _HistoryCard extends StatelessWidget {
               children: [
                 Wrap(spacing: 6, runSpacing: 4, children: [
                   StatusBadge(item.registrationStatus),
-                  if (item.pointStatus != null) StatusBadge(item.pointStatus!),
+                  if (item.pointStatusLabel != null)
+                    StatusBadge(item.pointStatus ?? 'Pending', label: item.pointStatusLabel)
+                  else if (item.pointStatus != null)
+                    StatusBadge(item.pointStatus!),
                   if (item.appealStatus != null) StatusBadge(item.appealStatus!, label: 'Khiếu nại: ${PointAppeal.labelOf(item.appealStatus!)}'),
                   PointsChip(item.pointsAwarded ?? item.trainingPoints),
                 ]),

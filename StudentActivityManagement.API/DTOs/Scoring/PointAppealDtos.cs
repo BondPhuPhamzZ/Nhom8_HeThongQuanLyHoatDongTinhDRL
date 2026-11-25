@@ -18,6 +18,9 @@ public sealed class PointAppealDto
 {
     public int Id { get; set; }
     public int PointRecordId { get; set; }
+    public int RegistrationId { get; set; }
+    public string? RecordReason { get; set; }
+    public bool IsAbsence { get; set; }
     public int StudentId { get; set; }
     public string StudentCode { get; set; } = string.Empty;
     public string StudentName { get; set; } = string.Empty;

@@ -43,7 +43,7 @@ public sealed class ManageActivitiesController : WebControllerBase
         {
             CheckIn = checkIn.Data ?? new CheckInConfigDto(),
             Reminders = reminders.Data ?? new ReminderScheduleDto(),
-            ActivityStatus = result.Data.Status
+            CanEdit = result.Data.CanEdit
         };
         return View(result.Data);
     }
@@ -164,7 +164,7 @@ public sealed class ManageActivitiesController : WebControllerBase
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        var result = await _api.UpdateCheckInConfigAsync(id, form.Method, form.OpenBeforeMinutes, form.CloseAfterMinutes);
+        var result = await _api.UpdateCheckInConfigAsync(id, form.Method, form.OpenBeforeMinutes, form.CloseAfterMinutes, form.CorrectionWindowMinutes);
         if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
         return RedirectToAction(nameof(Details), new { id });
     }

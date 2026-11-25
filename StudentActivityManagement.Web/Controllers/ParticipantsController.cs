@@ -24,7 +24,9 @@ public sealed class ParticipantsController : WebControllerBase
             return RedirectToAction("Details", "ManageActivities", new { id });
         }
 
-        return View(new ParticipantListViewModel { Data = result.Data, Status = status, Search = search });
+        var log = await _api.GetCheckInLogAsync(id);
+        if (!log.Success) FlashError(log.Message);
+        return View(new ParticipantListViewModel { Data = result.Data, Status = status, Search = search, Log = log.Data ?? [] });
     }
 
     /// <summary>/Participants/Details/{id}?registrationId=…: one participant with attendance per session.</summary>
@@ -38,21 +40,23 @@ public sealed class ParticipantsController : WebControllerBase
             return RedirectToAction(nameof(Index), new { id });
         }
 
-        return View(new ParticipantDetailViewModel { Activity = activity.Data, Participant = participant.Data });
+        var log = await _api.GetCheckInLogAsync(id, registrationId);
+        if (!log.Success) FlashError(log.Message);
+        return View(new ParticipantDetailViewModel { Activity = activity.Data, Participant = participant.Data, Log = log.Data ?? [] });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> RecordCheckIn(int id, int sessionId, int registrationId, string? returnTo)
+    public async Task<IActionResult> RecordCheckIn(int id, int sessionId, int registrationId, string? returnTo, string? note)
     {
-        var result = await _api.RecordCheckInAsync(id, sessionId, registrationId);
+        var result = await _api.RecordCheckInAsync(id, sessionId, registrationId, note);
         if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
         return BackTo(id, registrationId, returnTo);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> RemoveCheckIn(int id, int sessionId, int registrationId, string? returnTo)
+    public async Task<IActionResult> VoidCheckIn(int id, int sessionId, int registrationId, string? returnTo, string? reason)
     {
-        var result = await _api.RemoveCheckInAsync(id, sessionId, registrationId);
+        var result = await _api.VoidCheckInAsync(id, sessionId, registrationId, reason);
         if (result.Success) FlashSuccess(result.Message); else FlashError(result.Message);
         return BackTo(id, registrationId, returnTo);
     }

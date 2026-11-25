@@ -20,7 +20,7 @@
 <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
     <div>
         <h1 class="h3 mb-1">Khiếu nại điểm</h1>
-        <p class="text-muted mb-0">Quyết định điểm bị từ chối được khiếu nại trong 14 ngày khi kỳ còn mở.</p>
+        <p class="text-muted mb-0">Quyết định bị từ chối hoặc ghi vắng có thể được khiếu nại khi kỳ còn mở.</p>
     </div>
     @if (Model.Periods.Count > 0)
     {
@@ -51,7 +51,14 @@ else
                     <div class="card-body">
                         <div class="d-flex justify-content-between gap-2 mb-1">
                             <a class="fw-semibold" asp-controller="StudentActivities" asp-action="Details" asp-route-id="@activity.ActivityId">@activity.ActivityName</a>
-                            <status-badge value="@activity.PointStatus" />
+                            @if (activity.IsAbsence)
+                            {
+                                <span class="badge text-bg-warning align-self-start">Vắng khi chốt điểm</span>
+                            }
+                            else
+                            {
+                                <status-badge value="@activity.PointStatus" />
+                            }
                         </div>
                         @if (!string.IsNullOrWhiteSpace(activity.PointReason))
                         {

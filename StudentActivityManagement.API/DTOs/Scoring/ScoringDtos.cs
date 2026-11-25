@@ -42,6 +42,9 @@ public sealed class ActivityScoringDto
     public int ActivityId { get; set; }
     public string ActivityName { get; set; } = string.Empty;
     public string ActivityStatus { get; set; } = string.Empty;
+    public string Phase { get; set; } = string.Empty;
+    public DateTime PointsFinalizeDueAt { get; set; }
+    public DateTime? PointsFinalizedAt { get; set; }
     public int TrainingPoints { get; set; }
     public EvaluationPeriodDto? Period { get; set; }
     /// <summary>True when approvals are possible now (activity Completed, period found and Open).</summary>

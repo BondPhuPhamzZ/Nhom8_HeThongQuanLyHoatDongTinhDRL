@@ -5,7 +5,7 @@ using StudentActivityManagement.Web.Infrastructure;
 
 namespace StudentActivityManagement.Web.Controllers;
 
-[Authorize(Policy = WebPolicies.Student)]
+[Authorize]
 public sealed class NotificationsController : WebControllerBase
 {
     private readonly ApiClient _api;
@@ -14,7 +14,7 @@ public sealed class NotificationsController : WebControllerBase
 
     public async Task<IActionResult> Index(bool unreadOnly = false, int page = 1)
     {
-        var result = await _api.GetNotificationsAsync(unreadOnly, Math.Max(page, 1));
+        var result = await _api.GetNotificationsAsync(unreadOnly, Math.Max(page, 1), staff: WebPolicies.IsStaff(User));
         if (!result.Success) FlashError(result.Message);
         ViewBag.UnreadOnly = unreadOnly;
         return View(result.Data ?? new PagedResult<UserNotification>());
@@ -23,7 +23,7 @@ public sealed class NotificationsController : WebControllerBase
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Read(int id, bool unreadOnly = false, int page = 1)
     {
-        var result = await _api.MarkNotificationReadAsync(id);
+        var result = await _api.MarkNotificationReadAsync(id, staff: WebPolicies.IsStaff(User));
         if (!result.Success) FlashError(result.Message);
         return RedirectToAction(nameof(Index), new { unreadOnly, page });
     }

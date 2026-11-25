@@ -15,10 +15,12 @@ public sealed class RegisteredActivityAccessTests : IClassFixture<CustomWebAppli
     private const string MonitorCode = "SV210001";
     private const string Password = "123456";
     private readonly AccountTestClient _api;
+    private readonly TestTimeProvider _time;
     private readonly HttpClient _client;
 
     public RegisteredActivityAccessTests(CustomWebApplicationFactory factory)
     {
+        _time = factory.Time;
         _client = factory.CreateClient();
         _api = new AccountTestClient(_client);
     }
@@ -91,8 +93,10 @@ public sealed class RegisteredActivityAccessTests : IClassFixture<CustomWebAppli
             Assert.Equal(HttpStatusCode.OK, (await _api.SendAsync(HttpMethod.Delete, $"/api/v1/student-activities/{id}/registration", student, null)).StatusCode);
         }
 
-        foreach (var status in new[] { "Ongoing", "Completed" })
+        var lifecycle = await DataAsync(created);
+        foreach (var (status, field) in new[] { ("Ongoing", "startTime"), ("Completed", "checkInClosesAt") })
         {
+            using var clock = _time.At(lifecycle.GetProperty(field).GetDateTime().AddSeconds(1));
             Assert.Equal(HttpStatusCode.OK,
                 (await _api.SendAsync(HttpMethod.Patch, $"/api/v1/admin/activities/{id}/status", staff, new { status })).StatusCode);
         }

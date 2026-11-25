@@ -14,9 +14,11 @@ public interface IParticipantService
 
     Task<ApiResponseDto<ParticipantDetailDto>> GetParticipantAsync(int activityId, int registrationId);
 
-    Task<ApiResponseDto<ParticipantDetailDto>> RecordManualCheckInAsync(int activityId, int sessionId, int registrationId, int staffId);
+    Task<ApiResponseDto<ParticipantDetailDto>> RecordManualCheckInAsync(int activityId, int sessionId, int registrationId, int staffId, string? note);
 
-    Task<ApiResponseDto<ParticipantDetailDto>> RemoveCheckInAsync(int activityId, int sessionId, int registrationId);
+    Task<ApiResponseDto<ParticipantDetailDto>> VoidCheckInAsync(int activityId, int sessionId, int registrationId, int staffId, string? reason);
+
+    Task<ApiResponseDto<List<CheckInLogEntryDto>>> GetCheckInLogAsync(int activityId, int? sessionId, int? registrationId);
 
     Task<ApiResponseDto<StaffEvidenceDto>> ReviewEvidenceAsync(int activityId, int evidenceId, string status, string? note, int staffId);
 

@@ -22,6 +22,12 @@ class Activity {
     required this.sessions,
     required this.eligibility,
     required this.myRegistrationStatus,
+    this.phase,
+    this.phaseLabel,
+    this.checkInClosesAt,
+    this.pointsFinalizeDueAt,
+    this.pointsFinalizedAt,
+    this.pointsFinalizationBlocked = false,
   });
 
   final int id;
@@ -40,6 +46,12 @@ class Activity {
   final int trainingPoints;
   final String targetAudience;
   final String status;
+  final String? phase;
+  final String? phaseLabel;
+  final DateTime? checkInClosesAt;
+  final DateTime? pointsFinalizeDueAt;
+  final DateTime? pointsFinalizedAt;
+  final bool pointsFinalizationBlocked;
   final List<ActivitySession> sessions;
   final Eligibility? eligibility;
 
@@ -49,20 +61,21 @@ class Activity {
   int get remainingSlots => (maxParticipants - currentParticipants).clamp(0, maxParticipants);
   bool get isRegistered => myRegistrationStatus == 'Registered';
   bool get hasAttended => myRegistrationStatus == 'Attended';
-  bool get holdsPlace => isRegistered || hasAttended;
+  bool get holdsPlace => isRegistered || hasAttended || myRegistrationStatus == 'Absent';
 
   List<ActivitySession> get orderedSessions => [...sessions]..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
   /// Same rule as the Web: published, inside the registration window, a free place, not already holding one.
   bool canRegisterAt(DateTime nowUtc) =>
       !holdsPlace &&
-      status == 'Published' &&
-      !nowUtc.isBefore(registrationOpenTime) &&
-      !nowUtc.isAfter(registrationCloseTime) &&
+      (phase != null
+          ? phase == 'RegistrationOpen'
+          : status == 'Published' && !nowUtc.isBefore(registrationOpenTime) && !nowUtc.isAfter(registrationCloseTime)) &&
       remainingSlots > 0;
 
   /// Registered (not yet checked in) and the registration window has not closed.
-  bool canCancelAt(DateTime nowUtc) => isRegistered && !nowUtc.isAfter(registrationCloseTime);
+  bool canCancelAt(DateTime nowUtc) => isRegistered &&
+      (phase != null ? phase == 'Upcoming' || phase == 'RegistrationOpen' : !nowUtc.isAfter(registrationCloseTime));
 
   factory Activity.fromJson(Map<String, dynamic> json) => Activity(
         id: json['id'] as int,
@@ -81,6 +94,12 @@ class Activity {
         trainingPoints: json['trainingPoints'] as int? ?? 0,
         targetAudience: json['targetAudience'] as String? ?? '',
         status: json['status'] as String? ?? '',
+        phase: json['phase'] as String?,
+        phaseLabel: json['phaseLabel'] as String?,
+        checkInClosesAt: json['checkInClosesAt'] == null ? null : VnTime.parse(json['checkInClosesAt']),
+        pointsFinalizeDueAt: json['pointsFinalizeDueAt'] == null ? null : VnTime.parse(json['pointsFinalizeDueAt']),
+        pointsFinalizedAt: json['pointsFinalizedAt'] == null ? null : VnTime.parse(json['pointsFinalizedAt']),
+        pointsFinalizationBlocked: json['pointsFinalizationBlocked'] as bool? ?? false,
         sessions: ((json['sessions'] as List?) ?? const [])
             .map((raw) => ActivitySession.fromJson((raw as Map).cast<String, dynamic>()))
             .toList(),

@@ -56,8 +56,7 @@ public sealed class ActivitySettingsViewModel
 {
     public CheckInConfigDto CheckIn { get; set; } = new();
     public ReminderScheduleDto Reminders { get; set; } = new();
-    public string ActivityStatus { get; set; } = string.Empty;
-    public bool CanEdit => ActivityStatus is "Draft" or "Published" or "Ongoing";
+    public bool CanEdit { get; set; }
 }
 
 public sealed class CheckInSettingsForm
@@ -70,6 +69,9 @@ public sealed class CheckInSettingsForm
 
     [Range(0, 240)]
     public int CloseAfterMinutes { get; set; } = 30;
+
+    [Range(0, 10080)]
+    public int CorrectionWindowMinutes { get; set; } = 1440;
 }
 
 public sealed class ReminderScheduleForm
@@ -95,8 +97,8 @@ public sealed class ParticipantListViewModel
     public string? Status { get; set; }
     public string? Search { get; set; }
 
-    /// <summary>Attendance can be changed while the activity is open, running or just finished (same rule as the API).</summary>
-    public bool CanEditAttendance => Data.ActivityStatus is "Published" or "Ongoing" or "Completed";
+    public List<CheckInLogEntry> Log { get; set; } = [];
+    public bool CanEditAttendance => AttendanceActionViewModel.CanRecord(Data.Phase);
 }
 
 public sealed class ParticipantDetailViewModel
@@ -104,8 +106,17 @@ public sealed class ParticipantDetailViewModel
     public ActivityDto Activity { get; set; } = new();
     public ParticipantDetail Participant { get; set; } = new();
 
+    public List<CheckInLogEntry> Log { get; set; } = [];
+
     public bool CanEditAttendance =>
-        Activity.Status is "Published" or "Ongoing" or "Completed" && Participant.RegistrationStatus != "Cancelled";
+        AttendanceActionViewModel.CanRecord(Activity.Phase) && Participant.RegistrationStatus != "Cancelled";
+}
+
+public sealed record AttendanceActionViewModel(
+    int ActivityId, int SessionId, int RegistrationId, bool Existing, bool Review, string? ReturnTo = null)
+{
+    public static bool CanRecord(string phase) =>
+        phase is "RegistrationOpen" or "RegistrationClosed" or "Ongoing" or "AttendanceReview";
 }
 
 public sealed class ActivityFormViewModel

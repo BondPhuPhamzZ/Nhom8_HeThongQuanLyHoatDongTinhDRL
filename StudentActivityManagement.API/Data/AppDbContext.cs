@@ -63,6 +63,12 @@ namespace StudentActivityManagement.API.Data
                       .OnDelete(DeleteBehavior.SetNull);
             });
 
+            modelBuilder.Entity<Activity>()
+                .HasOne(activity => activity.PointsFinalizedBy)
+                .WithMany()
+                .HasForeignKey(activity => activity.PointsFinalizedById)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ActivityRegistration configuration
             modelBuilder.Entity<ActivityRegistration>(entity =>
             {
@@ -109,7 +115,13 @@ namespace StudentActivityManagement.API.Data
             // data cannot be removed by editing the activity (ActivityService refuses it with 409).
             modelBuilder.Entity<ActivityCheckIn>(entity =>
             {
-                entity.HasIndex(checkIn => new { checkIn.RegistrationId, checkIn.SessionId }).IsUnique();
+                entity.HasIndex(checkIn => new { checkIn.RegistrationId, checkIn.SessionId }).IsUnique()
+                      .HasFilter("\"VoidedAt\" IS NULL");
+                entity.HasQueryFilter(checkIn => checkIn.VoidedAt == null);
+                entity.HasOne(checkIn => checkIn.VoidedBy)
+                      .WithMany()
+                      .HasForeignKey(checkIn => checkIn.VoidedById)
+                      .OnDelete(DeleteBehavior.Restrict);
                 entity.HasIndex(checkIn => checkIn.SessionId);
 
                 entity.HasOne(checkIn => checkIn.Registration)
@@ -130,6 +142,10 @@ namespace StudentActivityManagement.API.Data
 
             modelBuilder.Entity<ActivityCheckInConfig>(entity =>
             {
+                entity.Property(config => config.CorrectionWindowMinutes)
+                    .HasDefaultValue(Services.Settings.SettingDefaults.CorrectionWindowMinutes)
+                    .HasSentinel(Services.Settings.SettingDefaults.CorrectionWindowMinutes);
+
                 entity.HasOne(config => config.Activity)
                       .WithOne()
                       .HasForeignKey<ActivityCheckInConfig>(config => config.ActivityId)

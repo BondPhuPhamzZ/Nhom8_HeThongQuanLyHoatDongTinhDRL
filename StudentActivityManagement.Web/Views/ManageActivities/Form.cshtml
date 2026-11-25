@@ -1,4 +1,5 @@
 @model ActivityFormViewModel
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment HostEnvironment
 @{
     var isEdit = Model.Id.HasValue;
     ViewData["Title"] = isEdit ? "Sửa hoạt động" : "Tạo hoạt động";
@@ -13,6 +14,11 @@
 
 <form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" id="activityForm" novalidate>
     <div asp-validation-summary="All" class="alert alert-danger py-2 small empty-hidden"></div>
+    @if (!isEdit && HostEnvironment.EnvironmentName == Microsoft.Extensions.Hosting.Environments.Development)
+    {
+        <button type="button" id="fill-test-times" class="btn btn-outline-secondary mb-2">Điền mốc kiểm thử</button>
+        <p class="small text-muted">Sau khi lưu, đặt mở trước 5 phút, đóng sau 2 phút và đối chiếu 3 phút trong Cài đặt.</p>
+    }
 
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-body row g-3">
@@ -170,6 +176,15 @@
         (function () {
             const form = document.getElementById('activityForm');
             const prefixes = { session: 'Sessions', rule: 'AudienceRules' };
+            document.getElementById('fill-test-times')?.addEventListener('click', () => {
+                const now = Date.now();
+                const vnTime = minutes => new Date(now + (7 * 60 + minutes) * 60000).toISOString().slice(0, 16);
+                document.getElementById('RegistrationOpenTime').value = vnTime(0);
+                document.getElementById('RegistrationCloseTime').value = vnTime(3);
+                const session = form.querySelector('[data-rows="session"] [data-row]');
+                session.querySelector('[data-field="StartTime"]').value = vnTime(5);
+                session.querySelector('[data-field="EndTime"]').value = vnTime(10);
+            });
             document.querySelectorAll('[data-add-row]').forEach(button => button.addEventListener('click', () => {
                 const kind = button.dataset.addRow;
                 const container = document.querySelector(`[data-rows="${kind}"]`);

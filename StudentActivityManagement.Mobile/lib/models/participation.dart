@@ -33,6 +33,8 @@ class SessionCheckIn {
     required this.closesAt,
     required this.canCheckIn,
     required this.checkedInAt,
+    this.voidedAt,
+    this.voidReason,
   });
 
   final int sessionId;
@@ -43,6 +45,8 @@ class SessionCheckIn {
   final DateTime closesAt;
   final bool canCheckIn;
   final DateTime? checkedInAt;
+  final DateTime? voidedAt;
+  final String? voidReason;
 
   factory SessionCheckIn.fromJson(Map<String, dynamic> json) => SessionCheckIn(
         sessionId: json['sessionId'] as int,
@@ -53,5 +57,7 @@ class SessionCheckIn {
         closesAt: VnTime.parse(json['closesAt']),
         canCheckIn: json['canCheckIn'] as bool? ?? false,
         checkedInAt: VnTime.parseOrNull(json['checkedInAt']),
+        voidedAt: VnTime.parseOrNull(json['voidedAt']),
+        voidReason: json['voidReason'] as String?,
       );
 }

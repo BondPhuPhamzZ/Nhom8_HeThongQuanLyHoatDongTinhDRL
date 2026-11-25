@@ -16,9 +16,19 @@ public sealed record EffectiveCheckInConfig(
     string Method,
     int OpenBeforeMinutes,
     int CloseAfterMinutes,
+    int CorrectionWindowMinutes,
     bool IsDefault,
     DateTime? UpdatedAt)
 {
+    public static EffectiveCheckInConfig From(int activityId, ActivityCheckInConfig? config) => new(
+        activityId,
+        config?.Method ?? SettingDefaults.CheckInMethod,
+        config?.OpenBeforeMinutes ?? SettingDefaults.OpenBeforeMinutes,
+        config?.CloseAfterMinutes ?? SettingDefaults.CloseAfterMinutes,
+        config?.CorrectionWindowMinutes ?? SettingDefaults.CorrectionWindowMinutes,
+        config == null,
+        config?.UpdatedAt);
+
     public DateTime OpensAt(ActivitySession session) => session.StartTime.AddMinutes(-OpenBeforeMinutes);
 
     public DateTime ClosesAt(ActivitySession session) => session.EndTime.AddMinutes(CloseAfterMinutes);

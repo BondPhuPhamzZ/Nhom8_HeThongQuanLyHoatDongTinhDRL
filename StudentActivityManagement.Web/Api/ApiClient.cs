@@ -130,8 +130,8 @@ public sealed class ApiClient
     public Task<ApiResult<CheckInConfigDto>> GetCheckInConfigAsync(int activityId) =>
         SendAsync<CheckInConfigDto>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/check-in-config");
 
-    public Task<ApiResult<CheckInConfigDto>> UpdateCheckInConfigAsync(int activityId, string method, int openBeforeMinutes, int closeAfterMinutes) =>
-        SendAsync<CheckInConfigDto>(HttpMethod.Put, $"api/v1/admin/activities/{activityId}/check-in-config", new { method, openBeforeMinutes, closeAfterMinutes });
+    public Task<ApiResult<CheckInConfigDto>> UpdateCheckInConfigAsync(int activityId, string method, int openBeforeMinutes, int closeAfterMinutes, int correctionWindowMinutes) =>
+        SendAsync<CheckInConfigDto>(HttpMethod.Put, $"api/v1/admin/activities/{activityId}/check-in-config", new { method, openBeforeMinutes, closeAfterMinutes, correctionWindowMinutes });
 
     public Task<ApiResult<ReminderScheduleDto>> GetReminderScheduleAsync(int activityId) =>
         SendAsync<ReminderScheduleDto>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/reminder-schedule");
@@ -147,11 +147,15 @@ public sealed class ApiClient
     public Task<ApiResult<ParticipantDetail>> GetParticipantAsync(int activityId, int registrationId) =>
         SendAsync<ParticipantDetail>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/participants/{registrationId}");
 
-    public Task<ApiResult<ParticipantDetail>> RecordCheckInAsync(int activityId, int sessionId, int registrationId) =>
-        SendAsync<ParticipantDetail>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-ins", new { registrationId });
+    public Task<ApiResult<ParticipantDetail>> RecordCheckInAsync(int activityId, int sessionId, int registrationId, string? note) =>
+        SendAsync<ParticipantDetail>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-ins", new { registrationId, note });
 
-    public Task<ApiResult<ParticipantDetail>> RemoveCheckInAsync(int activityId, int sessionId, int registrationId) =>
-        SendAsync<ParticipantDetail>(HttpMethod.Delete, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-ins/{registrationId}");
+    public Task<ApiResult<ParticipantDetail>> VoidCheckInAsync(int activityId, int sessionId, int registrationId, string? reason) =>
+        SendAsync<ParticipantDetail>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/sessions/{sessionId}/check-ins/{registrationId}/void", new { reason });
+
+    public Task<ApiResult<List<CheckInLogEntry>>> GetCheckInLogAsync(int activityId, int? registrationId = null) =>
+        SendAsync<List<CheckInLogEntry>>(HttpMethod.Get,
+            $"api/v1/admin/activities/{activityId}/check-in-log?{Query(("registrationId", registrationId?.ToString()))}");
 
     public Task<ApiResult<List<ClassDto>>> GetClassesAsync() =>
         SendAsync<List<ClassDto>>(HttpMethod.Get, "api/v1/admin/classes");
@@ -168,6 +172,9 @@ public sealed class ApiClient
 
     public Task<ApiResult<ActivityScoring>> GetScoringAsync(int activityId) =>
         SendAsync<ActivityScoring>(HttpMethod.Get, $"api/v1/admin/activities/{activityId}/scoring");
+
+    public Task<ApiResult<FinalizePointsResult>> FinalizePointsAsync(int activityId) =>
+        SendAsync<FinalizePointsResult>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/scoring/finalize");
 
     public Task<ApiResult<ApprovePointsResult>> ApprovePointsAsync(int activityId, List<int>? registrationIds, string? note) =>
         SendAsync<ApprovePointsResult>(HttpMethod.Post, $"api/v1/admin/activities/{activityId}/scoring/approve", new { registrationIds, note });
@@ -224,11 +231,11 @@ public sealed class ApiClient
         SendAsync<ThreadEscalation>(HttpMethod.Post, $"api/v1/admin/class-escalations/{escalationId}/answer", new { answer });
 
     // ---- In-app reminders (US-06)
-    public Task<ApiResult<PagedResult<UserNotification>>> GetNotificationsAsync(bool unreadOnly, int page, int pageSize = 20) =>
-        SendAsync<PagedResult<UserNotification>>(HttpMethod.Get, $"api/v1/notifications?{Query(("unreadOnly", unreadOnly.ToString().ToLowerInvariant()), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
+    public Task<ApiResult<PagedResult<UserNotification>>> GetNotificationsAsync(bool unreadOnly, int page, int pageSize = 20, bool staff = false) =>
+        SendAsync<PagedResult<UserNotification>>(HttpMethod.Get, $"api/v1/{(staff ? "admin/" : "")}notifications?{Query(("unreadOnly", unreadOnly.ToString().ToLowerInvariant()), ("pageIndex", page.ToString()), ("pageSize", pageSize.ToString()))}");
 
-    public Task<ApiResult<UserNotification>> MarkNotificationReadAsync(int id) =>
-        SendAsync<UserNotification>(HttpMethod.Post, $"api/v1/notifications/{id}/read");
+    public Task<ApiResult<UserNotification>> MarkNotificationReadAsync(int id, bool staff = false) =>
+        SendAsync<UserNotification>(HttpMethod.Post, $"api/v1/{(staff ? "admin/" : "")}notifications/{id}/read");
 
     // ---- Reports (US-24)
     public Task<ApiResult<ReportOverview>> GetReportOverviewAsync(ReportFilter filter) =>

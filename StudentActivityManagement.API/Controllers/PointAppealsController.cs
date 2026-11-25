@@ -19,6 +19,12 @@ public sealed class PointAppealsController : ApiControllerBase
 
     [Authorize(Policy = AuthorizationPolicies.StudentOrMonitor)]
     [HttpPost("student/point-appeals")]
+    [EndpointSummary("Gửi khiếu nại về quyết định điểm bị từ chối hoặc ghi vắng")]
+    [EndpointDescription("Trả 409 business_rule_violation nếu không còn đủ điều kiện khiếu nại.")]
+    [ProducesResponseType(typeof(ApiResponseDto<PointAppealDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create([FromBody] CreatePointAppealDto request)
     {
         if (!TryUserId(out var id)) return InvalidSession();
@@ -45,6 +51,7 @@ public sealed class PointAppealsController : ApiControllerBase
 
     [Authorize(Policy = AuthorizationPolicies.BusinessAdmin)]
     [HttpGet("admin/point-appeals")]
+    [EndpointSummary("Xem khiếu nại điểm và thông tin đối chiếu điểm danh")]
     public async Task<IActionResult> Inbox(string? status, int? periodId, int pageIndex = 1, int pageSize = 20)
     {
         var result = await _appeals.GetInboxAsync(status, periodId, pageIndex, pageSize);
@@ -53,6 +60,12 @@ public sealed class PointAppealsController : ApiControllerBase
 
     [Authorize(Policy = AuthorizationPolicies.BusinessAdmin)]
     [HttpPost("admin/point-appeals/{id:int}/resolve")]
+    [EndpointSummary("Xử lý khiếu nại điểm")]
+    [EndpointDescription("Khi chấp nhận khiếu nại vắng, cộng điểm và xác nhận tham gia. Giữ nguyên nhật ký điểm danh.")]
+    [ProducesResponseType(typeof(ApiResponseDto<PointAppealDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Resolve(int id, [FromBody] ResolvePointAppealDto request)
     {
         if (!TryUserId(out var staffId)) return InvalidSession();
