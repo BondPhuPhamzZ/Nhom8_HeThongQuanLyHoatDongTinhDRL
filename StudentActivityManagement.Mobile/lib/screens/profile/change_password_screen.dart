@@ -6,7 +6,9 @@ import '../../services/api_client.dart';
 import '../widgets/feedback_views.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
-  const ChangePasswordScreen({super.key});
+  const ChangePasswordScreen({super.key, this.requiredChange = false});
+
+  final bool requiredChange;
 
   @override
   State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
@@ -38,7 +40,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       await context.read<AuthProvider>().changePassword(_current.text, _next.text);
       if (!mounted) return;
       showMessage(context, 'Đã đổi mật khẩu. Các thiết bị khác đã bị đăng xuất.');
-      Navigator.pop(context);
+      if (!widget.requiredChange) Navigator.pop(context);
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.fullMessage);
     } finally {
@@ -48,12 +50,22 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Đổi mật khẩu')),
+        appBar: AppBar(
+          title: const Text('Đổi mật khẩu'),
+          automaticallyImplyLeading: !widget.requiredChange,
+          actions: widget.requiredChange
+              ? [TextButton(onPressed: _busy ? null : () => context.read<AuthProvider>().logout(), child: const Text('Đăng xuất'))]
+              : null,
+        ),
         body: Form(
           key: _form,
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              if (widget.requiredChange) ...[
+                const Text('Bạn cần đổi mật khẩu tạm trước khi dùng các chức năng khác.'),
+                const SizedBox(height: 12),
+              ],
               TextFormField(
                 controller: _current,
                 enabled: !_busy,

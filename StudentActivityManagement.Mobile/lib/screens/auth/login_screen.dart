@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'forgot_password_screen.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
@@ -130,6 +131,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 20),
                       BusyButton(label: 'Đăng nhập', icon: LucideIcons.logIn, busy: _busy, onPressed: _submit),
+                      TextButton(
+                        onPressed: _busy ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
+                        child: const Text('Quên mật khẩu?'),
+                      ),
                       const SizedBox(height: 16),
                       TextButton.icon(
                         onPressed: _editServer,

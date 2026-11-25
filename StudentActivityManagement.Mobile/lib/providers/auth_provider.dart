@@ -11,12 +11,20 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider({AuthService? service}) : _service = service ?? AuthService() {
     ApiClient.instance.onUnauthorized = () => _expire(
         'Phiên đăng nhập đã kết thúc (hết hạn, đã đăng xuất ở thiết bị khác hoặc tài khoản đã thay đổi quyền). Vui lòng đăng nhập lại.');
+    ApiClient.instance.onPasswordChangeRequired = () {
+      if (status != AuthStatus.signedIn || requiresPasswordChange) return;
+      _passwordChangeRequired = true;
+      notifyListeners();
+    };
   }
 
   final AuthService _service;
 
   AuthStatus status = AuthStatus.unknown;
   AppUser? user;
+  bool _passwordChangeRequired = false;
+
+  bool get requiresPasswordChange => _passwordChangeRequired || (user?.mustChangePassword ?? false);
 
   /// Shown once on the login screen after a forced sign-out.
   String? notice;
@@ -36,6 +44,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> login(String usernameOrEmail, String password) async {
     user = await _service.login(usernameOrEmail, password);
+    _passwordChangeRequired = false;
     status = AuthStatus.signedIn;
     notice = null;
     notifyListeners();
@@ -48,6 +57,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> changePassword(String currentPassword, String newPassword) async {
     user = await _service.changePassword(currentPassword, newPassword);
+    _passwordChangeRequired = false;
     notifyListeners();
   }
 
@@ -55,6 +65,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     // Leave the signed-in state first, so a 401 answered by the logout call itself cannot loop back here.
     user = null;
+    _passwordChangeRequired = false;
     status = AuthStatus.signedOut;
     notifyListeners();
     await _service.logout();
@@ -65,6 +76,7 @@ class AuthProvider extends ChangeNotifier {
     if (status != AuthStatus.signedIn) return;
     notice = message;
     user = null;
+    _passwordChangeRequired = false;
     status = AuthStatus.signedOut;
     notifyListeners();
     _service.forget();

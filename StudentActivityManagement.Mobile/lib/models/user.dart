@@ -14,6 +14,7 @@ class AppUser {
     required this.className,
     required this.isClassMonitor,
     required this.accumulatedPoints,
+    this.mustChangePassword = false,
   });
 
   final int id;
@@ -29,6 +30,7 @@ class AppUser {
   final String? className;
   final bool isClassMonitor;
   final int accumulatedPoints;
+  final bool mustChangePassword;
 
   /// The Mobile app is for students and class monitors (US-30); staff use the Web.
   bool get isStudentRole => role == 'Student' || role == 'Monitor';
@@ -49,5 +51,6 @@ class AppUser {
         className: json['className'] as String?,
         isClassMonitor: json['isClassMonitor'] as bool? ?? false,
         accumulatedPoints: json['accumulatedPoints'] as int? ?? 0,
+        mustChangePassword: json['mustChangePassword'] as bool? ?? false,
       );
 }

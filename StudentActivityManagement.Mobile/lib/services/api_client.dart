@@ -37,6 +37,7 @@ class ApiClient {
 
   /// Called when the API rejects the token (expired, account locked or role changed).
   void Function()? onUnauthorized;
+  void Function()? onPasswordChangeRequired;
 
   String get baseUrl => PreferenceService.instance.baseUrl;
 
@@ -108,8 +109,9 @@ class ApiClient {
       errorCode: body['errorCode'] as String?,
       fieldErrors: _fieldErrors(body['errors']),
     );
-    if (error.isUnauthorized && requestToken != null && PreferenceService.instance.token == requestToken) {
-      onUnauthorized?.call();
+    if (requestToken != null && PreferenceService.instance.token == requestToken) {
+      if (error.isUnauthorized) onUnauthorized?.call();
+      if (error.errorCode == 'password_change_required') onPasswordChangeRequired?.call();
     }
     throw error;
   }

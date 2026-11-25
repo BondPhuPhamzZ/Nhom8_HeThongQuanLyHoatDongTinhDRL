@@ -13,6 +13,14 @@ class AuthService {
     return _saveSession(result.map);
   }
 
+  Future<String> forgotPassword(String login) async =>
+      (await _api.post('/api/v1/auth/forgot-password', {'login': login.trim()})).message;
+
+  Future<String> resetPassword(String login, String code, String newPassword) async =>
+      (await _api.post('/api/v1/auth/reset-password', {
+        'login': login.trim(), 'code': code.trim(), 'newPassword': newPassword,
+      })).message;
+
   Future<AppUser> updateContact(String email, String phone, String currentPassword) async {
     await _api.put('/api/v1/me/profile', {'email': email, 'phone': phone, 'currentPassword': currentPassword});
     return AppUser.fromJson((await _api.get('/api/v1/auth/me')).map);
