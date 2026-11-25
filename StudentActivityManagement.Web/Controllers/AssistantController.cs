@@ -6,7 +6,7 @@ using StudentActivityManagement.Web.Models;
 
 namespace StudentActivityManagement.Web.Controllers;
 
-/// <summary>US-31: chat page of the training-point assistant. The conversation stays in the browser; this controller only relays it.</summary>
+/// <summary>Displays the signed-in student's conversations stored by the API.</summary>
 [Authorize(Policy = WebPolicies.Student)]
 public sealed class AssistantController : WebControllerBase
 {
@@ -31,23 +31,46 @@ public sealed class AssistantController : WebControllerBase
 
     public AssistantController(ApiClient api) => _api = api;
 
-    public async Task<IActionResult> Index()
+    private const int DefaultHistoryPage = 1;
+
+    public async Task<IActionResult> Index(int? conversationId, bool newChat = false, int historyPage = DefaultHistoryPage)
     {
         var status = await _api.GetAssistantStatusAsync();
+        var result = await _api.ListAssistantConversationsAsync(Math.Max(DefaultHistoryPage, historyPage));
+        if (!result.Success) FlashError(result.Message);
+        var history = result.Data ?? new PagedResult<AssistantConversation>();
+        AssistantConversationDetail? current = null;
+        if (!newChat)
+        {
+            var id = conversationId ?? history.Items.FirstOrDefault()?.Id;
+            if (id.HasValue)
+            {
+                var detail = await _api.GetAssistantConversationAsync(id.Value);
+                if (conversationId.HasValue && detail.StatusCode == System.Net.HttpStatusCode.NotFound) return NotFound();
+                if (!detail.Success) FlashError(detail.Message);
+                current = detail.Data;
+            }
+        }
+
         return View(new AssistantPageViewModel
         {
             Enabled = status.Success && status.Data?.Enabled == true,
             Model = status.Data?.Model,
             StatusMessage = status.Success ? null : status.Message,
             DailyQuestionLimit = status.Data?.DailyQuestionLimit ?? 0,
-            RemainingToday = status.Data?.RemainingToday ?? 0
+            RemainingToday = status.Data?.RemainingToday ?? 0,
+            Conversations = history,
+            Current = current,
+            NewChat = newChat
         });
     }
+
+    public static string ToolLabel(string tool) => ToolLabels.GetValueOrDefault(tool, tool);
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Chat([FromBody] AssistantChatInput input)
     {
-        var result = await _api.AssistantChatAsync(input.Messages ?? []);
+        var result = await _api.AssistantChatAsync(input.ConversationId, input.Message);
         if (!result.Success || result.Data is not { } data)
         {
             Response.StatusCode = (int)result.StatusCode;
@@ -58,11 +81,10 @@ public sealed class AssistantController : WebControllerBase
         {
             success = true,
             reply = data.Reply,
-            // Sent back with this answer on the next question; the API rejects unsigned assistant turns (US-32).
-            replySignature = data.ReplySignature,
+            conversationId = data.ConversationId,
             personalDataRedacted = data.PersonalDataRedacted,
             remainingToday = data.RemainingToday,
-            toolsUsed = data.ToolsUsed.Select(tool => ToolLabels.GetValueOrDefault(tool, tool)),
+            toolsUsed = data.ToolsUsed.Select(ToolLabel),
             activities = data.Activities.Select(activity => new
             {
                 id = activity.Id,

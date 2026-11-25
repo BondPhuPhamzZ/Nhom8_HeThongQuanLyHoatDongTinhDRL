@@ -693,14 +693,29 @@ public sealed class AssistantStatusDto
     public int RemainingToday { get; set; }
 }
 
-/// <summary>One turn of the conversation the browser keeps: <c>user</c> or <c>assistant</c>.</summary>
-public sealed class AssistantChatMessage
+public class AssistantConversation
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public DateTime LastMessageAt { get; set; }
+    public int MessageCount { get; set; }
+}
+
+public sealed class AssistantConversationDetail : AssistantConversation
+{
+    public List<AssistantMessage> Messages { get; set; } = [];
+}
+
+public sealed class AssistantMessage
 {
     public string Role { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
-
-    /// <summary>API signature of an assistant turn (US-32); the API rejects assistant turns without it.</summary>
-    public string? Signature { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public List<string> ToolsUsed { get; set; } = [];
+    public List<AssistantActivityDto> Activities { get; set; } = [];
+    public bool PersonalDataRedacted { get; set; }
 }
 
 public sealed class AssistantReplyDto
@@ -710,7 +725,8 @@ public sealed class AssistantReplyDto
     public List<string> ToolsUsed { get; set; } = [];
     public int DroppedActivityReferences { get; set; }
     public string Model { get; set; } = string.Empty;
-    public string ReplySignature { get; set; } = string.Empty;
+    public int ConversationId { get; set; }
+    public int MessageId { get; set; }
     public bool PersonalDataRedacted { get; set; }
     public int RemainingToday { get; set; }
 }

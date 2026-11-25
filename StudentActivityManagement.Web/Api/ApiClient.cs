@@ -44,8 +44,14 @@ public sealed class ApiClient
     public Task<ApiResult<AssistantStatusDto>> GetAssistantStatusAsync() =>
         SendAsync<AssistantStatusDto>(HttpMethod.Get, "api/v1/assistant/status");
 
-    public Task<ApiResult<AssistantReplyDto>> AssistantChatAsync(IEnumerable<AssistantChatMessage> messages) =>
-        SendAsync<AssistantReplyDto>(HttpMethod.Post, "api/v1/assistant/chat", new { messages },
+    public Task<ApiResult<PagedResult<AssistantConversation>>> ListAssistantConversationsAsync(int page) =>
+        SendAsync<PagedResult<AssistantConversation>>(HttpMethod.Get, $"api/v1/assistant/conversations?page={page}");
+
+    public Task<ApiResult<AssistantConversationDetail>> GetAssistantConversationAsync(int id) =>
+        SendAsync<AssistantConversationDetail>(HttpMethod.Get, $"api/v1/assistant/conversations/{id}");
+
+    public Task<ApiResult<AssistantReplyDto>> AssistantChatAsync(int? conversationId, string? message) =>
+        SendAsync<AssistantReplyDto>(HttpMethod.Post, "api/v1/assistant/chat", new { conversationId, message },
             client: _httpClientFactory.CreateClient(AssistantHttpClient));
 
     // ---- Auth
