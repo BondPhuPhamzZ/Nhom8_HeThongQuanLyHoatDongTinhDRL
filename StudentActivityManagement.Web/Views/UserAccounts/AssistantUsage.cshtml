@@ -2,49 +2,53 @@
 @{
     ViewData["Title"] = "Thống kê AI";
 }
-<h1 class="h3 mb-3">Thống kê AI</h1>
-<form method="get" class="row g-2 align-items-end mb-4">
-    <div class="col-sm-6 col-lg-3">
-        <label class="form-label" for="from">Từ ngày</label>
-        <input class="form-control" type="date" id="from" name="from" value="@Model?.From.ToString("yyyy-MM-dd")" />
-    </div>
-    <div class="col-sm-6 col-lg-3">
-        <label class="form-label" for="to">Đến ngày</label>
-        <input class="form-control" type="date" id="to" name="to" value="@Model?.To.ToString("yyyy-MM-dd")" />
-    </div>
-    <div class="col-sm-8 col-lg-4">
-        <label class="form-label" for="keyword">Mã hoặc tên tài khoản</label>
-        <input class="form-control" id="keyword" name="keyword" value="@ViewData["Keyword"]" />
-    </div>
-    <div class="col-sm-4 col-lg-2"><button class="btn btn-primary w-100" type="submit">Lọc</button></div>
+<div class="mb-3">
+    <h1 class="h3 mb-1">Thống kê AI</h1>
+    <p class="text-muted mb-0">Số lượt hỏi và token đã dùng theo tài khoản, theo ngày. Không hiển thị nội dung trò chuyện.</p>
+</div>
+
+<form method="get" class="d-flex flex-wrap gap-2 mb-3">
+    <input class="form-control w-auto" type="date" id="from" name="from" value="@Model?.From.ToString("yyyy-MM-dd")" aria-label="Từ ngày" title="Từ ngày" />
+    <input class="form-control w-auto" type="date" id="to" name="to" value="@Model?.To.ToString("yyyy-MM-dd")" aria-label="Đến ngày" title="Đến ngày" />
+    <input class="form-control w-auto flex-grow-1" id="keyword" name="keyword" value="@ViewData["Keyword"]" placeholder="Tìm theo mã hoặc tên tài khoản" aria-label="Mã hoặc tên tài khoản" />
+    <button class="btn btn-outline-primary" type="submit">Lọc</button>
 </form>
+
 @if (Model == null || Model.Items.Count == 0)
 {
     <div class="empty-state">Chưa có số liệu cho bộ lọc này.</div>
 }
 else
 {
-    <h2 class="h5 mt-4">Theo tài khoản</h2>
-    <div class="card table-responsive mb-4">
-        <table class="table align-middle mb-0">
-            <thead><tr><th>Ngày</th><th>Tài khoản</th><th>Vai trò</th><th>Chức năng</th><th>Lượt</th><th>Token</th></tr></thead>
+    <h2 class="h5 mt-4 mb-2">Theo tài khoản</h2>
+    <div class="table-responsive card shadow-sm border-0 mb-4">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Ngày</th><th>Tài khoản</th><th>Vai trò</th><th>Chức năng</th><th class="text-end">Lượt</th><th class="text-end">Token</th></tr>
+            </thead>
             <tbody>
             @foreach (var row in Model.Items)
             {
-                <tr><td>@row.UsageDate.ToString("dd/MM/yyyy")</td><td>@row.StudentCode · @row.FullName</td><td>@row.Role</td>
-                    <td>@(row.Feature == "StaffAi" ? "AI nghiệp vụ" : "Trợ lý sinh viên")</td><td>@row.QuestionCount</td><td>@row.TokenCount</td></tr>
+                <tr>
+                    <td class="small">@row.UsageDate.ToString("dd/MM/yyyy")</td>
+                    <td><div class="fw-semibold">@row.FullName</div><div class="small text-muted">@row.StudentCode</div></td>
+                    <td class="small">@WebPolicies.RoleLabel(row.Role)</td>
+                    <td class="small">@(row.Feature == "StaffAi" ? "AI nghiệp vụ" : "Trợ lý sinh viên")</td>
+                    <td class="text-end">@row.QuestionCount</td>
+                    <td class="text-end">@row.TokenCount.ToString("N0")</td>
+                </tr>
             }
             </tbody>
         </table>
     </div>
-    <h2 class="h5">Tổng theo ngày</h2>
-    <div class="card table-responsive">
+    <h2 class="h5 mb-2">Tổng theo ngày</h2>
+    <div class="table-responsive card shadow-sm border-0 mb-3">
         <table class="table align-middle mb-0">
-            <thead><tr><th>Ngày</th><th>Lượt</th><th>Token</th></tr></thead>
+            <thead class="table-light"><tr><th>Ngày</th><th class="text-end">Lượt</th><th class="text-end">Token</th></tr></thead>
             <tbody>
             @foreach (var row in Model.DailyTotals)
             {
-                <tr><td>@row.UsageDate.ToString("dd/MM/yyyy")</td><td>@row.QuestionCount</td><td>@row.TokenCount</td></tr>
+                <tr><td class="small">@row.UsageDate.ToString("dd/MM/yyyy")</td><td class="text-end">@row.QuestionCount</td><td class="text-end">@row.TokenCount.ToString("N0")</td></tr>
             }
             </tbody>
         </table>

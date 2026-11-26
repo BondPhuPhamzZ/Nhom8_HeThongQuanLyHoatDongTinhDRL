@@ -8,16 +8,14 @@
     var review = data.Phase == "AttendanceReview";
 }
 <a asp-controller="ManageActivities" asp-action="Details" asp-route-id="@data.ActivityId" class="btn-back">&larr; @data.ActivityName</a>
-<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-2 mb-3">
-    <div>
-        <status-badge value="@data.ActivityStatus" />
-        <h1 class="h3 mt-2 mb-0">Người tham gia</h1>
-    </div>
+<div class="mt-2 mb-3">
+    <h1 class="h3 mb-1">Người tham gia</h1>
+    <status-badge value="@data.ActivityStatus" />
 </div>
 
 @if (data.Phase == "Ongoing")
 {
-    <p class="alert alert-light border">Đang diễn ra: chỉ được thêm điểm danh. Có thể hủy ghi nhận từ <vn-time value="@data.CheckInClosesAt" />.</p>
+    <p class="alert alert-info small">Đang diễn ra: chỉ được thêm điểm danh. Có thể hủy ghi nhận từ <vn-time value="@data.CheckInClosesAt" />.</p>
 }
 <div class="row g-3 mb-3">
     <div class="col-12 col-md-4"><div class="stat-tile"><div class="stat-value">@data.Summary.Active</div><div class="stat-label">Đang giữ chỗ</div></div></div>
@@ -49,9 +47,9 @@ else
                     <th>Sinh viên</th><th>Lớp</th><th>Trạng thái</th>
                     @foreach (var session in data.Sessions)
                     {
-                        <th class="text-center">@session.SessionName<div class="small fw-normal text-muted">@session.CheckInCount lượt</div></th>
+                        <th>@session.SessionName<div class="small fw-normal text-muted">@session.CheckInCount lượt</div></th>
                     }
-                    <th></th>
+                    <th class="text-end">Thao tác</th>
                 </tr>
             </thead>
             <tbody>
@@ -64,7 +62,7 @@ else
                         @foreach (var session in data.Sessions)
                         {
                             var checkIn = participant.CheckIns.FirstOrDefault(item => item.SessionId == session.SessionId);
-                            <td class="text-center">
+                            <td>
                                 @if (checkIn != null)
                                 {
                                     <span class="text-success fw-semibold" title="@(checkIn.RecordedByName ?? "Sinh viên tự check-in")">&#10003; <vn-time value="@checkIn.CheckedInAt" /></span>
@@ -84,7 +82,7 @@ else
                                 }
                             </td>
                         }
-                        <td class="text-end"><a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@data.ActivityId" asp-route-registrationId="@participant.RegistrationId">Chi tiết</a></td>
+                        <td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@data.ActivityId" asp-route-registrationId="@participant.RegistrationId">Xem</a></td>
                     </tr>
                 }
             </tbody>

@@ -109,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         controller: _username,
                         textInputAction: TextInputAction.next,
                         autofillHints: const [AutofillHints.username],
-                        decoration: const InputDecoration(hintText: 'SV210002', prefixIcon: Icon(LucideIcons.user, size: 18)),
+                        decoration: const InputDecoration(hintText: 'VD: SV210002', prefixIcon: Icon(LucideIcons.user, size: 18)),
                         validator: (value) => (value ?? '').trim().isEmpty ? 'Nhập mã đăng nhập hoặc email.' : null,
                       ),
                       const SizedBox(height: 12),

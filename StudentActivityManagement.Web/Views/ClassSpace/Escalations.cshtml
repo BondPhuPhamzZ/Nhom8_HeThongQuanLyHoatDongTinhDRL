@@ -4,21 +4,19 @@
     var status = ViewBag.Status as string;
 }
 <a asp-action="Index" class="btn-back">&larr; Trao đổi lớp</a>
-<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mt-1 mb-3">
-    <div>
-        <h1 class="h3 mb-1">@ViewData["Title"]</h1>
-        <p class="text-muted mb-0">Câu hỏi lớp trưởng cần Phòng QL HSSV xác nhận. Rút lại được khi phòng chưa trả lời.</p>
-    </div>
-    <form asp-action="Escalations" method="get" class="d-flex gap-2">
-        <select name="status" class="form-select w-auto">
-            <option value="">Mọi trạng thái</option>
-            <option value="Pending" selected="@(status == "Pending")">Chờ trả lời</option>
-            <option value="Answered" selected="@(status == "Answered")">Đã trả lời</option>
-            <option value="Withdrawn" selected="@(status == "Withdrawn")">Đã rút lại</option>
-        </select>
-        <button class="btn btn-primary" type="submit">Lọc</button>
-    </form>
+<div class="mt-2 mb-3">
+    <h1 class="h3 mb-1">@ViewData["Title"]</h1>
+    <p class="text-muted mb-0">Câu hỏi lớp trưởng cần Phòng QL HSSV xác nhận. Rút lại được khi phòng chưa trả lời.</p>
 </div>
+<form asp-action="Escalations" method="get" class="d-flex flex-wrap gap-2 mb-3">
+    <select name="status" class="form-select w-auto" aria-label="Trạng thái câu hỏi">
+        <option value="">Mọi trạng thái</option>
+        <option value="Pending" selected="@(status == "Pending")">Chờ trả lời</option>
+        <option value="Answered" selected="@(status == "Answered")">Đã trả lời</option>
+        <option value="Withdrawn" selected="@(status == "Withdrawn")">Đã rút lại</option>
+    </select>
+    <button class="btn btn-outline-primary" type="submit">Lọc</button>
+</form>
 
 @if (Model.Items.Count == 0)
 {

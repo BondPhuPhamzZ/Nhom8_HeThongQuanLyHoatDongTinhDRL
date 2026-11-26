@@ -2,8 +2,10 @@
 @{
     ViewData["Title"] = "Lịch sử hoạt động và điểm";
 }
-<h1 class="h3">Lịch sử hoạt động và điểm</h1>
-<p class="text-muted">Xem hoạt động, trạng thái đăng ký, điểm danh và quyết định điểm đã duyệt theo kỳ.</p>
+<div class="mb-3">
+    <h1 class="h3 mb-1">Lịch sử hoạt động và điểm</h1>
+    <p class="text-muted mb-0">Xem hoạt động, trạng thái đăng ký, điểm danh và quyết định điểm đã duyệt theo kỳ.</p>
+</div>
 
 @if (Model.Periods.Count == 0)
 {
@@ -11,27 +13,21 @@
 }
 else
 {
-    <form method="get" class="row g-2 align-items-end mb-4">
-        <div class="col-md-6">
-            <label class="form-label" for="periodId">Kỳ đánh giá</label>
-            <select class="form-select" id="periodId" name="periodId">
-                @foreach (var period in Model.Periods)
-                {
-                    <option value="@period.Id" selected="@(Model.PeriodId == period.Id ? "selected" : null)">@period.Name — @period.ApprovedPoints/@period.TargetPoints điểm</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label" for="registrationStatus">Trạng thái đăng ký</label>
-            <select class="form-select" id="registrationStatus" name="registrationStatus">
-                <option value="">Tất cả</option>
-                @foreach (var (status, label) in new[] { ("Registered", "Đã đăng ký"), ("Attended", "Đã tham gia"), ("Absent", "Vắng mặt"), ("Cancelled", "Đã hủy") })
-                {
-                    <option value="@status" selected="@(Model.RegistrationStatus == status ? "selected" : null)">@label</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Xem</button></div>
+    <form method="get" class="d-flex flex-wrap gap-2 mb-3">
+        <select class="form-select w-auto" id="periodId" name="periodId" aria-label="Kỳ đánh giá">
+            @foreach (var period in Model.Periods)
+            {
+                <option value="@period.Id" selected="@(Model.PeriodId == period.Id ? "selected" : null)">@period.Name — @period.ApprovedPoints/@period.TargetPoints điểm</option>
+            }
+        </select>
+        <select class="form-select w-auto" id="registrationStatus" name="registrationStatus" aria-label="Trạng thái đăng ký">
+            <option value="">Mọi trạng thái đăng ký</option>
+            @foreach (var (status, label) in new[] { ("Registered", "Đã đăng ký"), ("Attended", "Đã tham gia"), ("Absent", "Vắng mặt"), ("Cancelled", "Đã hủy") })
+            {
+                <option value="@status" selected="@(Model.RegistrationStatus == status ? "selected" : null)">@label</option>
+            }
+        </select>
+        <button class="btn btn-outline-primary" type="submit">Lọc</button>
     </form>
 
     @if (Model.History is { } history)
@@ -43,8 +39,8 @@ else
         }
         else
         {
-            <div class="table-responsive"><table class="table table-hover align-middle">
-                <thead><tr><th>Hoạt động</th><th>Buổi &amp; điểm danh</th><th>Đăng ký</th><th>Điểm</th></tr></thead>
+            <div class="table-responsive card shadow-sm border-0 mb-3"><table class="table table-hover align-middle mb-0">
+                <thead class="table-light"><tr><th>Hoạt động</th><th>Buổi &amp; điểm danh</th><th>Đăng ký</th><th>Điểm</th></tr></thead>
                 <tbody>
                 @foreach (var activity in history.Activities)
                 {

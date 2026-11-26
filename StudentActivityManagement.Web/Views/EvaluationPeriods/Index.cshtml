@@ -2,8 +2,10 @@
 @{
     ViewData["Title"] = "Kỳ đánh giá";
 }
-<h1 class="h3 mb-1">Kỳ đánh giá điểm rèn luyện</h1>
-<p class="text-muted">Điểm của một hoạt động thuộc kỳ chứa thời điểm kết thúc của hoạt động. Kỳ đã khóa không nhận ghi điểm mới.</p>
+<div class="mb-3">
+    <h1 class="h3 mb-1">Kỳ đánh giá điểm rèn luyện</h1>
+    <p class="text-muted mb-0">Điểm của một hoạt động thuộc kỳ chứa thời điểm kết thúc của hoạt động. Kỳ đã khóa không nhận ghi điểm mới.</p>
+</div>
 
 <div class="row g-4">
     <div class="col-lg-8">
@@ -13,7 +15,7 @@
         }
         else
         {
-            <div class="table-responsive card shadow-sm border-0">
+            <div class="table-responsive card shadow-sm border-0 mb-3">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light"><tr><th>Kỳ</th><th>Thời gian</th><th class="text-center">Mục tiêu</th><th class="text-center">Lượt ghi điểm</th><th>Trạng thái</th><th></th></tr></thead>
                     <tbody>
@@ -25,7 +27,7 @@
                                 <td class="text-center">@period.TargetPoints</td>
                                 <td class="text-center">@period.PointRecordCount</td>
                                 <td><status-badge value="@period.Status" /></td>
-                                <td class="text-end">
+                                <td class="text-end text-nowrap">
                                     <form asp-action="SetStatus" asp-route-id="@period.Id" method="post" class="m-0"
                                           onsubmit="@(period.Status == "Open" ? "return confirm('Khóa kỳ này? Sau khi khóa không ghi thêm điểm được.');" : "")">
                                         <input type="hidden" name="status" value="@(period.Status == "Open" ? "Closed" : "Open")" />

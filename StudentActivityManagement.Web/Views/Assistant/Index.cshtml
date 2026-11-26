@@ -9,41 +9,47 @@
         "Khi nào mình check-in được cho hoạt động đã đăng ký?"
     };
 }
-<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
     <div>
         <h1 class="h3 mb-1">Trợ lý điểm rèn luyện</h1>
         <p class="text-muted mb-0">Hỏi về điểm, mục tiêu của kỳ, hoạt động phù hợp, đăng ký và check-in. Trợ lý trả lời từ dữ liệu của chính bạn.</p>
     </div>
     @if (Model.Enabled)
     {
-        <a asp-action="Index" asp-route-newChat="true" class="btn btn-outline-secondary btn-sm">Cuộc trò chuyện mới</a>
+        <a asp-action="Index" asp-route-newChat="true" class="btn btn-primary text-nowrap">Cuộc trò chuyện mới</a>
     }
 </div>
 
 @if (Model.Conversations.Items.Count > 0)
 {
-    <nav class="card mb-3 p-3" aria-label="Cuộc trò chuyện đã lưu">
-        <h2 class="h6">Cuộc trò chuyện đã lưu</h2>
-        <div class="list-group list-group-flush">
-            @foreach (var item in Model.Conversations.Items)
-            {
-                <a asp-action="Index" asp-route-conversationId="@item.Id" asp-route-historyPage="@Model.Conversations.PageIndex"
-                   class="list-group-item list-group-item-action @(Model.Current?.Id == item.Id ? "active" : null)">
-                    @item.Title <small class="ms-2"><vn-time value="@item.LastMessageAt" /></small>
-                </a>
-            }
-        </div>
-        <div class="d-flex gap-3 mt-2">
-            @if (Model.Conversations.PageIndex > 1)
-            {
-                <a asp-action="Index" asp-route-conversationId="@Model.Current?.Id" asp-route-newChat="@Model.NewChat"
-                   asp-route-historyPage="@(Model.Conversations.PageIndex - 1)">Trang trước</a>
-            }
-            @if (Model.Conversations.PageIndex < Model.Conversations.TotalPages)
-            {
-                <a asp-action="Index" asp-route-conversationId="@Model.Current?.Id" asp-route-newChat="@Model.NewChat"
-                   asp-route-historyPage="@(Model.Conversations.PageIndex + 1)">Trang sau</a>
-            }
+    <nav class="card shadow-sm border-0 mb-3" aria-label="Cuộc trò chuyện đã lưu">
+        <div class="card-body">
+            <h2 class="h6">Cuộc trò chuyện đã lưu</h2>
+            <div class="list-group list-group-flush">
+                @foreach (var item in Model.Conversations.Items)
+                {
+                    <a asp-action="Index" asp-route-conversationId="@item.Id" asp-route-historyPage="@Model.Conversations.PageIndex"
+                       class="list-group-item list-group-item-action @(Model.Current?.Id == item.Id ? "text-bg-primary" : null)"
+                       aria-current="@(Model.Current?.Id == item.Id ? "true" : null)">
+                        <span class="d-flex flex-wrap justify-content-between gap-2">
+                            <span class="text-break">@item.Title</span>
+                            <small class="text-nowrap"><vn-time value="@item.LastMessageAt" /></small>
+                        </span>
+                    </a>
+                }
+            </div>
+            <div class="d-flex gap-3 mt-2">
+                @if (Model.Conversations.PageIndex > 1)
+                {
+                    <a asp-action="Index" asp-route-conversationId="@Model.Current?.Id" asp-route-newChat="@Model.NewChat"
+                       asp-route-historyPage="@(Model.Conversations.PageIndex - 1)">Trang trước</a>
+                }
+                @if (Model.Conversations.PageIndex < Model.Conversations.TotalPages)
+                {
+                    <a asp-action="Index" asp-route-conversationId="@Model.Current?.Id" asp-route-newChat="@Model.NewChat"
+                       asp-route-historyPage="@(Model.Conversations.PageIndex + 1)">Trang sau</a>
+                }
+            </div>
         </div>
     </nav>
 }
@@ -62,7 +68,7 @@
         Đừng nhập họ tên, mã sinh viên, số điện thoại hay thông tin cá nhân khác. Trợ lý có thể nhầm, hãy kiểm tra lại ở trang chi tiết hoạt động.
     </div>
 
-    <section class="card assistant" data-chat-url="@Url.Action("Chat")" data-conversation-id="@Model.Current?.Id" aria-label="Trò chuyện với trợ lý">
+    <section class="card shadow-sm border-0 assistant" data-chat-url="@Url.Action("Chat")" data-conversation-id="@Model.Current?.Id" aria-label="Trò chuyện với trợ lý">
         @Html.AntiForgeryToken()
         <div class="assistant-log" id="assistant-log" aria-live="polite">
             @if (Model.Current == null)

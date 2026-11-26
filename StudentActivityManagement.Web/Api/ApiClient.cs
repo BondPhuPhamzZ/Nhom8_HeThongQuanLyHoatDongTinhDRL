@@ -143,6 +143,12 @@ public sealed class ApiClient
     public Task<ApiResult<ActivityDto>> UpdateActivityStatusAsync(int id, string status) =>
         SendAsync<ActivityDto>(HttpMethod.Patch, $"api/v1/admin/activities/{id}/status", new { status });
 
+    public Task<ApiResult<ActivityDto>> StartActivityNowAsync(int id) =>
+        SendAsync<ActivityDto>(HttpMethod.Post, $"api/v1/admin/activities/{id}/start-now");
+
+    public Task<ApiResult<ActivityDto>> EndActivityNowAsync(int id) =>
+        SendAsync<ActivityDto>(HttpMethod.Post, $"api/v1/admin/activities/{id}/end-now");
+
     public Task<ApiResult<bool>> DeleteActivityAsync(int id) =>
         SendAsync<bool>(HttpMethod.Delete, $"api/v1/admin/activities/{id}");
 

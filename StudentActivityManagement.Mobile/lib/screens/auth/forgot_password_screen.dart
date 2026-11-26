@@ -63,7 +63,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               const Text('Mã xác nhận được gửi đến email đã đăng ký và có hiệu lực trong 10 phút.'),
               if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
               const SizedBox(height: 16),
-              FilledButton(onPressed: _busy ? null : _send, child: Text(_busy ? 'Đang gửi…' : 'Gửi mã xác nhận')),
+              BusyButton(label: 'Gửi mã xác nhận', busy: _busy, onPressed: _send),
               TextButton(
                 onPressed: _busy
                     ? null

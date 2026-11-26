@@ -105,9 +105,9 @@ class _AppealsScreenState extends State<AppealsScreen> {
                           for (final item in _appealable)
                             Card(
                               child: Padding(
-                                padding: const EdgeInsets.all(14),
+                                padding: const EdgeInsets.all(16),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
                                     Row(children: [
                                       Expanded(child: Text(item.activityName, style: const TextStyle(fontWeight: FontWeight.w700))),
@@ -147,10 +147,10 @@ class _AppealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accepted = appeal.status == 'Accepted';
+    final colors = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -168,9 +168,9 @@ class _AppealCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: accepted ? const Color(0xFFEEF9F1) : AppColors.surface,
+                  color: colors.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(AppStyles.radius),
-                  border: Border.all(color: accepted ? const Color(0xFFC3E8CD) : AppColors.border),
+                  border: Border.all(color: colors.outline),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

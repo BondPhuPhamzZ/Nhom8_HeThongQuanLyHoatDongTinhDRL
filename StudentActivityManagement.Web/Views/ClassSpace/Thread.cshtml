@@ -11,7 +11,7 @@
             @if (Model.Status != "Open") { <status-badge value="@Model.Status" /> }
             <partial name="_EscalationBadge" model="Model.EscalationStatus" />
         </div>
-        <h1 class="h4">@Model.Title</h1>
+        <h1 class="h3 mb-1 text-break">@Model.Title</h1>
         <p class="small text-muted">
             @Model.Author.FullName (@Model.Author.StudentCode)@(Model.Author.IsMonitor ? " · lớp trưởng" : "") · <vn-time value="@Model.CreatedAt" />
         </p>
@@ -34,7 +34,7 @@
 
 @if (Model.Escalation is { } escalation)
 {
-    <div class="card mb-4 @(escalation.Answer != null ? "border-success" : "")">
+    <div class="card shadow-sm border-0 mb-4">
         <div class="card-body">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                 <h2 class="h6 mb-0">Câu hỏi đã chuyển lên Phòng QL HSSV</h2>

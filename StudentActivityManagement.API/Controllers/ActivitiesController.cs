@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudentActivityManagement.API.Authorization;
@@ -110,6 +111,39 @@ namespace StudentActivityManagement.API.Controllers
         }
 
         /// <summary>
+        /// Bắt đầu ngay: đóng đăng ký và dời giờ bắt đầu buổi đầu tiên về hiện tại, hoạt động chuyển sang Đang diễn ra.
+        /// Chỉ dùng khi hoạt động đã công bố và chưa diễn ra.
+        /// </summary>
+        [HttpPost("{id}/start-now")]
+        [ProducesResponseType(typeof(ApiResponseDto<ActivityResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> StartNow(int id)
+        {
+            var result = await _activityService.StartNowAsync(id);
+            return result.Success ? Ok(result) : ProblemFrom(result);
+        }
+
+        /// <summary>
+        /// Kết thúc ngay: các buổi đang diễn ra kết thúc tại thời điểm hiện tại và đóng check-in ngay,
+        /// hoạt động chuyển sang Đối chiếu điểm danh. Mọi buổi phải đã bắt đầu.
+        /// </summary>
+        [HttpPost("{id}/end-now")]
+        [ProducesResponseType(typeof(ApiResponseDto<ActivityResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> EndNow(int id)
+        {
+            if (!TryGetUserId(out var staffId))
+            {
+                return InvalidSession();
+            }
+
+            var result = await _activityService.EndNowAsync(id, staffId);
+            return result.Success ? Ok(result) : ProblemFrom(result);
+        }
+
+        /// <summary>
         /// Xóa Hoạt động rèn luyện — chỉ hoạt động Nháp chưa từng có đăng ký; trường hợp khác dùng trạng thái Cancelled.
         /// </summary>
         [HttpDelete("{id}")]
@@ -126,5 +160,13 @@ namespace StudentActivityManagement.API.Controllers
 
             return Ok(result);
         }
+
+        private bool TryGetUserId(out int userId) =>
+            int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out userId);
+
+        private ObjectResult InvalidSession() => ApiProblem(
+            StatusCodes.Status401Unauthorized,
+            ApiErrorCodes.AuthenticationRequired,
+            "Không xác định được người dùng.");
     }
 }

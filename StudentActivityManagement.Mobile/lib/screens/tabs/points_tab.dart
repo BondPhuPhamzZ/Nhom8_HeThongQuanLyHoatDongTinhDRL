@@ -120,7 +120,10 @@ class _PointsTabState extends State<PointsTab> {
           DropdownButtonFormField<int>(
             isExpanded: true,
             initialValue: _periodId,
-            decoration: const InputDecoration(prefixIcon: Icon(LucideIcons.calendar, size: 18)),
+            decoration: const InputDecoration(
+              labelText: 'Kỳ đánh giá',
+              prefixIcon: Icon(LucideIcons.calendar, size: 18),
+            ),
             items: [
               for (final period in _periods)
                 DropdownMenuItem(value: period.id, child: Text('${period.name} · ${period.approvedPoints}/${period.targetPoints} điểm', overflow: TextOverflow.ellipsis)),

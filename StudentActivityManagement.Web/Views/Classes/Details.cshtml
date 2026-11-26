@@ -3,13 +3,13 @@
     ViewData["Title"] = $"Lớp {Model.Class.ClassCode}";
 }
 <a asp-action="Index" class="btn-back">&larr; Danh sách lớp</a>
-<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-2 mb-3">
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mt-2 mb-3">
     <div>
         <h1 class="h3 mb-1">@Model.Class.ClassCode – @Model.Class.ClassName</h1>
         <p class="text-muted mb-0">@Model.Class.Department · Sĩ số @Model.Class.TotalStudents · Lớp trưởng: @(Model.Class.MonitorStudentName ?? "chưa chỉ định")</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
-        <a class="btn btn-outline-primary" asp-controller="Students" asp-action="Create" asp-route-classId="@Model.Class.Id">+ Thêm sinh viên vào lớp</a>
+        <a class="btn btn-primary" asp-controller="Students" asp-action="Create" asp-route-classId="@Model.Class.Id">+ Thêm sinh viên vào lớp</a>
         @if (Model.Class.MonitorStudentId != null)
         {
             <form asp-action="RemoveMonitor" asp-route-id="@Model.Class.Id" method="post" class="m-0"
@@ -52,7 +52,7 @@
 }
 else
 {
-    <div class="table-responsive card shadow-sm border-0">
+    <div class="table-responsive card shadow-sm border-0 mb-3">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light"><tr><th>Sinh viên</th><th>Email</th><th>Khóa</th><th>Vai trò</th><th></th></tr></thead>
             <tbody>
@@ -67,7 +67,7 @@ else
                             @if (isMonitor) { <span class="badge text-bg-primary">Lớp trưởng</span> }
                             else { <span>Sinh viên</span> }
                         </td>
-                        <td class="text-end">
+                        <td class="text-end text-nowrap">
                             @if (!isMonitor)
                             {
                                 <form asp-action="AssignMonitor" asp-route-id="@Model.Class.Id" method="post" class="m-0"

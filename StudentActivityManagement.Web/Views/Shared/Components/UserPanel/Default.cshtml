@@ -8,9 +8,11 @@
         <ul class="dropdown-menu dropdown-menu-end">
             <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">Hồ sơ cá nhân</a></li>
             <li><a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">Đổi mật khẩu</a></li>
+            <li>
+                <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                    <button type="submit" class="dropdown-item">Đăng xuất</button>
+                </form>
+            </li>
         </ul>
     </div>
-    <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
-        <button type="submit" class="btn btn-sm btn-outline-secondary">Đăng xuất</button>
-    </form>
 </div>

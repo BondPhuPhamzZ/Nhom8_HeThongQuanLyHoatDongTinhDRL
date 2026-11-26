@@ -95,7 +95,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               ),
               if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
               const SizedBox(height: 16),
-              FilledButton(onPressed: _busy ? null : _reset, child: Text(_busy ? 'Đang lưu…' : 'Đặt lại mật khẩu')),
+              BusyButton(label: 'Đặt lại mật khẩu', busy: _busy, onPressed: _reset),
             ],
           ),
         ),

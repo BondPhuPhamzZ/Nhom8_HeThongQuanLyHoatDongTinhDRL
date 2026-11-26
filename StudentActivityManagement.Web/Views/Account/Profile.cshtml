@@ -2,26 +2,55 @@
 @{
     ViewData["Title"] = "Hồ sơ cá nhân";
 }
-<h1 class="h3 mb-3">Hồ sơ cá nhân</h1>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+    <div>
+        <h1 class="h3 mb-1">Hồ sơ cá nhân</h1>
+        <p class="text-muted mb-0">Thông tin do nhà trường quản lý chỉ xem được; bạn tự cập nhật email và số điện thoại.</p>
+    </div>
+    <a class="btn btn-outline-primary" asp-action="ChangePassword">Đổi mật khẩu</a>
+</div>
 @if (Model.Details is { } profile)
 {
-    <section class="card p-3 mb-3">
-        <h2 class="h5">Thông tin do nhà trường quản lý</h2>
-        <dl class="row mb-0">
-            <dt class="col-sm-4">Họ và tên</dt><dd class="col-sm-8">@profile.FullName</dd>
-            <dt class="col-sm-4">Mã tài khoản</dt><dd class="col-sm-8">@profile.StudentCode</dd>
-            <dt class="col-sm-4">Vai trò</dt><dd class="col-sm-8">@(profile.Role switch { "HSSV" => "Phòng QL HSSV", "SystemAdmin" => "Quản trị hệ thống", "Monitor" => "Lớp trưởng", _ => "Sinh viên" })</dd>
-            <dt class="col-sm-4">Lớp</dt><dd class="col-sm-8">@(profile.ClassCode ?? "—")</dd>
-            <dt class="col-sm-4">Cơ sở</dt><dd class="col-sm-8">@profile.Campus</dd>
-            <dt class="col-sm-4">Khóa</dt><dd class="col-sm-8">@profile.AcademicYear</dd>
-        </dl>
-    </section>
-    <form asp-action="Profile" method="post" class="card p-3">
-        <h2 class="h5">Thông tin liên hệ</h2>
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-        <div class="mb-3"><label asp-for="Email" class="form-label"></label><input asp-for="Email" type="email" class="form-control" maxlength="150" autocomplete="email" /><span asp-validation-for="Email" class="text-danger"></span></div>
-        <div class="mb-3"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" type="tel" class="form-control" autocomplete="tel" /><span asp-validation-for="Phone" class="text-danger"></span></div>
-        <div class="mb-3"><label asp-for="CurrentPassword" class="form-label"></label><input asp-for="CurrentPassword" type="password" class="form-control" autocomplete="current-password" /><span asp-validation-for="CurrentPassword" class="text-danger"></span></div>
-        <div><button class="btn btn-primary" type="submit">Lưu thông tin</button></div>
-    </form>
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h2 class="h6 mb-3">Thông tin do nhà trường quản lý</h2>
+                    <dl class="row mb-0 small">
+                        <dt class="col-5 text-muted fw-normal">Họ và tên</dt><dd class="col-7 fw-semibold">@profile.FullName</dd>
+                        <dt class="col-5 text-muted fw-normal">Mã tài khoản</dt><dd class="col-7">@profile.StudentCode</dd>
+                        <dt class="col-5 text-muted fw-normal">Vai trò</dt><dd class="col-7">@(profile.Role switch { "HSSV" => "Phòng QL HSSV", "SystemAdmin" => "Quản trị hệ thống", "Monitor" => "Lớp trưởng", _ => "Sinh viên" })</dd>
+                        <dt class="col-5 text-muted fw-normal">Lớp</dt><dd class="col-7">@(profile.ClassCode ?? "—")</dd>
+                        <dt class="col-5 text-muted fw-normal">Cơ sở</dt><dd class="col-7">@profile.Campus</dd>
+                        <dt class="col-5 text-muted fw-normal">Khóa</dt><dd class="col-7 mb-0">@profile.AcademicYear</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <form asp-action="Profile" method="post" class="card shadow-sm border-0 h-100" novalidate>
+                <div class="card-body">
+                    <h2 class="h6 mb-3">Thông tin liên hệ</h2>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small empty-hidden"></div>
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" type="email" class="form-control" maxlength="150" autocomplete="email" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Phone" class="form-label"></label>
+                        <input asp-for="Phone" type="tel" class="form-control" autocomplete="tel" />
+                        <span asp-validation-for="Phone" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="CurrentPassword" class="form-label"></label>
+                        <input asp-for="CurrentPassword" type="password" class="form-control" autocomplete="current-password" />
+                        <div class="form-text">Nhập mật khẩu hiện tại để xác nhận thay đổi.</div>
+                        <span asp-validation-for="CurrentPassword" class="text-danger small"></span>
+                    </div>
+                    <button class="btn btn-primary" type="submit">Lưu thông tin</button>
+                </div>
+            </form>
+        </div>
+    </div>
 }

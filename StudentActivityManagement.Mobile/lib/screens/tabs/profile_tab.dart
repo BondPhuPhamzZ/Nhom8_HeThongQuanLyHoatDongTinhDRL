@@ -17,6 +17,7 @@ class ProfileTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
     if (user == null) return const SizedBox.shrink();
+    final colors = Theme.of(context).colorScheme;
     final rows = <(IconData, String, String)>[
       (LucideIcons.hash, 'Mã sinh viên', user.studentCode),
       (LucideIcons.graduationCap, 'Vai trò', user.roleLabel),
@@ -39,9 +40,9 @@ class ProfileTab extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 26,
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: colors.primary,
                     child: Text(user.fullName.isEmpty ? '?' : user.fullName.trim().split(' ').last[0],
-                        style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 20)),
+                        style: TextStyle(color: colors.onPrimary, fontWeight: FontWeight.w700, fontSize: 20)),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -82,12 +83,14 @@ class ProfileTab extends StatelessWidget {
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EditContactScreen(user: user))),
           child: const Text('Sửa thông tin liên hệ'),
         ),
+        const SizedBox(height: 8),
         OutlinedButton(
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
           child: const Text('Đổi mật khẩu'),
         ),
+        const SizedBox(height: 8),
         OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger, side: const BorderSide(color: AppColors.danger, width: 1.5)),
+          style: OutlinedButton.styleFrom(foregroundColor: colors.error, side: BorderSide(color: colors.error)),
           onPressed: () => context.read<AuthProvider>().logout(),
           icon: const Icon(LucideIcons.logOut, size: 18),
           label: const Text('Đăng xuất'),

@@ -4,7 +4,10 @@
     ViewData["Title"] = isEdit ? "Sửa sinh viên" : "Thêm sinh viên";
 }
 <a asp-action="Index" class="btn-back">&larr; Danh sách sinh viên</a>
-<h1 class="h3 mt-2 mb-3">@ViewData["Title"]</h1>
+<div class="mt-2 mb-3">
+    <h1 class="h3 mb-1">@ViewData["Title"]</h1>
+    <p class="text-muted mb-0">Cập nhật thông tin học vụ và liên hệ của sinh viên.</p>
+</div>
 
 <form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" novalidate>
     <div asp-validation-summary="All" class="alert alert-danger py-2 small empty-hidden"></div>
@@ -19,11 +22,11 @@
                 <label asp-for="FullName" class="form-label"></label>
                 <input asp-for="FullName" class="form-control" />
             </div>
-            <div class="col-md-6">
+            <div class="col-md-8">
                 <label asp-for="Email" class="form-label"></label>
                 <input asp-for="Email" type="email" class="form-control" />
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label asp-for="Phone" class="form-label"></label>
                 <input asp-for="Phone" class="form-control" />
             </div>
@@ -46,7 +49,7 @@
                 </select>
                 @if (Model.IsClassMonitor) { <div class="form-text">Sinh viên đang là lớp trưởng.</div> }
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label asp-for="Password" class="form-label"></label>
                 <input asp-for="Password" class="form-control" autocomplete="new-password" />
                 <div class="form-text">@(isEdit ? "Để trống nếu giữ nguyên mật khẩu." : "Mật khẩu đăng nhập ban đầu, tối thiểu 6 ký tự.")</div>

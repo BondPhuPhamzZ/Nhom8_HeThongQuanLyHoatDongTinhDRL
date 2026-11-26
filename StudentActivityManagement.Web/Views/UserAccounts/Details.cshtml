@@ -3,31 +3,40 @@
     ViewData["Title"] = "Chi tiết tài khoản";
     var account = Model.Account;
 }
-<a asp-action="Index" class="btn-back">← Danh sách tài khoản</a>
-<h1 class="h3 mt-2">@account.FullName</h1>
-<p class="text-muted">@account.StudentCode · @WebPolicies.RoleLabel(account.Role)</p>
-<section class="card p-3">
-    <dl class="row">
-        <dt class="col-sm-4">Email</dt><dd class="col-sm-8">@account.Email</dd>
-        <dt class="col-sm-4">Trạng thái</dt><dd class="col-sm-8">@(account.IsActive ? "Hoạt động" : "Đã khóa")</dd>
-    </dl>
-    @if (Model.TemporaryPassword != null)
-    {
-        <label for="temporary-password" class="form-label">Mật khẩu tạm</label>
-        <div class="input-group">
-            <input id="temporary-password" class="form-control font-monospace" readonly value="@Model.TemporaryPassword" autocomplete="off" />
-            <button id="copy-temporary-password" class="btn btn-outline-primary" type="button">Sao chép</button>
+<a asp-action="Index" class="btn-back">&larr; Danh sách tài khoản</a>
+<div class="mt-2 mb-3">
+    <h1 class="h3 mb-1">@account.FullName</h1>
+    <p class="text-muted mb-0">@account.StudentCode · @WebPolicies.RoleLabel(account.Role)</p>
+</div>
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <dl class="row small mb-3">
+                    <dt class="col-4 text-muted fw-normal">Email</dt><dd class="col-8">@account.Email</dd>
+                    <dt class="col-4 text-muted fw-normal">Trạng thái</dt>
+                    <dd class="col-8 mb-0"><span class="badge @(account.IsActive ? "text-bg-success" : "text-bg-secondary")">@(account.IsActive ? "Hoạt động" : "Đã khóa")</span></dd>
+                </dl>
+                @if (Model.TemporaryPassword != null)
+                {
+                    <label for="temporary-password" class="form-label">Mật khẩu tạm</label>
+                    <div class="input-group">
+                        <input id="temporary-password" class="form-control font-monospace" readonly value="@Model.TemporaryPassword" autocomplete="off" />
+                        <button id="copy-temporary-password" class="btn btn-outline-primary" type="button">Sao chép</button>
+                    </div>
+                    <div class="form-text">Mật khẩu chỉ hiện một lần tại đây. Người dùng phải đổi khi đăng nhập.</div>
+                }
+                else
+                {
+                    <form asp-action="IssueTemporaryPassword" asp-route-id="@account.Id" method="post"
+                          onsubmit="return confirm('Cấp mật khẩu tạm sẽ đăng xuất tài khoản trên mọi thiết bị. Tiếp tục?');">
+                        <button class="btn btn-outline-primary" type="submit">Cấp mật khẩu tạm</button>
+                    </form>
+                }
+            </div>
         </div>
-        <p class="form-text">Mật khẩu chỉ xuất hiện tại đây. Người dùng phải đổi khi đăng nhập.</p>
-    }
-    else
-    {
-        <form asp-action="IssueTemporaryPassword" asp-route-id="@account.Id" method="post"
-              onsubmit="return confirm('Cấp mật khẩu tạm sẽ đăng xuất tài khoản trên mọi thiết bị. Tiếp tục?');">
-            <button class="btn btn-outline-primary" type="submit">Cấp mật khẩu tạm</button>
-        </form>
-    }
-</section>
+    </div>
+</div>
 @section Scripts {
     @if (Model.TemporaryPassword != null)
     {

@@ -109,6 +109,8 @@ abstract final class AppStyles {
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(radius), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(radius), borderSide: const BorderSide(color: AppColors.danger)),
         errorStyle: const TextStyle(color: AppColors.danger),
+        // Hints must read as placeholders, never as a value already typed in.
+        hintStyle: TextStyle(color: AppColors.muted.withValues(alpha: 0.6)),
       ),
       chipTheme: base.chipTheme.copyWith(
         shape: shape,

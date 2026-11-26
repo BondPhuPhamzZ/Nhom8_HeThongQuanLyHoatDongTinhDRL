@@ -18,22 +18,9 @@
             }
         </p>
     </div>
-    @if (space != null)
+    @if (space?.IsMonitor == true)
     {
-        <form asp-action="Index" method="get" class="d-flex flex-wrap gap-2">
-            <input name="search" value="@Model.Search" class="form-control" placeholder="Tìm theo tiêu đề, nội dung" />
-            <select name="kind" class="form-select w-auto">
-                <option value="">Mọi loại bài</option>
-                <option value="Question" selected="@(Model.Kind == "Question")">Câu hỏi</option>
-                <option value="Discussion" selected="@(Model.Kind == "Discussion")">Thảo luận</option>
-                <option value="Announcement" selected="@(Model.Kind == "Announcement")">Thông báo</option>
-            </select>
-            <button class="btn btn-primary" type="submit">Lọc</button>
-            @if (space.IsMonitor)
-            {
-                <a asp-action="Escalations" class="btn btn-outline-warning">Câu hỏi đã chuyển P.QL HSSV</a>
-            }
-        </form>
+        <a asp-action="Escalations" class="btn btn-primary">Câu hỏi đã chuyển P.QL HSSV</a>
     }
 </div>
 
@@ -42,6 +29,17 @@
     <div class="empty-state">@(ViewBag.Notice ?? "Không tải được không gian trao đổi của lớp.")</div>
     return;
 }
+
+<form asp-action="Index" method="get" class="d-flex flex-wrap gap-2 mb-3">
+    <input name="search" value="@Model.Search" class="form-control w-auto flex-grow-1" placeholder="Tìm theo tiêu đề, nội dung" aria-label="Tìm chủ đề" />
+    <select name="kind" class="form-select w-auto" aria-label="Loại bài">
+        <option value="">Mọi loại bài</option>
+        <option value="Question" selected="@(Model.Kind == "Question")">Câu hỏi</option>
+        <option value="Discussion" selected="@(Model.Kind == "Discussion")">Thảo luận</option>
+        <option value="Announcement" selected="@(Model.Kind == "Announcement")">Thông báo</option>
+    </select>
+    <button class="btn btn-outline-primary" type="submit">Lọc</button>
+</form>
 
 <div class="row g-4">
     <div class="col-lg-8">

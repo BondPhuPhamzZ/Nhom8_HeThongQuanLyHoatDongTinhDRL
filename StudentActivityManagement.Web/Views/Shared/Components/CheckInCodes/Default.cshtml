@@ -15,9 +15,9 @@
     Cửa sổ check-in: mở trước @Model.OpenBeforeMinutes phút, đóng sau buổi @Model.CloseAfterMinutes phút.
     Đổi mã sẽ làm mã cũ hết hiệu lực ngay.
 </p>
-<div class="table-responsive">
-    <table class="table table-sm align-middle">
-        <thead><tr><th>Buổi</th><th>Cửa sổ check-in</th><th>Mã</th><th class="text-center">Đã check-in</th><th></th></tr></thead>
+<div class="table-responsive card shadow-sm border-0 mb-3">
+    <table class="table table-sm align-middle mb-0">
+        <thead class="table-light"><tr><th>Buổi</th><th>Cửa sổ check-in</th><th>Mã</th><th class="text-center">Đã check-in</th><th></th></tr></thead>
         <tbody>
             @foreach (var session in Model.Sessions)
             {

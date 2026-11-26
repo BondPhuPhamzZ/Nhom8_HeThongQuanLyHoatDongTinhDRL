@@ -20,7 +20,7 @@
 }
 else
 {
-    <div class="list-group shadow-sm mb-3">
+    <div class="list-group card shadow-sm border-0 mb-3">
         @foreach (var item in Model.Items)
         {
             <div class="list-group-item py-3">
@@ -36,7 +36,7 @@ else
                     <span class="small text-muted"><vn-time value="@item.CreatedAt" /></span>
                 </div>
                 <span class="badge text-bg-light border mb-2">@(item.Kind switch { "ClassActivity" => "Hoạt động mới của lớp", "ActivityReminder" => "Nhắc lịch", "FinalizationBlocked" => "Chờ mở kỳ", "PointsFinalized" => "Chốt điểm", _ => "Thông báo" })</span>
-                <p class="pre-line mb-2">@item.Body</p>
+                <p class="pre-line text-break mb-2">@item.Body</p>
                 @if (item.ReadAt == null)
                 {
                     <form asp-action="Read" asp-route-id="@item.Id" method="post">

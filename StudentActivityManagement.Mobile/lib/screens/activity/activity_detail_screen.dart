@@ -80,7 +80,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     final activity = _activity;
     return Scaffold(
       appBar: AppBar(
-        title: Text(activity?.name ?? 'Chi tiết hoạt động', overflow: TextOverflow.ellipsis),
+        title: const Text('Chi tiết hoạt động'),
         actions: [
           if (activity != null && (context.watch<AuthProvider>().user?.isMonitor ?? false))
             IconButton(tooltip: 'Chuyển tiếp vào lớp', icon: const Icon(LucideIcons.share2), onPressed: () => _forward(activity)),
@@ -238,7 +238,10 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-        decoration: const BoxDecoration(color: AppColors.white, border: Border(top: BorderSide(color: AppColors.border))),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outline)),
+        ),
         child: button,
       ),
     );

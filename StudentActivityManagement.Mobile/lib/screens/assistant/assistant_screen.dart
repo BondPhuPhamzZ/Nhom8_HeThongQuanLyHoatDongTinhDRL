@@ -411,28 +411,31 @@ class _PrivacyNotice extends StatelessWidget {
   const _PrivacyNotice();
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE8F6F8),
-          borderRadius: BorderRadius.circular(AppStyles.radius),
-          border: Border.all(color: AppColors.info),
-        ),
-        child: const Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(LucideIcons.shieldAlert, size: 18, color: AppColors.info),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Câu hỏi được gửi tới Google Gemini (bản miễn phí) và có thể được dùng để cải thiện dịch vụ. '
-                'Đừng nhập họ tên, mã sinh viên hay thông tin cá nhân. Trợ lý có thể nhầm, hãy kiểm tra lại ở trang hoạt động.',
-                style: TextStyle(fontSize: 12, color: AppColors.charcoal),
-              ),
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppStyles.radius),
+        border: Border.all(color: colors.outline),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(LucideIcons.shieldAlert, size: 18, color: colors.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Câu hỏi được gửi tới Google Gemini (bản miễn phí) và có thể được dùng để cải thiện dịch vụ. '
+              'Đừng nhập họ tên, mã sinh viên hay thông tin cá nhân. Trợ lý có thể nhầm, hãy kiểm tra lại ở trang hoạt động.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onSurface),
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Composer extends StatelessWidget {
@@ -446,8 +449,11 @@ class _Composer extends StatelessWidget {
   Widget build(BuildContext context) => SafeArea(
         top: false,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-          decoration: const BoxDecoration(color: AppColors.white, border: Border(top: BorderSide(color: AppColors.border))),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outline)),
+          ),
           child: Row(
             children: [
               Expanded(

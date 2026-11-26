@@ -2,8 +2,10 @@
 @{
     ViewData["Title"] = "Quản lý lớp";
 }
-<h1 class="h3 mb-1">Quản lý lớp</h1>
-<p class="text-muted">Tạo lớp và chỉ định lớp trưởng. Lớp trưởng nhận vai trò Monitor để nhận và chuyển thông báo cho lớp.</p>
+<div class="mb-3">
+    <h1 class="h3 mb-1">Quản lý lớp</h1>
+    <p class="text-muted mb-0">Tạo lớp và chỉ định lớp trưởng. Lớp trưởng nhận vai trò Monitor để nhận và chuyển thông báo cho lớp.</p>
+</div>
 
 <div class="row g-4">
     <div class="col-lg-8">
@@ -13,7 +15,7 @@
         }
         else
         {
-            <div class="table-responsive card shadow-sm border-0">
+            <div class="table-responsive card shadow-sm border-0 mb-3">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light"><tr><th>Lớp</th><th>Khoa</th><th class="text-center">Sĩ số</th><th>Lớp trưởng</th><th></th></tr></thead>
                     <tbody>
@@ -24,7 +26,7 @@
                                 <td>@item.Department</td>
                                 <td class="text-center">@item.TotalStudents</td>
                                 <td>@(item.MonitorStudentName ?? "Chưa chỉ định")</td>
-                                <td class="text-end"><a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@item.Id">Danh sách lớp</a></td>
+                                <td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@item.Id">Xem</a></td>
                             </tr>
                         }
                     </tbody>

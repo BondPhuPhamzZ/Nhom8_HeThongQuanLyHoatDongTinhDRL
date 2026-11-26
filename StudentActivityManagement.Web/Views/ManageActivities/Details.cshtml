@@ -16,16 +16,35 @@
     var canDelete = Model.Status == "Draft" && Model.CurrentParticipantsCount == 0;
 }
 <a asp-action="Index" class="btn-back">&larr; Danh sách hoạt động</a>
-<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mt-2 mb-3">
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mt-2 mb-3">
     <div>
         <status-badge value="@Model.Status" label="@Model.PhaseLabel" />
-        <h1 class="h3 mt-2 mb-1">@Model.ActivityName</h1>
+        <h1 class="h3 mt-2 mb-1 text-break">@Model.ActivityName</h1>
         <p class="text-muted mb-0">@Model.OrganizerName · tạo ngày <vn-time value="@Model.CreatedAt" format="date" /></p>
     </div>
     <div class="d-flex flex-wrap gap-2">
-        @foreach (var (status, label, css) in transitions)
+        @* Main step of the lifecycle first, then navigation, then reversible/destructive actions. *@
+        @if (Model.Phase is "Upcoming" or "RegistrationOpen" or "RegistrationClosed")
         {
-            <form asp-action="ChangeStatus" asp-route-id="@Model.Id" method="post">
+            <form asp-action="StartNow" asp-route-id="@Model.Id" method="post"
+                  onsubmit="return confirm('Bắt đầu hoạt động ngay bây giờ? Hệ thống sẽ đóng đăng ký và dời giờ bắt đầu buổi đầu tiên về thời điểm hiện tại.');">
+                <button class="btn btn-primary" type="submit">Bắt đầu ngay</button>
+            </form>
+        }
+        @if (Model.Phase == "Ongoing")
+        {
+            <form asp-action="EndNow" asp-route-id="@Model.Id" method="post"
+                  onsubmit="return confirm('Kết thúc hoạt động ngay bây giờ? Các buổi đang diễn ra kết thúc tại thời điểm hiện tại và sinh viên không check-in được nữa.');">
+                <button class="btn btn-primary" type="submit">Kết thúc ngay</button>
+            </form>
+        }
+        @if (Model.Phase is "AttendanceReview" or "Finalized")
+        {
+            <a class="btn btn-primary" asp-controller="Scoring" asp-action="Index" asp-route-id="@Model.Id">@(Model.Phase == "AttendanceReview" ? "Chốt điểm" : "Ghi điểm")</a>
+        }
+        @foreach (var (status, label, css) in transitions.Where(item => item.status == "Published"))
+        {
+            <form asp-action="ChangeStatus" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Công bố hoạt động này?');">
                 <input type="hidden" name="status" value="@status" />
                 <button class="btn @css" type="submit">@label</button>
             </form>
@@ -34,13 +53,17 @@
         {
             <a class="btn btn-outline-secondary" asp-controller="Participants" asp-action="Index" asp-route-id="@Model.Id">Người tham gia</a>
         }
-        @if (Model.Phase is "AttendanceReview" or "Finalized")
-        {
-            <a class="btn btn-primary" asp-controller="Scoring" asp-action="Index" asp-route-id="@Model.Id">Ghi điểm</a>
-        }
         @if (Model.CanEdit)
         {
             <a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@Model.Id">Sửa</a>
+        }
+        @foreach (var (status, label, css) in transitions.Where(item => item.status != "Published"))
+        {
+            <form asp-action="ChangeStatus" asp-route-id="@Model.Id" method="post"
+                  onsubmit="@(status == "Cancelled" ? "return confirm('Hủy hoạt động này? Sinh viên đã đăng ký sẽ nhận thông báo và không hoàn tác được.');" : "return confirm('Chuyển hoạt động này về Nháp?');")">
+                <input type="hidden" name="status" value="@status" />
+                <button class="btn @css" type="submit">@label</button>
+            </form>
         }
         @if (canDelete)
         {
@@ -60,21 +83,22 @@
 
 @if (Model.Phase is not ("Draft" or "Cancelled"))
 {
-    <dl class="row small">
-        <dt class="col-sm-5">Bắt đầu buổi đầu tiên</dt>
-        <dd class="col-sm-7"><vn-time value="@Model.StartTime" /></dd>
-        <dt class="col-sm-5">Hết giờ check-in</dt>
-        <dd class="col-sm-7"><vn-time value="@Model.CheckInClosesAt" /></dd>
-        <dt class="col-sm-5">@(Model.PointsFinalizedAt.HasValue ? "Đã chốt điểm" : "Dự kiến chốt điểm")</dt>
-        <dd class="col-sm-7"><vn-time value="@(Model.PointsFinalizedAt ?? Model.PointsFinalizeDueAt)" /></dd>
-    </dl>
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-md-4"><div class="stat-tile"><div class="stat-value small-value"><vn-time value="@Model.StartTime" /></div><div class="stat-label">Bắt đầu buổi đầu tiên</div></div></div>
+        <div class="col-12 col-md-4"><div class="stat-tile"><div class="stat-value small-value"><vn-time value="@Model.CheckInClosesAt" /></div><div class="stat-label">Hết giờ check-in</div></div></div>
+        <div class="col-12 col-md-4"><div class="stat-tile"><div class="stat-value small-value"><vn-time value="@(Model.PointsFinalizedAt ?? Model.PointsFinalizeDueAt)" /></div><div class="stat-label">@(Model.PointsFinalizedAt.HasValue ? "Đã chốt điểm" : "Dự kiến chốt điểm")</div></div></div>
+    </div>
     @if (Model.Phase is "Upcoming" or "RegistrationOpen" or "RegistrationClosed")
     {
-        <p class="text-muted">Tự chuyển sang Đang diễn ra lúc <vn-time value="@Model.StartTime" />.</p>
+        <div class="alert alert-info small mb-4">Hoạt động tự chuyển sang <strong>Đang diễn ra</strong> lúc <vn-time value="@Model.StartTime" />. Bấm <strong>Bắt đầu ngay</strong> nếu muốn bắt đầu sớm (đăng ký sẽ đóng).</div>
     }
     else if (Model.Phase == "Ongoing")
     {
-        <p class="text-muted">Tự chuyển sang Đang đối chiếu lúc <vn-time value="@Model.CheckInClosesAt" />.</p>
+        <div class="alert alert-info small mb-4">Hoạt động tự chuyển sang <strong>Đối chiếu điểm danh</strong> lúc <vn-time value="@Model.CheckInClosesAt" />. Bấm <strong>Kết thúc ngay</strong> để đóng check-in ngay.</div>
+    }
+    else if (Model.Phase == "AttendanceReview")
+    {
+        <div class="alert alert-info small mb-4">Đang đối chiếu điểm danh. Điểm tự chốt lúc <vn-time value="@Model.PointsFinalizeDueAt" />, hoặc vào <strong>Chốt điểm</strong> để chốt ngay.</div>
     }
 }
 
@@ -85,9 +109,9 @@
 }
 
 <h2 class="h5 mt-4">Các buổi tổ chức</h2>
-<div class="table-responsive">
-    <table class="table table-sm align-middle">
-        <thead><tr><th>#</th><th>Buổi</th><th>Bắt đầu</th><th>Kết thúc</th><th>Cơ sở</th><th>Địa điểm</th></tr></thead>
+<div class="table-responsive card shadow-sm border-0 mb-3">
+    <table class="table table-sm align-middle mb-0">
+        <thead class="table-light"><tr><th>#</th><th>Buổi</th><th>Bắt đầu</th><th>Kết thúc</th><th>Cơ sở</th><th>Địa điểm</th></tr></thead>
         <tbody>
             @foreach (var session in Model.Sessions.OrderBy(s => s.SortOrder))
             {

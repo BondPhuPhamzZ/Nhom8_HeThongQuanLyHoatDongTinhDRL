@@ -18,20 +18,22 @@
             }
             <span class="points-chip">+@Model.TrainingPoints điểm rèn luyện</span>
         </div>
-        <h1 class="h3">@Model.ActivityName</h1>
+        <div class="mb-3">
+            <h1 class="h3 mb-1 text-break">@Model.ActivityName</h1>
+            <p class="text-muted mb-0">Đơn vị tổ chức: @Model.OrganizerName</p>
+        </div>
         @if (Model.PointsFinalizationBlocked)
         {
-            <p class="alert alert-light border">Đang chờ Phòng QL HSSV mở kỳ đánh giá.</p>
+            <p class="alert alert-warning small">Đang chờ Phòng QL HSSV mở kỳ đánh giá.</p>
         }
         else if (attended && Model.PointsFinalizedAt == null && Model.Phase != "Cancelled")
         {
-            <p class="alert alert-light border">Đã điểm danh, điểm sẽ được chốt lúc <vn-time value="@Model.PointsFinalizeDueAt" />.</p>
+            <p class="alert alert-info small">Đã điểm danh, điểm sẽ được chốt lúc <vn-time value="@Model.PointsFinalizeDueAt" />.</p>
         }
         else if (registered && Model.Phase is "Ongoing" or "AttendanceReview")
         {
-            <p class="alert alert-light border">Điểm sẽ được chốt lúc <vn-time value="@Model.PointsFinalizeDueAt" />.</p>
+            <p class="alert alert-info small">Điểm sẽ được chốt lúc <vn-time value="@Model.PointsFinalizeDueAt" />.</p>
         }
-        <p class="text-muted">Đơn vị tổ chức: @Model.OrganizerName</p>
         @if (User.IsInRole("Monitor") && (Model.Status is "Published" or "Ongoing"))
         {
             <a class="btn btn-outline-primary btn-sm mb-3" asp-controller="ClassSpace" asp-action="ForwardActivity" asp-route-activityId="@Model.Id">Chuyển thông tin vào lớp</a>
@@ -39,13 +41,13 @@
         <p class="pre-line">@Model.Description</p>
         @if (!string.IsNullOrWhiteSpace(Model.Requirements))
         {
-            <div class="alert alert-light border pre-line"><strong>Yêu cầu cần chuẩn bị:</strong> @Model.Requirements</div>
+            <div class="alert alert-info small pre-line"><strong>Yêu cầu cần chuẩn bị:</strong> @Model.Requirements</div>
         }
 
         <h2 class="h5 mt-4">Lịch tổ chức</h2>
-        <div class="table-responsive">
-            <table class="table table-sm align-middle">
-                <thead><tr><th>Buổi</th><th>Bắt đầu</th><th>Kết thúc</th><th>Cơ sở</th><th>Địa điểm</th></tr></thead>
+        <div class="table-responsive card shadow-sm border-0 mb-3">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light"><tr><th>Buổi</th><th>Bắt đầu</th><th>Kết thúc</th><th>Cơ sở</th><th>Địa điểm</th></tr></thead>
                 <tbody>
                     @foreach (var session in Model.Sessions.OrderBy(s => s.SortOrder))
                     {
