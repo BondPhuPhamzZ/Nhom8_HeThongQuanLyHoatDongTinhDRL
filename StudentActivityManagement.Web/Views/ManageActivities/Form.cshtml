@@ -10,26 +10,29 @@
     var participation = new[] { ("Required", "Bắt buộc"), ("Recommended", "Khuyến khích"), ("Optional", "Tự chọn") };
 }
 <a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@Model.Id" class="btn-back">&larr; Quay lại</a>
-<div class="mt-2 mb-3">
-    <h1 class="h3 mb-1">@ViewData["Title"]</h1>
-    <p class="text-muted mb-0">Thiết lập lịch tổ chức và đối tượng tham gia.</p>
-</div>
-
-<form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" id="activityForm" class="col-lg-8" novalidate>
-    <div asp-validation-summary="All" class="alert alert-danger py-2 small empty-hidden"></div>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mt-2 mb-3">
+    <div>
+        <h1 class="h3 mb-1">@ViewData["Title"]</h1>
+        <p class="text-muted mb-0">Thiết lập lịch tổ chức và đối tượng tham gia.</p>
+    </div>
     @if (!isEdit && HostEnvironment.EnvironmentName == Microsoft.Extensions.Hosting.Environments.Development)
     {
-        <button type="button" id="fill-test-times" class="btn btn-sm btn-outline-secondary mb-2">Điền mốc kiểm thử</button>
-        <p class="small text-muted">Sau khi lưu, đặt mở trước 5 phút, đóng sau 2 phút và đối chiếu 3 phút trong Cài đặt.</p>
+        <div class="text-end">
+            <button type="button" id="fill-test-times" class="btn btn-outline-secondary" form="activityForm">Điền mốc kiểm thử</button>
+            <div class="form-text">Sau khi lưu: Cài đặt → mở trước 5, đóng sau 2, đối chiếu 3 phút.</div>
+        </div>
     }
+</div>
 
+<form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" id="activityForm" novalidate>
+    <div asp-validation-summary="All" class="alert alert-danger py-2 small empty-hidden"></div>
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-body row g-3">
-            <div class="col-md-8">
+            <div class="col-md-6">
                 <label asp-for="ActivityName" class="form-label"></label>
                 <input asp-for="ActivityName" class="form-control" />
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label asp-for="Status" class="form-label"></label>
                 <select asp-for="Status" class="form-select">
                     @foreach (var (value, label) in statuses) { <option value="@value">@label</option> }
@@ -39,11 +42,11 @@
                     <input type="hidden" name="StatusOptions[@i]" value="@Model.StatusOptions[i]" />
                 }
             </div>
-            <div class="col-md-8">
+            <div class="col-md-6">
                 <label asp-for="OrganizerName" class="form-label"></label>
                 <input asp-for="OrganizerName" class="form-control" />
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label asp-for="TargetAudience" class="form-label"></label>
                 <input asp-for="TargetAudience" class="form-control" />
             </div>
@@ -55,15 +58,15 @@
                 <label asp-for="Requirements" class="form-label"></label>
                 <textarea asp-for="Requirements" class="form-control" rows="2" placeholder="Ví dụ: mặc áo đoàn, mang thẻ sinh viên, có mặt trước 15 phút"></textarea>
             </div>
-            <div class="col-sm-6">
+            <div class="col-md-6 col-xl-3">
                 <label asp-for="RegistrationOpenTime" class="form-label"></label>
-                <input asp-for="RegistrationOpenTime" type="datetime-local" class="form-control" />
+                <input asp-for="RegistrationOpenTime" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" />
             </div>
-            <div class="col-sm-6">
+            <div class="col-md-6 col-xl-3">
                 <label asp-for="RegistrationCloseTime" class="form-label"></label>
-                <input asp-for="RegistrationCloseTime" type="datetime-local" class="form-control" />
+                <input asp-for="RegistrationCloseTime" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" />
             </div>
-            <div class="col-sm-6">
+            <div class="col-md-6 col-xl-3">
                 <label asp-for="MaxParticipants" class="form-label"></label>
                 <input asp-for="MaxParticipants" class="form-control" />
                 @if (isEdit && Model.CurrentParticipantsCount > 0)
@@ -71,7 +74,7 @@
                     <div class="form-text">Đã có @Model.CurrentParticipantsCount sinh viên đăng ký.</div>
                 }
             </div>
-            <div class="col-sm-6">
+            <div class="col-md-6 col-xl-3">
                 <label asp-for="TrainingPoints" class="form-label"></label>
                 <input asp-for="TrainingPoints" class="form-control" />
             </div>
@@ -88,14 +91,14 @@
             <div data-rows="session">
                 @for (var i = 0; i < Model.Sessions.Count; i++)
                 {
-                    <div class="row g-2 align-items-end border-bottom py-2" data-row>
+                    <div class="row g-3 align-items-end border-bottom pb-3 mb-3" data-row>
                         <input type="hidden" asp-for="Sessions[i].Id" data-field="Id" />
-                        <div class="col-sm-4"><label class="form-label small">Tên buổi</label><input asp-for="Sessions[i].SessionName" class="form-control form-control-sm" data-field="SessionName" aria-label="Tên buổi" /></div>
-                        <div class="col-sm-4"><label class="form-label small">Cơ sở</label><input asp-for="Sessions[i].Campus" class="form-control form-control-sm" data-field="Campus" aria-label="Cơ sở" /></div>
-                        <div class="col-sm-4"><label class="form-label small">Địa điểm</label><input asp-for="Sessions[i].Location" class="form-control form-control-sm" data-field="Location" aria-label="Địa điểm" /></div>
-                        <div class="col-sm-5"><label class="form-label small">Bắt đầu</label><input asp-for="Sessions[i].StartTime" type="datetime-local" class="form-control form-control-sm" data-field="StartTime" aria-label="Bắt đầu" /></div>
-                        <div class="col-sm-5"><label class="form-label small">Kết thúc</label><input asp-for="Sessions[i].EndTime" type="datetime-local" class="form-control form-control-sm" data-field="EndTime" aria-label="Kết thúc" /></div>
-                        <div class="col-sm-2 text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-remove-row>Xóa</button></div>
+                        <div class="col-md-4"><label class="form-label">Tên buổi</label><input asp-for="Sessions[i].SessionName" class="form-control" data-field="SessionName" aria-label="Tên buổi" /></div>
+                        <div class="col-md-4"><label class="form-label">Cơ sở</label><input asp-for="Sessions[i].Campus" class="form-control" data-field="Campus" aria-label="Cơ sở" /></div>
+                        <div class="col-md-4"><label class="form-label">Địa điểm</label><input asp-for="Sessions[i].Location" class="form-control" data-field="Location" aria-label="Địa điểm" /></div>
+                        <div class="col-md-4"><label class="form-label">Bắt đầu</label><input asp-for="Sessions[i].StartTime" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" data-field="StartTime" aria-label="Bắt đầu" /></div>
+                        <div class="col-md-4"><label class="form-label">Kết thúc</label><input asp-for="Sessions[i].EndTime" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" data-field="EndTime" aria-label="Kết thúc" /></div>
+                        <div class="col-md-4 text-md-end"><button type="button" class="btn btn-outline-danger" data-remove-row>Xóa buổi</button></div>
                     </div>
                 }
             </div>
@@ -112,23 +115,23 @@
             <div data-rows="rule">
                 @for (var i = 0; i < Model.AudienceRules.Count; i++)
                 {
-                    <div class="row g-2 align-items-end border-bottom py-2" data-row>
-                        <div class="col-sm-4"><label class="form-label small">Cơ sở</label><input asp-for="AudienceRules[i].Campus" class="form-control form-control-sm" data-field="Campus" aria-label="Cơ sở" /></div>
-                        <div class="col-sm-4"><label class="form-label small">Khóa</label><input asp-for="AudienceRules[i].AcademicYear" class="form-control form-control-sm" placeholder="K22" data-field="AcademicYear" aria-label="Khóa" /></div>
-                        <div class="col-sm-4">
-                            <label class="form-label small">Lớp</label>
-                            <select asp-for="AudienceRules[i].ClassId" class="form-select form-select-sm" data-field="ClassId" aria-label="Lớp">
+                    <div class="row g-3 align-items-end border-bottom pb-3 mb-3" data-row>
+                        <div class="col-md-4"><label class="form-label">Cơ sở</label><input asp-for="AudienceRules[i].Campus" class="form-control" data-field="Campus" aria-label="Cơ sở" /></div>
+                        <div class="col-md-4"><label class="form-label">Khóa</label><input asp-for="AudienceRules[i].AcademicYear" class="form-control" placeholder="K22" data-field="AcademicYear" aria-label="Khóa" /></div>
+                        <div class="col-md-4">
+                            <label class="form-label">Lớp</label>
+                            <select asp-for="AudienceRules[i].ClassId" class="form-select" data-field="ClassId" aria-label="Lớp">
                                 <option value="">— Mọi lớp —</option>
                                 @foreach (var item in Model.Classes) { <option value="@item.Id">@item.ClassCode – @item.ClassName</option> }
                             </select>
                         </div>
-                        <div class="col-sm-10">
-                            <label class="form-label small">Mức tham gia</label>
-                            <select asp-for="AudienceRules[i].ParticipationType" class="form-select form-select-sm" data-field="ParticipationType" aria-label="Mức tham gia">
+                        <div class="col-md-8">
+                            <label class="form-label">Mức tham gia</label>
+                            <select asp-for="AudienceRules[i].ParticipationType" class="form-select" data-field="ParticipationType" aria-label="Mức tham gia">
                                 @foreach (var (value, label) in participation) { <option value="@value">@label</option> }
                             </select>
                         </div>
-                        <div class="col-sm-2 text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-remove-row>Xóa</button></div>
+                        <div class="col-md-4 text-md-end"><button type="button" class="btn btn-outline-danger" data-remove-row>Xóa quy tắc</button></div>
                     </div>
                 }
             </div>
@@ -142,34 +145,34 @@
 </form>
 
 <template id="tpl-session">
-    <div class="row g-2 align-items-end border-bottom py-2" data-row>
+    <div class="row g-3 align-items-end border-bottom pb-3 mb-3" data-row>
         <input type="hidden" data-field="Id" value="" />
-        <div class="col-sm-4"><label class="form-label small">Tên buổi</label><input class="form-control form-control-sm" data-field="SessionName" aria-label="Tên buổi" /></div>
-        <div class="col-sm-4"><label class="form-label small">Cơ sở</label><input class="form-control form-control-sm" data-field="Campus" aria-label="Cơ sở" value="Cơ sở 1" /></div>
-        <div class="col-sm-4"><label class="form-label small">Địa điểm</label><input class="form-control form-control-sm" data-field="Location" aria-label="Địa điểm" /></div>
-        <div class="col-sm-5"><label class="form-label small">Bắt đầu</label><input type="datetime-local" class="form-control form-control-sm" data-field="StartTime" aria-label="Bắt đầu" /></div>
-        <div class="col-sm-5"><label class="form-label small">Kết thúc</label><input type="datetime-local" class="form-control form-control-sm" data-field="EndTime" aria-label="Kết thúc" /></div>
-        <div class="col-sm-2 text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-remove-row>Xóa</button></div>
+        <div class="col-md-4"><label class="form-label">Tên buổi</label><input class="form-control" data-field="SessionName" aria-label="Tên buổi" /></div>
+        <div class="col-md-4"><label class="form-label">Cơ sở</label><input class="form-control" data-field="Campus" aria-label="Cơ sở" value="Cơ sở 1" /></div>
+        <div class="col-md-4"><label class="form-label">Địa điểm</label><input class="form-control" data-field="Location" aria-label="Địa điểm" /></div>
+        <div class="col-md-4"><label class="form-label">Bắt đầu</label><input type="datetime-local" class="form-control" data-field="StartTime" aria-label="Bắt đầu" /></div>
+        <div class="col-md-4"><label class="form-label">Kết thúc</label><input type="datetime-local" class="form-control" data-field="EndTime" aria-label="Kết thúc" /></div>
+        <div class="col-md-4 text-md-end"><button type="button" class="btn btn-outline-danger" data-remove-row>Xóa buổi</button></div>
     </div>
 </template>
 <template id="tpl-rule">
-    <div class="row g-2 align-items-end border-bottom py-2" data-row>
-        <div class="col-sm-4"><label class="form-label small">Cơ sở</label><input class="form-control form-control-sm" data-field="Campus" aria-label="Cơ sở" /></div>
-        <div class="col-sm-4"><label class="form-label small">Khóa</label><input class="form-control form-control-sm" placeholder="K22" data-field="AcademicYear" aria-label="Khóa" /></div>
-        <div class="col-sm-4">
-            <label class="form-label small">Lớp</label>
-            <select class="form-select form-select-sm" data-field="ClassId" aria-label="Lớp">
+    <div class="row g-3 align-items-end border-bottom pb-3 mb-3" data-row>
+        <div class="col-md-4"><label class="form-label">Cơ sở</label><input class="form-control" data-field="Campus" aria-label="Cơ sở" /></div>
+        <div class="col-md-4"><label class="form-label">Khóa</label><input class="form-control" placeholder="K22" data-field="AcademicYear" aria-label="Khóa" /></div>
+        <div class="col-md-4">
+            <label class="form-label">Lớp</label>
+            <select class="form-select" data-field="ClassId" aria-label="Lớp">
                 <option value="">— Mọi lớp —</option>
                 @foreach (var item in Model.Classes) { <option value="@item.Id">@item.ClassCode – @item.ClassName</option> }
             </select>
         </div>
-        <div class="col-sm-10">
-            <label class="form-label small">Mức tham gia</label>
-            <select class="form-select form-select-sm" data-field="ParticipationType" aria-label="Mức tham gia">
+        <div class="col-md-8">
+            <label class="form-label">Mức tham gia</label>
+            <select class="form-select" data-field="ParticipationType" aria-label="Mức tham gia">
                 @foreach (var (value, label) in participation) { <option value="@value">@label</option> }
             </select>
         </div>
-        <div class="col-sm-2 text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-remove-row>Xóa</button></div>
+        <div class="col-md-4 text-md-end"><button type="button" class="btn btn-outline-danger" data-remove-row>Xóa quy tắc</button></div>
     </div>
 </template>
 
